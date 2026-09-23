@@ -1,7 +1,7 @@
 import {
     Activity, AlarmClock, Anchor, Antenna, Aperture, AppWindow, Archive, AudioLines, AudioWaveform,
     BadgeCheck, Banknote, BedDouble, Bike, Bird, Book, Bookmark, BookMarked, BookOpen,
-    Bomb, BoomBox, Brain, Briefcase, Building, Bus, CakeSlice, Calculator, CalendarCheck,
+    BoomBox, Brain, Briefcase, Building, Bus, CakeSlice, Calculator, CalendarCheck,
     CalendarClock, CalendarDays, CalendarPlus, CalendarRange, Camera, Candy, Car, CarFront,
     CarTaxiFront, Castle, ChartBar, ChartCandlestick, ChartLine, Cherry, CircleCheckBig,
     CircleDollarSign, CircleDot, Clapperboard, Clock, Cloud, CloudDownload, CloudRain, CloudSun,
@@ -68,9 +68,6 @@ const APP_GLYPHS: Record<string, LucideIcon> = {
     cookie:      Cookie,
     passwords:   KeyRound,
     wordle:      LayoutGrid,
-    minesweeper: Bomb,
-    minesweeper_flag: Flag,
-    minesweeper_grid: Grid3x3,
     blackjack:   Spade,
     casino:      Dices,
     climber:     Mountain,
