@@ -1452,42 +1452,6 @@ function DojMdtIcon() {
     );
 }
 
-function MdtIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs>
-                <LinearGrad id={u('mdtbg')} top="#3D67D6" mid="#1D4ED8" bot="#0B1D4E" angle={160} />
-                <LinearGrad id={u('mdtstar')} top="#4271E4" bot="#12296B" angle={0} />
-                <filter id={u('mdtsh')} x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" floodColor="#050C24" floodOpacity="0.45" />
-                </filter>
-            </defs>
-            <rect width={S} height={S} fill={`url(#${u('mdtbg')})`} />
-            <path d={`M0 0 H${S} V19 Q${S / 2} 27 0 19 Z`} fill="rgba(255,255,255,0.12)" />
-            <g filter={`url(#${u('mdtsh')})`}>
-                <path
-                    d="M30 9.5 46 15.4V31.2c0 9-6.8 15.7-16 19.3-9.2-3.6-16-10.3-16-19.3V15.4Z"
-                    fill="#FFFFFF"
-                />
-                <path
-                    d="M30 13.6 42.3 18.1V31.1c0 6.9-5.1 12.1-12.3 15.2-7.2-3.1-12.3-8.3-12.3-15.2V18.1Z"
-                    fill="none"
-                    stroke="#1D4ED8"
-                    strokeOpacity="0.22"
-                    strokeWidth="1"
-                />
-            </g>
-            <svg x="19.5" y="18.5" width="21" height="21" viewBox="0 0 24 24">
-                <path
-                    d="M12 3.2l2.7 5.47 6.04.88-4.37 4.26 1.03 6.02L12 17.06l-5.4 2.84 1.03-6.02L3.26 9.55l6.04-.88z"
-                    fill={`url(#${u('mdtstar')})`}
-                />
-            </svg>
-        </svg>
-    );
-}
-
 const RACING_CLOTH =
     'M15.5 12.5C21.26 9.03 25.74 9.03 31.5 12.5C37.26 15.97 41.74 15.97 47.5 12.5'
     + 'V34.5C41.74 37.97 37.26 37.97 31.5 34.5C25.74 31.03 21.26 31.03 15.5 34.5Z';
@@ -1614,7 +1578,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     vibez:       VibezIcon,
     weazelnews:  WeazelNewsIcon,
     streaks:     StreaksIcon,
-    mdt:         MdtIcon,
     emsmdt:      EmsMdtIcon,
     dojmdt:      DojMdtIcon,
     racing:      RacingIcon,
