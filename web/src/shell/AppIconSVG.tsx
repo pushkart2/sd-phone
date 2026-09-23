@@ -924,25 +924,6 @@ function PasswordsIcon() {
     );
 }
 
-export function WordleIcon() {
-    const g = '#6AAA64', y = '#C9B458', x = '#787C7E';
-    const rows = [
-        [x, y, x, x, g],
-        [x, g, x, y, g],
-        [y, g, x, x, g],
-        [g, g, y, x, g],
-        [g, g, g, g, g],
-    ];
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <rect width={S} height={S} fill="#FFFFFF" />
-            {rows.map((row, ri) => row.map((c, ci) => (
-                <rect key={`${ri}-${ci}`} x={6 + ci * 10} y={6 + ri * 10} width="8" height="8" rx="1.6" fill={c} />
-            )))}
-        </svg>
-    );
-}
-
 export function BlackjackIcon() {
     const u = useIconIds();
     return (
@@ -1404,7 +1385,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     homes:       HomesIcon,
     cookie:      CookieIcon,
     passwords:   PasswordsIcon,
-    wordle:      WordleIcon,
     blackjack:   BlackjackIcon,
     casino:      CasinoIcon,
     climber:     ClimberIcon,

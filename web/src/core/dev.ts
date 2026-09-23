@@ -63,7 +63,6 @@ export function devInjectMockData(): () => void {
             { id: 'appstore',   label: 'App Store',   icon: 'appstore',   route: '/appstore',   accent: '#0a84ff', base: true },
             { id: 'calculator', label: 'Calculator',  icon: 'calculator', route: '/calculator', accent: '#333335', base: true },
             { id: 'cookie',     label: 'Cookie',      icon: 'cookie',     route: '/cookie',     accent: '#C77D2E' },
-            { id: 'wordle',     label: 'Penta',       icon: 'wordle',     route: '/wordle',     accent: '#6AAA64' },
             { id: 'casino',     label: 'Casino',      icon: 'casino',     route: '/casino',     accent: '#0F5132' },
             { id: 'climber',    label: 'Climber',     icon: 'climber',    route: '/climber',    accent: '#8BC34A' },
             { id: 'connectfour', label: 'Connect 4',  icon: 'connectfour', route: '/connectfour', accent: '#1E66D0' },

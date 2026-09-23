@@ -9,9 +9,9 @@ import {
     Diamond, Dices, Disc3, Divide, Donut, DoorOpen, Download, Dumbbell, Earth, Egg, EyeOff,
     FileText, Film, FingerprintPattern, Flag, Flame, FlameKindling, Flower2, Focus, Folder,
     FolderOpen, Frame, GalleryHorizontalEnd, GalleryVerticalEnd, Gamepad2, Gift, Globe, Grid2x2,
-    Grid3x3, Hammer, HardHat, Hash, Headphones, Headset, Heart, HeartHandshake, HeartPulse,
+    Hammer, HardHat, Hash, Headphones, Headset, Heart, HeartHandshake, HeartPulse,
     Hourglass, House, IceCreamCone, IdCard, Image as ImageIcon, Images, Inbox, Joystick, Key, KeyRound,
-    Landmark, Layers2, LayoutGrid, Link, ListMusic, ListTodo, LocateFixed, Lock,
+    Landmark, Layers2, Link, ListMusic, ListTodo, LocateFixed, Lock,
     LockKeyhole, Mail, Mailbox, MailOpen, Map, MapPin, MapPinned, Medal, Megaphone, MessageCircle,
     MessageCircleMore, MessageSquare, MessageSquareText, MessagesSquare, Mic, MicVocal, Mountain,
     MountainSnow, Music, Navigation, Navigation2, Newspaper, Notebook, Package, Paperclip, PenLine,
@@ -19,9 +19,9 @@ import {
     Radar, Radio, RadioTower, ReceiptText, Rocket, Route, Rss, Sailboat, Satellite,
     ScanFace, ScanSearch, ScrollText, Search, Send, Settings, Shield, ShieldCheck, ShieldHalf, Ship,
     ShipWheel, ShoppingBag, ShoppingBasket, ShoppingCart, Skull, SlidersHorizontal, Snowflake,
-    Spade, Sparkle, Sparkles, Speaker, SpellCheck, Star, StarHalf, Stethoscope, StickyNote, Store,
+    Spade, Sparkle, Sparkles, Speaker, Star, StarHalf, Stethoscope, StickyNote, Store,
     Sun, SwitchCamera, Swords, Tag, Target, ThumbsUp, Ticket, Timer, ToggleRight,
-    TrainTrack, TramFront, Trees, TrendingDown, TrendingUp, Truck, Tv, TvMinimal, Type, UserRound,
+    TrainTrack, TramFront, Trees, TrendingDown, TrendingUp, Truck, Tv, TvMinimal, UserRound,
     Users, UserSearch, UsersRound, Vault, Video, Voicemail, Wallet, Warehouse, Waves, Waypoints,
     Wrench, Zap,
 } from 'lucide-react';
@@ -67,7 +67,6 @@ const APP_GLYPHS: Record<string, LucideIcon> = {
     homes:       House,
     cookie:      Cookie,
     passwords:   KeyRound,
-    wordle:      LayoutGrid,
     blackjack:   Spade,
     casino:      Dices,
     climber:     Mountain,
@@ -246,9 +245,6 @@ const APP_GLYPHS: Record<string, LucideIcon> = {
     weather_rain:       CloudRain,
     weather_snow:       Snowflake,
     weather_sun:        Sun,
-    wordle_grid:        Grid3x3,
-    wordle_spell:       SpellCheck,
-    wordle_type:        Type,
 };
 
 function initials(label: string): string {

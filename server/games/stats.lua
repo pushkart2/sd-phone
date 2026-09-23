@@ -8,7 +8,6 @@ local STAT_GAMES = {
     baccarat = true, battleship = true, blackjack = true,
     chess = true, climber = true, connectfour = true, crash = true,
     holdem = true, roulette = true, slots = true,
-    wordle = true,
 }
 
 ---True when a client-supplied game id is one of the shipped games. Closes the key space of

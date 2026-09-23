@@ -4,7 +4,7 @@ local BUILTIN = {
     'photos', 'bank', 'settings', 'clock', 'messages', 'phone', 'calendar', 'mail', 'weather',
     'maps', 'music', 'stocks', 'ryde', 'notes', 'voicememos', 'health', 'compass', 'groups',
     'services', 'pages', 'marketplace', 'radio', 'darkchat', 'cherry', 'photogram',
-    'garages', 'homes', 'calculator', 'passwords', 'id', 'cookie', 'wordle',
+    'garages', 'homes', 'calculator', 'passwords', 'id', 'cookie',
     'blackjack', 'casino', 'climber', 'connectfour', 'chess', 'battleship', 'vibez',
     'weazelnews', 'streaks', 'birdy', 'racing', 'appstore', 'camera',
 }

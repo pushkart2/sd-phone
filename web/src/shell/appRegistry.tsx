@@ -76,7 +76,6 @@ const APP_REGISTRY = {
     calculator:  entry(() => import('@/apps/calculator/Calculator').then(m => ({ default: m.Calculator }))),
     passwords:   entry(() => import('@/apps/passwords/Passwords').then(m => ({ default: m.Passwords }))),
     cookie:      entry(() => import('@/apps/cookie/Cookie').then(m => ({ default: m.Cookie }))),
-    wordle:      entry(() => import('@/apps/wordle/Wordle').then(m => ({ default: m.Wordle }))),
     casino:      entry(() => import('@/apps/casino/Casino').then(m => ({ default: m.Casino }))),
     climber:     entry(() => import('@/apps/climber/Climber').then(m => ({ default: m.Climber }))),
     connectfour: entry(() => import('@/apps/connectfour/ConnectFour').then(m => ({ default: m.ConnectFour }))),

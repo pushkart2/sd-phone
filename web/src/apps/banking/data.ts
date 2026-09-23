@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
     Briefcase, Building2, Car, CircleDot, Coffee, CreditCard, Crown, Dices, Drill, Film, Flame,
     Fuel, Home, MapPin, Pill, Pizza, ReceiptText, Ship, ShoppingBag, ShoppingCart, Spade,
-    Repeat, Stethoscope, Type, Wrench, Zap,
+    Repeat, Stethoscope, Wrench, Zap,
 } from 'lucide-react';
 
 import { getCatalogVersion, t } from '@/i18n';
@@ -54,7 +54,7 @@ export type Category =
     | 'food' | 'groceries' | 'shopping' | 'transport' | 'fuel'
     | 'entertainment' | 'services' | 'health' | 'bills' | 'housing'
     | 'income' | 'transfer' | 'invoice' | 'chess' | 'connectfour' | 'battleship' | 'blackjack'
-    | 'casino' | 'wordle' | 'ryde' | 'streaks' | 'standing';
+    | 'casino' | 'ryde' | 'streaks' | 'standing';
 
 export interface CategoryMeta {
     label: string;
@@ -89,7 +89,6 @@ export function getCategories(): Record<Category, CategoryMeta> {
         battleship:    { label: t('banking.catBattleship', 'Battleship'),    icon: Ship,         color: '#17A0B5' },
         blackjack:     { label: t('banking.catBlackjack', 'Blackjack'),     icon: Spade,        color: '#1C8A4E' },
         casino:        { label: t('banking.catCasino', 'Casino'),        icon: Dices,        color: '#0F5132' },
-        wordle:        { label: t('banking.catWordle', 'Penta'),        icon: Type,         color: '#6AAA64' },
         ryde:          { label: t('banking.catRyde', 'Ryde'),          icon: Car,          color: '#1c1c1e' },
         streaks:       { label: t('banking.catStreaks', 'Streaks'),       icon: Flame,        color: '#FF7A1A' },
     };

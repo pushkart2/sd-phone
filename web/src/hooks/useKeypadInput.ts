@@ -6,7 +6,7 @@ import { useDeckActive } from '@/shell/deckActive';
 /**
  * Physical keyboard support for on-screen digit pads: number keys, optional extras
  * (`.` / `*` / `#`), and Backspace/Delete. Also claims the keyboard from game binds
- * while enabled (same path as Wordle), since keep-input would otherwise let 1–9 fire
+ * while enabled, since keep-input would otherwise let 1–9 fire
  * weapon-slot / inventory mappings.
  *
  * Deck-gated like useKeyboardCapture: the keep-alive deck keeps keypad screens MOUNTED

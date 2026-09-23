@@ -55,8 +55,7 @@ local function currencyOf(game) return (configs[game] and configs[game].currency
 local sanitizeWager = util.wholeAmount
 
 ---@type integer, integer, integer Budget for one relayed move/relay payload: nodes walked, nesting
----depth and total string bytes. Wordle's grid (six rows of five cells, nested three deep) is the
----largest payload any shipped game sends, so this sits far above real play.
+---depth and total string bytes. Game payloads stay far below these caps during normal play.
 local PAYLOAD_NODES, PAYLOAD_DEPTH, PAYLOAD_BYTES = 512, 5, 4096
 
 ---@type integer, integer Rolling budget for move + relay calls: a shot in battleship costs two,

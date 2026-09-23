@@ -45,7 +45,6 @@ const APP_DEFS: ThemeApp[] = [
     { id: 'calculator',  label: 'Calculator',   icon: 'calculator',  accent: '#333335' },
     { id: 'passwords',   label: 'Passwords',    icon: 'passwords',   accent: '#1c1c1e' },
     { id: 'cookie',      label: 'Cookie',       icon: 'cookie',      accent: '#c77d2e' },
-    { id: 'wordle',      label: 'Penta',        icon: 'wordle',      accent: '#6aaa64' },
     { id: 'casino',      label: 'Casino',       icon: 'casino',      accent: '#0f5132' },
     { id: 'climber',     label: 'Climber',      icon: 'climber',     accent: '#8bc34a' },
     { id: 'connectfour', label: 'Connect 4',    icon: 'connectfour', accent: '#1e66d0' },
@@ -108,7 +107,6 @@ export const GLYPH_NAMES: string[] = [
     'vibez_clapper', 'vibez_play', 'vibez_tv', 'voice_lines', 'voice_mailbox', 'voice_vocal',
     'voicememos', 'wallet', 'wallet_card', 'wallet_cash', 'wallet_coin', 'wallet_receipt',
     'weather', 'weather_cloud', 'weather_rain', 'weather_snow', 'weather_sun', 'weazelnews',
-    'wordle', 'wordle_grid', 'wordle_spell', 'wordle_type',
 ];
 
 let glyphLabelCache: Record<string, string> | null = null;
@@ -289,9 +287,6 @@ function glyphLabels(): Record<string, string> {
         weather_rain:       t('settings.glyphWeatherRain', 'Rain'),
         weather_snow:       t('settings.glyphWeatherSnow', 'Snowflake'),
         weather_sun:        t('settings.glyphWeatherSun', 'Sun'),
-        wordle_grid:        t('settings.glyphWordleGrid', 'Letter Grid'),
-        wordle_spell:       t('settings.glyphWordleSpell', 'Spell Check'),
-        wordle_type:        t('settings.glyphWordleType', 'Letters'),
     };
     return glyphLabelCache;
 }

@@ -106,7 +106,6 @@ require 'server.games.casino.baccarat'
 require 'server.games.casino.crash.init'
 require 'server.games.casino.holdem.init'
 require 'server.battleship.init'
-require 'server.wordle.init'
 require 'server.admin.wipe'
 require 'server.admin.init'
 -- Registers the manual database-maintenance command. Store boot threads populate its queue as they
