@@ -76,7 +76,6 @@ const APP_REGISTRY = {
     calculator:  entry(() => import('@/apps/calculator/Calculator').then(m => ({ default: m.Calculator }))),
     passwords:   entry(() => import('@/apps/passwords/Passwords').then(m => ({ default: m.Passwords }))),
     casino:      entry(() => import('@/apps/casino/Casino').then(m => ({ default: m.Casino }))),
-    chess:       entry(() => import('@/apps/chess/Chess').then(m => ({ default: m.Chess }))),
     battleship:  entry(() => import('@/apps/battleship/Battleship').then(m => ({ default: m.Battleship }))),
     vibez:       entry(() => import('@/apps/vibez/Vibez').then(m => ({ default: m.Vibez }))),
     weazelnews:  entry(() => import('@/apps/weazelnews/WeazelNews').then(m => ({ default: m.WeazelNews }))),

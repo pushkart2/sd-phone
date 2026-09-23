@@ -1,4 +1,4 @@
--- Every online game (chess, battleship) shares this one bridge into the
+-- Every remaining online game (battleship) shares this one bridge into the
 -- generic games engine.
 ---@type string[] NUI action suffixes proxied 1:1 to sd-phone:server:games:<action>.
 local ACTIONS = {

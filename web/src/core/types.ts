@@ -502,12 +502,6 @@ export type NuiMessage =
     | { action: 'sd-phone:wipe' }
     | { action: 'sd-phone:admin:open'; data: { adminName?: string; sim?: boolean; racing?: boolean } }
     | { action: 'sd-phone:admin:migrate'; data: import('@/admin/types').MigrationPush }
-    | { action: 'chess:invited';  data: { fromSrc: string; fromName: string; lobbyId: string } }
-    | { action: 'chess:lobby';    data: { id: string; host: string; public: boolean; wager: number; isHost: boolean; canStart: boolean; members: { name: string; you: boolean; host: boolean; color: 'w' | 'b' | 'random'; canAfford: boolean; ready: boolean; returned: boolean }[] } }
-    | { action: 'chess:lobbyClosed'; data: Record<string, never> }
-    | { action: 'chess:start';    data: { gameId: string; color: 'w' | 'b'; opponent: string; pot: number } }
-    | { action: 'chess:move';     data: { gameId: string; move: { from: number; to: number; promo?: string; flag?: string } } }
-    | { action: 'chess:ended';    data: { reason: string } }
     | { action: 'battleship:invited';  data: { fromSrc: string; fromName: string; lobbyId: string } }
     | { action: 'battleship:lobby';    data: { id: string; host: string; public: boolean; wager: number; isHost: boolean; canStart: boolean; members: { name: string; you: boolean; host: boolean; color: string; canAfford: boolean; ready: boolean; returned: boolean }[] } }
     | { action: 'battleship:lobbyClosed'; data: Record<string, never> }

@@ -6,7 +6,7 @@ local util = require 'server.util'
 ---single-player and never register.
 local STAT_GAMES = {
     baccarat = true, battleship = true, blackjack = true,
-    chess = true, crash = true,
+    crash = true,
     holdem = true, roulette = true, slots = true,
 }
 
@@ -18,12 +18,12 @@ local function knownGame(game) return type(game) == 'string' and STAT_GAMES[game
 
 ---@type table Stats module; the table returned at end of file. Unified per-character game stats
 ---(W/L/D, split vs-Computer / Online, cumulative chip amounts, and a single-player high score)
----shared by every game (chess, blackjack, ...). One row per
+---shared by every game (blackjack, ...). One row per
 ---(citizenid, game).
 local stats = {}
 
 ---Creates the stats table if it doesn't exist, back-fills the chip-amount + high-score columns,
----and copies legacy chess records over via INSERT IGNORE.
+---and ensures indexes used by the remaining game boards.
 function stats.ensureSchema()
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_game_stats (
@@ -51,20 +51,6 @@ function stats.ensureSchema()
         plays      = 'plays INT NOT NULL DEFAULT 0',
         last_score = 'last_score BIGINT NOT NULL DEFAULT 0',
     })
-    util.registerSchemaTask('game-stats-import-legacy-chess', 15, function()
-        local legacy = MySQL.single.await([[
-            SELECT COUNT(*) AS n FROM information_schema.tables
-            WHERE table_schema = DATABASE() AND table_name = 'phone_chess_stats'
-        ]])
-        if legacy and tonumber(legacy.n) > 0 then
-            MySQL.query.await([[
-                INSERT IGNORE INTO phone_game_stats
-                    (citizenid, game, name, cpu_wins, cpu_losses, cpu_draws, online_wins, online_losses, online_draws)
-                SELECT citizenid, 'chess', name, cpu_wins, cpu_losses, cpu_draws, online_wins, online_losses, online_draws
-                FROM phone_chess_stats
-            ]])
-        end
-    end)
     -- `game` is the SECOND primary-key column, so every board's `WHERE game = ?` had no usable
     -- index and scanned the whole table.
     util.ensureIndex('phone_game_stats', 'idx_game_stats_game_high',   '(game, high_score)')

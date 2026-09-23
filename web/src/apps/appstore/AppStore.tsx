@@ -56,7 +56,6 @@ function getDescriptions(): Record<string, string> {
         vibez:       t('appstore.descVibez', 'Short videos and trends'),
         weazelnews:  t('appstore.descWeazelnews', 'Statewide headlines'),
         casino:      t('appstore.descCasino', 'Blackjack, roulette and slots'),
-        chess:       t('appstore.descChess', 'Outplay and checkmate'),
         battleship:  t('appstore.descBattleship', 'Sink the enemy fleet'),
         streaks:     t('appstore.descStreaks', 'A photo a day, keep your streak'),
         racing:      t('appstore.descRacing', 'Race tracks, rankings and events'),
