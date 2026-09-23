@@ -13,7 +13,7 @@ share.registerHandler('pin', actions.deliverShare)
 
 ---Bootstraps the pins schema once at boot.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('maps', err)
         return

@@ -8,7 +8,7 @@ local actions = require 'server.clock.actions'
 
 -- Schema bootstrap, once at boot.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('clock', err)
         return

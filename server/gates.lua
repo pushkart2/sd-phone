@@ -44,7 +44,7 @@ function gates.ensureSchema()
 end
 
 CreateThread(function()
-    local ok, err = pcall(gates.ensureSchema)
+    local ok, err = boot.runSchemaInstall(gates.ensureSchema)
     if not ok then
         boot.schemaFailed('gates', err)
         return

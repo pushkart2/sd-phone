@@ -22,7 +22,7 @@ local util      = require 'server.util'
 
 -- Schema bootstrap for the prefs, inbox, and saved-jobs tables.
 CreateThread(function()
-    local ok, err = pcall(function()
+    local ok, err = boot.runSchemaInstall(function()
         store.ensureSchema()
         msgstore.ensureSchema()
         jobstore.ensureSchema()

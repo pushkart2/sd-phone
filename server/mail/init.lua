@@ -15,7 +15,7 @@ local fail, trim = util.fail, util.trim
 
 ---Boots the mail schema; a failure is printed and non-fatal.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('mail', err)
         return

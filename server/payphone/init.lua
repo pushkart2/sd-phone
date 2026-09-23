@@ -24,7 +24,16 @@ local ok, fail, digits = util.ok, util.fail, util.digits
 
 if cfg.Enabled then
     CreateThread(function()
-        local success, err = pcall(store.ensureSchema)
+        local success, err = boot.runSchemaInstall(store.ensureSchema)
+        if not success then
+            boot.schemaFailed('payphone', err)
+            return
+        end
+        boot.schemaReady()
+    end)
+else
+    CreateThread(function()
+        local success, err = boot.runSchemaInstall(store.ensureSchema)
         if not success then
             boot.schemaFailed('payphone', err)
             return

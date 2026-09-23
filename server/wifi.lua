@@ -42,7 +42,7 @@ local wifiServer = {}
 
 -- Schema bootstrap.
 CreateThread(function()
-    local success, err = pcall(store.ensureSchema)
+    local success, err = boot.runSchemaInstall(store.ensureSchema)
     if not success then
         boot.schemaFailed('wifi', err)
         return

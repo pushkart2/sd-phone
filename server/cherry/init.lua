@@ -10,7 +10,7 @@ require 'server.cherry.seed'
 
 -- Boot thread: creates the cherry tables (idempotent).
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('cherry', err)
         return

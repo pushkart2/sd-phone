@@ -14,7 +14,7 @@ local watchers = {}
 
 -- Schema bootstrap, once at boot: creates/upgrades the phone_friends table.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('friends', err)
         return

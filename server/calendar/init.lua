@@ -9,7 +9,7 @@ local actions = require 'server.calendar.actions'
 
 -- Boot thread: creates the events and attendees tables.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('calendar', err)
         return

@@ -9,7 +9,7 @@ local actions = require 'server.accounts.actions'
 ---Bootstraps the schema and runs the one-time legacy credential migration in a thread, each
 ---step pcall-guarded independently.
 CreateThread(function()
-    local okSchema, err = pcall(store.ensureSchema)
+    local okSchema, err = boot.runSchemaInstall(store.ensureSchema)
     if not okSchema then
         boot.schemaFailed('accounts', err)
         return

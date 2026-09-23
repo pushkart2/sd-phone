@@ -8,7 +8,7 @@ local actions = require 'server.ryde.actions'
 
 -- Schema bootstrap.
 CreateThread(function()
-    local success, err = pcall(store.ensureSchema)
+    local success, err = boot.runSchemaInstall(store.ensureSchema)
     if not success then
         boot.schemaFailed('ryde', err)
         return

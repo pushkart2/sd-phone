@@ -39,7 +39,7 @@ AddEventHandler('playerDropped', function() uploading[source] = nil end)
 
 ---Bootstraps the memos schema once at boot.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('voice', err)
         return

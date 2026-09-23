@@ -10,7 +10,7 @@ local live    = require 'server.streaks.live'
 
 -- Boot thread: creates the Streaks tables.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('streaks', err)
         return

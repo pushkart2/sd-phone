@@ -46,7 +46,7 @@ end)
 -- Boot then heartbeat: creates the schema, seeds prices, then ticks the market every
 -- ST.TickSeconds, pushing the light tick payload to players with Stocks open.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('stocks', err)
         return

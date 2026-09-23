@@ -25,7 +25,7 @@ local UPDATE_REPO = 'Samuels-Development/sd-phone'
 
 -- Schema bootstrap.
 CreateThread(function()
-    local success, err = pcall(store.ensureSchema)
+    local success, err = boot.runSchemaInstall(store.ensureSchema)
     if not success then
         boot.schemaFailed('settings', err)
         return

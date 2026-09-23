@@ -16,7 +16,7 @@ local util    = require 'server.util'
 
 -- Boot thread: creates the vibez tables.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('vibez', err)
         return

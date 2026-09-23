@@ -18,7 +18,7 @@ share.registerHandler('contact', actions.deliverShare)
 
 ---Boots the contacts schema; a failure is printed and non-fatal.
 CreateThread(function()
-    local success, err = pcall(store.ensureSchema)
+    local success, err = boot.runSchemaInstall(store.ensureSchema)
     if not success then
         boot.schemaFailed('contacts', err)
         return

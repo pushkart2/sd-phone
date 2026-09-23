@@ -22,7 +22,7 @@ local SWEEP_MS = 30 * 60 * 1000
 
 -- Schema bootstrap runs once at load; a failure is printed.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('darkchat', err)
         return

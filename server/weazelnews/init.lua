@@ -14,7 +14,7 @@ local APP_ENABLED = util.appEnabled('weazelnews')
 
 -- Boot-time schema bootstrap.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('weazelnews', err)
         return

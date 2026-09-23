@@ -15,7 +15,7 @@ local PENDING_MAX_AGE = 14 * 24 * 60 * 60
 
 ---Boots the message schema; a failure is printed and leaves the module inert.
 CreateThread(function()
-    local success, err = pcall(store.ensureSchema)
+    local success, err = boot.runSchemaInstall(store.ensureSchema)
     if not success then
         boot.schemaFailed('messages', err)
         return

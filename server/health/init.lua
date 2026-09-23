@@ -8,7 +8,7 @@ local actions = require 'server.health.actions'
 local util = require 'server.util'
 
 CreateThread(function()
-    local success, err = pcall(store.ensureSchema)
+    local success, err = boot.runSchemaInstall(store.ensureSchema)
     if not success then
         boot.schemaFailed('health', err)
         return

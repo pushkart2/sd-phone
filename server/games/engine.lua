@@ -751,7 +751,7 @@ end
 
 -- One-shot boot thread: creates the shared stats schema.
 CreateThread(function()
-    local good, err = pcall(stats.ensureSchema)
+    local good, err = boot.runSchemaInstall(stats.ensureSchema)
     if good then boot.schemaReady() else boot.schemaFailed('games:stats', err) end
 end)
 

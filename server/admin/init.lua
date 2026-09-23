@@ -21,7 +21,7 @@ local player      = require 'bridge.server.player'
 
 ---Bootstraps the admin + mute tables, pcall-guarded like every other module.
 CreateThread(function()
-    local okSchema, err = pcall(function()
+    local okSchema, err = boot.runSchemaInstall(function()
         store.ensureSchema()
         moderation.ensureSchema()
         flags.ensureSchema()

@@ -1,5 +1,6 @@
 ---@type table Bluetooth persistence (server.bluetooth.store): schema, radio switch, paired list.
 local store = require 'server.bluetooth.store'
+local boot = require 'server.boot'
 ---@type table Device registry (server.bluetooth.registry): registrations + live connections.
 local registry = require 'server.bluetooth.registry'
 ---@type table Bluetooth callbacks (server.bluetooth.actions): scan, pair, forget, disconnect.
@@ -7,8 +8,8 @@ local actions = require 'server.bluetooth.actions'
 ---@type table sd-phone config root (configs/config.lua).
 local config = require 'configs.config'
 
----@type boolean Whether this server runs Bluetooth at all. Off leaves the schema uncreated, the
----sweep asleep and every registration refused, so no device can exist to pair with.
+---@type boolean Whether this server runs Bluetooth at all. Off leaves the sweep asleep and every
+---registration refused, so no device can exist to pair with.
 local ENABLED = (config.Bluetooth or {}).Enabled ~= false
 
 ---@type integer Milliseconds between reconnect sweeps. Slow on purpose: this is the only cost the
@@ -19,14 +20,15 @@ local TICK_MS = 4000
 ---and dropped again by anything that changes it.
 local watch = {}
 
-if ENABLED then
-    CreateThread(function()
-        local ok, err = pcall(store.ensureSchema)
-        if not ok then
-            print(('^1[sd-phone:bluetooth]^0 schema failed, the feature is off: %s'):format(tostring(err)))
-        end
-    end)
-end
+CreateThread(function()
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
+    if not ok then
+        boot.schemaFailed('bluetooth', err)
+        print(('^1[sd-phone:bluetooth]^0 schema failed, the feature is off: %s'):format(tostring(err)))
+        return
+    end
+    boot.schemaReady()
+end)
 
 ---A player's cached state, read from the database the first time and kept until they leave or change
 ---something. Returns nil when they have no loaded character to read for.

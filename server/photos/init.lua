@@ -64,12 +64,12 @@ end
 ---refuses to mint a slot until the ledger can say what this server has already hosted, so the
 ---direct-upload path is simply off until this has run.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('photos', err)
         return
     end
-    local okLedger, ledgerErr = pcall(ledger.ensureSchema)
+    local okLedger, ledgerErr = boot.runSchemaInstall(ledger.ensureSchema)
     if not okLedger then
         boot.schemaFailed('media ledger', ledgerErr)
         return

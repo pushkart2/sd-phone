@@ -148,7 +148,7 @@ CreateThread(function()
         return
     end
 
-    local ok, err = pcall(simStore.ensureSchema)
+    local ok, err = boot.runSchemaInstall(simStore.ensureSchema)
     if not ok then
         boot.schemaFailed('sim', err)
         return

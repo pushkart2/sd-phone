@@ -184,7 +184,7 @@ if ENABLED then
     -- Schema bootstrap. The dispatcher and the generator both read tracks, so they only come up
     -- once the tables they read from exist.
     CreateThread(function()
-        local success, err = pcall(store.ensureSchema)
+        local success, err = boot.runSchemaInstall(store.ensureSchema)
         if not success then
             boot.schemaFailed('racing', err)
             return
@@ -230,5 +230,16 @@ if ENABLED then
             local src    = player.getSourceByIdentifier(refund.citizenid)
             if src then races.refundBuyIn(src, refund.account, refund.amount) end
         end
+    end)
+else
+    -- Install racing storage even while the feature is switched off, so the global import marker
+    -- never hides tables when an operator enables racing later.
+    CreateThread(function()
+        local success, err = boot.runSchemaInstall(store.ensureSchema)
+        if not success then
+            boot.schemaFailed('racing', err)
+            return
+        end
+        boot.schemaReady()
     end)
 end

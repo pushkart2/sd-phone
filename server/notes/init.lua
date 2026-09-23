@@ -14,7 +14,7 @@ share.registerHandler('note', actions.deliverShare)
 
 -- Boot-time schema bootstrap.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('notes', err)
         return

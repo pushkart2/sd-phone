@@ -32,7 +32,7 @@ AddEventHandler('playerDropped', function() uploading[source] = nil end)
 
 ---Bootstraps the voicemails schema once at boot.
 CreateThread(function()
-    local okSchema, err = pcall(store.ensureSchema)
+    local okSchema, err = boot.runSchemaInstall(store.ensureSchema)
     if not okSchema then
         boot.schemaFailed('voicemail', err)
         return

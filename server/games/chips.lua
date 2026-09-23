@@ -186,7 +186,7 @@ end)
 
 -- One-shot boot thread: creates the wallet schema.
 CreateThread(function()
-    local good, err = pcall(chips.ensureSchema)
+    local good, err = boot.runSchemaInstall(chips.ensureSchema)
     if good then boot.schemaReady() else boot.schemaFailed('games:chips', err) end
 end)
 

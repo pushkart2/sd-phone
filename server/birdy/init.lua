@@ -12,7 +12,7 @@ local util    = require 'server.util'
 
 -- Boot thread: creates/upgrades the phone_birdy_* tables.
 CreateThread(function()
-    local success, err = pcall(store.ensureSchema)
+    local success, err = boot.runSchemaInstall(store.ensureSchema)
     if not success then
         boot.schemaFailed('birdy', err)
         return

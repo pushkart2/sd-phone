@@ -10,7 +10,7 @@ local util    = require 'server.util'
 
 -- Boot thread: creates the Medical ID table.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('medical', err)
         return

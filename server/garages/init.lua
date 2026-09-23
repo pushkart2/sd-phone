@@ -5,6 +5,7 @@ local garages = require 'bridge.server.garages'
 local player  = require 'bridge.server.player'
 ---@type table Shared server helpers (server.util): onCleanup, ok, fail.
 local util    = require 'server.util'
+local boot    = require 'server.boot'
 ---@type table Custom vehicle pictures (server.garages.images): schema + per-plate photo overrides.
 local images  = require 'server.garages.images'
 ---@type table Garages app config (configs.garages): the CustomImages switch.
@@ -14,15 +15,18 @@ local G       = require 'configs.garages'
 ---and every write refused, so the list never carries an override either.
 local CUSTOM_IMAGES = G.Enabled ~= false and G.CustomImages ~= false
 
-if CUSTOM_IMAGES then
-    CreateThread(function()
-        local ok, err = pcall(images.ensureSchema)
-        if not ok then
-            print(('^1[sd-phone:garages]^0 custom image schema failed, the option is off: %s'):format(tostring(err)))
-            CUSTOM_IMAGES = false
-        end
-    end)
-end
+-- Install the optional table even when custom images are switched off, so the one-time marker
+-- cannot prevent the feature from being enabled later without a schema-version bump.
+CreateThread(function()
+    local ok, err = boot.runSchemaInstall(images.ensureSchema)
+    if not ok then
+        boot.schemaFailed('garage images', err)
+        print(('^1[sd-phone:garages]^0 custom image schema failed, the option is off: %s'):format(tostring(err)))
+        CUSTOM_IMAGES = false
+        return
+    end
+    boot.schemaReady()
+end)
 
 ---@type integer Seconds a built list stays warm. garages.list reads the garage table, calls the
 ---active garage resource, then walks every vehicle entity on the server with a plate native each.

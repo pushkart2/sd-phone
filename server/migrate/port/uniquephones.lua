@@ -11,6 +11,7 @@ local M = {}
 local store = require 'server.migrate.store'
 ---@type table SIM registry (server.sim.store): owns the phone_sim_cards schema.
 local simStore = require 'server.sim.store'
+local boot = require 'server.boot'
 
 ---@param ctx table migration context (resolvedPhones, scheme, dryRun)
 ---@return { registered: number, skipped: number, refused: number, pending: number }
@@ -27,7 +28,7 @@ function M.run(ctx)
 
     -- phone_sim_cards is created by the sim module's boot thread, which this can beat. ensureSchema
     -- is idempotent, so claiming it here costs nothing and removes the race.
-    local ok, err = pcall(simStore.ensureSchema)
+    local ok, err = boot.runSchemaInstall(simStore.ensureSchema)
     if not ok then
         error(('the SIM registry could not be created: %s'):format(tostring(err)), 0)
     end

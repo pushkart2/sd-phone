@@ -14,7 +14,7 @@ local framework = require 'bridge.shared.framework'
 
 ---Schema bootstrap, run in a thread.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('groups', err)
         return

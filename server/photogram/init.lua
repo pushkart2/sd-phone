@@ -14,7 +14,7 @@ local util    = require 'server.util'
 
 -- Boot thread: creates/patches the photogram tables.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('photogram', err)
         return

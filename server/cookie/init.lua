@@ -19,7 +19,7 @@ local FLUSH_MS = (((config.Cookie or {}).SaveInterval) or 60) * 1000
 
 -- Schema bootstrap, once at boot.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('cookie', err)
         return

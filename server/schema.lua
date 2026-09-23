@@ -4,6 +4,7 @@ local boot = require 'server.boot'
 
 -- Increment this when a release adds schema work that must be applied to already-validated servers.
 local SCHEMA_VERSION = 1
+local INSTALL_VERSION = 1
 local VALIDATION_KEY = 'sd-phone'
 local running = false
 local validatedVersion
@@ -14,15 +15,29 @@ local function log(message)
 end
 
 local function ensureValidationTable()
+    local exists, result = pcall(MySQL.scalar.await,
+        'SELECT 1 FROM phone_schema_validation WHERE validation_key = ? LIMIT 1', { VALIDATION_KEY })
+    if exists then return result end
+
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_schema_validation (
             validation_key VARCHAR(64) NOT NULL,
             schema_version INT UNSIGNED NOT NULL,
             validated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             operations_completed INT UNSIGNED NOT NULL DEFAULT 0,
+            imported TINYINT(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (validation_key)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ]])
+end
+
+local function saveImportedMarker()
+    MySQL.query.await([[
+        INSERT INTO phone_schema_validation
+            (validation_key, schema_version, operations_completed, imported)
+        VALUES (?, ?, 0, 1)
+        ON DUPLICATE KEY UPDATE imported = 1, schema_version = VALUES(schema_version)
+    ]], { VALIDATION_KEY, INSTALL_VERSION })
 end
 
 local function runValidation(force)
@@ -44,8 +59,15 @@ local function runValidation(force)
             'SELECT schema_version FROM phone_schema_validation WHERE validation_key = ? LIMIT 1',
             { VALIDATION_KEY }))
         validatedVersion = storedVersion
-        if not force and storedVersion == SCHEMA_VERSION then
+        if not force and storedVersion == SCHEMA_VERSION and util.schemaTaskCount() == 0 then
             running = false
+            if not boot.hasSchemaFailures() then
+                local saved, saveErr = pcall(saveImportedMarker)
+                if not saved then
+                    log(('^1could not save imported marker:^0 %s'):format(tostring(saveErr)))
+                    return
+                end
+            end
             log(('schema already validated at version %d; skipping catalogue checks.'):format(SCHEMA_VERSION))
             return
         end
@@ -66,7 +88,7 @@ local function runValidation(force)
             log(('^1FAILED^0 %s'):format(result.failures[i]))
         end
 
-        if result.failed ~= 0 or (result.warnings or 0) ~= 0 then
+        if result.failed ~= 0 or (result.warnings or 0) ~= 0 or boot.hasSchemaFailures() then
             log('^3validation marker was not saved; checks will run again next start.^0')
             return
         end
@@ -84,6 +106,11 @@ local function runValidation(force)
         end
 
         validatedVersion = SCHEMA_VERSION
+        local imported, importErr = pcall(saveImportedMarker)
+        if not imported then
+            log(('^1schema validated but imported marker could not be saved:^0 %s'):format(tostring(importErr)))
+            return
+        end
         log(('schema is ready; version %d saved. Future restarts will skip catalogue checks.')
             :format(SCHEMA_VERSION))
     end)

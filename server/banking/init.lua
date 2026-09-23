@@ -45,7 +45,7 @@ end)
 
 -- Schema bootstrap.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('banking', err)
         return

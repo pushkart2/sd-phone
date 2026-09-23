@@ -15,7 +15,7 @@ local APP_ENABLED = util.appEnabled('pages')
 
 -- One-shot boot thread: creates/migrates the pages table.
 CreateThread(function()
-    local ok, err = pcall(store.ensureSchema)
+    local ok, err = boot.runSchemaInstall(store.ensureSchema)
     if not ok then
         boot.schemaFailed('pages', err)
         return

@@ -26,8 +26,11 @@ local QUIET_TICKS = 3
 local M = {}
 
 local ready = 0
+local schemaInFlight = 0
 local schemasSettled = false
 local failures = {}
+local installGatePromise
+local installGateResult
 ---@type string[] Deferred setup warnings, printed with the summary so a module never has to
 ---print on its own and race the rest of the boot output.
 local warnings = {}
@@ -58,12 +61,83 @@ function M.schemaFailed(name, err)
     print(('^1[sd-phone]^0 %s schema bootstrap failed: %s'):format(name, err))
 end
 
+---Waits for the one-row install registry and returns whether this boot should run schema DDL.
+---Failures deliberately fail open so a missing registry cannot silently strand an installation.
+---@return boolean shouldInstall
+function M.shouldInstallSchema()
+    if installGateResult ~= nil then return installGateResult end
+
+    if not installGatePromise then
+        installGatePromise = promise.new()
+        CreateThread(function()
+            local shouldInstall = true
+            local ok, result = pcall(function()
+                local query = 'SELECT imported, schema_version FROM phone_schema_validation WHERE validation_key = ? LIMIT 1'
+                local found, row = pcall(MySQL.single.await, query, { 'sd-phone' })
+                if found then return row end
+
+                local migrated = pcall(MySQL.query.await,
+                    'ALTER TABLE phone_schema_validation ADD COLUMN imported TINYINT(1) NOT NULL DEFAULT 0')
+                if not migrated then
+                    MySQL.query.await([[
+                        CREATE TABLE IF NOT EXISTS phone_schema_validation (
+                            validation_key VARCHAR(64) NOT NULL,
+                            schema_version INT UNSIGNED NOT NULL,
+                            validated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            operations_completed INT UNSIGNED NOT NULL DEFAULT 0,
+                            imported TINYINT(1) NOT NULL DEFAULT 0,
+                            PRIMARY KEY (validation_key)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    ]])
+                end
+                return MySQL.single.await(query, { 'sd-phone' })
+            end)
+
+            if ok and result then
+                -- Keep in sync with INSTALL_VERSION in server/schema.lua.
+                shouldInstall = tonumber(result.imported) ~= 1 or tonumber(result.schema_version) ~= 1
+            elseif not ok then
+                print(('^3[sd-phone:schema]^0 install registry unavailable; running schema bootstrap: %s')
+                    :format(tostring(result)))
+            end
+
+            installGateResult = shouldInstall
+            installGatePromise:resolve(shouldInstall)
+        end)
+    end
+
+    return Citizen.Await(installGatePromise)
+end
+
+---Runs one store's schema bootstrap only while the install marker is absent or out of date.
+---@param ensureSchema function store schema bootstrap
+---@return boolean ok
+---@return any err
+function M.runSchemaInstall(ensureSchema)
+    schemaInFlight = schemaInFlight + 1
+    local ok, err = pcall(function()
+        if M.shouldInstallSchema() then ensureSchema() end
+    end)
+    schemaInFlight = schemaInFlight - 1
+    return ok, err
+end
+
+---Returns whether any schema-owning bootstrap has failed during this resource start.
+---@return boolean failed
+function M.hasSchemaFailures()
+    return #failures > 0
+end
+
 -- Single boot summary: version, schema count, and an update notice when one is due.
 CreateThread(function()
     local last, quiet = -1, 0
     while quiet < QUIET_TICKS do
         Wait(TICK_MS)
-        if ready == last then quiet = quiet + 1 else quiet, last = 0, ready end
+        if schemaInFlight == 0 and ready == last then
+            quiet = quiet + 1
+        else
+            quiet, last = 0, ready
+        end
     end
     schemasSettled = true
 

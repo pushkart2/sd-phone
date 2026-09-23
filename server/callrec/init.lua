@@ -19,7 +19,7 @@ local util       = require 'server.util'
 
 ---Bootstraps the recordings schema once at boot.
 CreateThread(function()
-    local okSchema, err = pcall(store.ensureSchema)
+    local okSchema, err = boot.runSchemaInstall(store.ensureSchema)
     if not okSchema then
         boot.schemaFailed('callrec', err)
         return

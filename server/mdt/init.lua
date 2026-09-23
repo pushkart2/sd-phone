@@ -80,12 +80,23 @@ local available = false
 
 if ENABLED then
     CreateThread(function()
-        local ok, err = pcall(store.ensureSchema)
+        local ok, err = boot.runSchemaInstall(store.ensureSchema)
         if not ok then
             boot.schemaFailed('mdt', err)
             return
         end
         available = true
+        boot.schemaReady()
+    end)
+else
+    -- Keep the one-time installer complete even when the optional terminal is disabled; enabling
+    -- it later must not require a manual schema version bump.
+    CreateThread(function()
+        local ok, err = boot.runSchemaInstall(store.ensureSchema)
+        if not ok then
+            boot.schemaFailed('mdt', err)
+            return
+        end
         boot.schemaReady()
     end)
 end
