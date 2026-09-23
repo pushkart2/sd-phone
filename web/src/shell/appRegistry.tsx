@@ -77,7 +77,6 @@ const APP_REGISTRY = {
     passwords:   entry(() => import('@/apps/passwords/Passwords').then(m => ({ default: m.Passwords }))),
     cookie:      entry(() => import('@/apps/cookie/Cookie').then(m => ({ default: m.Cookie }))),
     wordle:      entry(() => import('@/apps/wordle/Wordle').then(m => ({ default: m.Wordle }))),
-    flappy:      entry(() => import('@/apps/flappy/Flappy').then(m => ({ default: m.Flappy }))),
     blocks:      entry(() => import('@/apps/blocks/Blocks').then(m => ({ default: m.Blocks }))),
     minesweeper: entry(() => import('@/apps/minesweeper/Minesweeper').then(m => ({ default: m.Minesweeper }))),
     casino:      entry(() => import('@/apps/casino/Casino').then(m => ({ default: m.Casino }))),

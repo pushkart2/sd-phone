@@ -64,7 +64,6 @@ export function devInjectMockData(): () => void {
             { id: 'calculator', label: 'Calculator',  icon: 'calculator', route: '/calculator', accent: '#333335', base: true },
             { id: 'cookie',     label: 'Cookie',      icon: 'cookie',     route: '/cookie',     accent: '#C77D2E' },
             { id: 'wordle',     label: 'Penta',       icon: 'wordle',     route: '/wordle',     accent: '#6AAA64' },
-            { id: 'flappy',     label: 'Flappy',      icon: 'flappy',     route: '/flappy',     accent: '#4EC0CA' },
             { id: 'blocks',     label: 'Blocks',      icon: 'blocks',     route: '/blocks',     accent: '#7C4DFF' },
             { id: 'minesweeper', label: 'Minesweeper', icon: 'minesweeper', route: '/minesweeper', accent: '#E4483D' },
             { id: 'casino',     label: 'Casino',      icon: 'casino',     route: '/casino',     accent: '#0F5132' },

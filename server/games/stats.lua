@@ -2,12 +2,12 @@
 local util = require 'server.util'
 
 ---@type table<string, boolean> Games allowed to own a stats row. Deliberately NOT the engine's
----`configs` table: baccarat, blackjack, blocks, climber, crash, flappy, roulette and slots are
+---`configs` table: baccarat, blackjack, blocks, climber, crash, roulette and slots are
 ---single-player and never register.
 local STAT_GAMES = {
     baccarat = true, battleship = true, blackjack = true, blocks = true,
     chess = true, climber = true, connectfour = true, crash = true,
-    flappy = true, holdem = true, minesweeper = true, roulette = true, slots = true,
+    holdem = true, minesweeper = true, roulette = true, slots = true,
     wordle = true,
 }
 
@@ -19,7 +19,7 @@ local function knownGame(game) return type(game) == 'string' and STAT_GAMES[game
 
 ---@type table Stats module; the table returned at end of file. Unified per-character game stats
 ---(W/L/D, split vs-Computer / Online, cumulative chip amounts, and a single-player high score)
----shared by every game (chess, connectfour, blackjack, blocks, flappy, ...). One row per
+---shared by every game (chess, connectfour, blackjack, blocks, ...). One row per
 ---(citizenid, game).
 local stats = {}
 

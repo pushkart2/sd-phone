@@ -892,25 +892,6 @@ function CookieIcon() {
     );
 }
 
-export function FlappyIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs><LinearGrad id={u('flpy')} top="#7FE0EC" mid="#4EC0CA" bot="#2E9CA8" angle={170} /></defs>
-            <rect width={S} height={S} fill={`url(#${u('flpy')})`} />
-            <rect x="40" y="0"  width="12" height="20" rx="2" fill="#5BBA4A" />
-            <rect x="40" y="34" width="12" height="26" rx="2" fill="#5BBA4A" />
-            <rect x="38" y="16" width="16" height="6" rx="2" fill="#4C9E3E" />
-            <rect x="38" y="30" width="16" height="6" rx="2" fill="#4C9E3E" />
-            <ellipse cx="24" cy="31" rx="13" ry="11.5" fill="#FFD23E" />
-            <ellipse cx="19" cy="34" rx="6.5" ry="4.5" fill="#F2B705" />
-            <circle cx="29" cy="27" r="3.4" fill="#fff" />
-            <circle cx="30.3" cy="27" r="1.6" fill="#1A1A1A" />
-            <path d="M35,30 L43,28 L35,33 Z" fill="#F2860D" />
-        </svg>
-    );
-}
-
 function PasswordsIcon() {
     const u = useIconIds();
     const BG = '#202022';
@@ -1479,7 +1460,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     cookie:      CookieIcon,
     passwords:   PasswordsIcon,
     wordle:      WordleIcon,
-    flappy:      FlappyIcon,
     blocks:      BlocksIcon,
     minesweeper: MinesweeperIcon,
     blackjack:   BlackjackIcon,

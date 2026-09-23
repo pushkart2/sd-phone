@@ -159,7 +159,6 @@ local APP_MAP <const> = {
     calculator      = 'calculator',
     settings        = 'settings',
     racing          = 'racing',
-    flappy          = 'flappy',
 }
 
 ---Maps a qs-smartphone app reference onto an sd-phone app id. The same field carries a bare name, a
