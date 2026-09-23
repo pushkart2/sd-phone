@@ -82,7 +82,6 @@ const APP_GLYPHS: Record<string, LucideIcon> = {
     vibez:       Video,
     weazelnews:  Newspaper,
     streaks:     Flame,
-    dojmdt:      Landmark,
     racing:      Flag,
 
     appstore_cloud:     CloudDownload,

@@ -78,7 +78,7 @@ export function MasterDetail(props: MasterDetailProps) {
             </div>
             <div className={ruleY} />
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-                <div key={detailKey} className="flex min-h-0 flex-1 flex-col animate-mdt-detail">
+                <div key={detailKey} className="flex min-h-0 flex-1 flex-col animate-detail-enter">
                     {detail ?? placeholder}
                 </div>
             </div>

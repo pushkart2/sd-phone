@@ -108,7 +108,6 @@ Already on a [Qbox Dashboard](https://dashboard.qbox.re) plan? You can point upl
 | **Camera & media** | Camera (live game view: photos, video with voice capture, selfie mode), Photos, Music (with AirShare library sharing), Voice Memos |
 | **World** | Maps (CDN-streamed tiles, routing, pins), Garages, Homes, Bank, Services (company directory, dispatch messaging, phone multijob), Ryde (player-to-player ride hailing), Racing (race board with an in-game track creator, unlocked by a `racing_usb` item), Weazel News, Pages, Marketplace, Weather, Stocks |
 | **Games** | Casino (Slots, Roulette, Blackjack, Baccarat, Crash and Texas Hold'em on a shared chip balance), Chess, Connect Four, Battleship and Wordle with online lobbies, plus Cookie, Flappy, Blocks and Climber with server-side leaderboards |
-| **Job terminals** | MDT, EMS and DOJ, job-gated, with records, warrants, reports, a firearms registry, live CCTV, and bodycam and dashcam review. Off by default: set `Enabled = true` in `configs/mdt.lua`. Best on the bigger screen of [sd-tablet](https://github.com/Samuels-Development/sd-tablet) |
 | **Utilities** | Clock (alarms), Calendar, Notes (with sketches), Files (documents with multi-signer signing, sendable as mail attachments), Calculator, Compass, Health (daily stats and a server-wide steps leaderboard), Passwords, ID (identity cards from your character record and licences, showable to a nearby phone), App Store, Settings |
 
 ## Home screen widgets
@@ -286,8 +285,8 @@ Without one the symptom is easy to misread as a bug: the call connects, the time
 works and your own self-view looks perfect, but the other person's side of the screen stays black.
 Nothing has crashed, the video simply has no route.
 
-**One setup covers everything**: video calls, nearby-voice capture in camera clips, Photogram Live
-and bodycams all share the same relay. The quickest route is Cloudflare's free TURN service, which
+**One setup covers everything**: video calls, nearby-voice capture in camera clips, and live
+broadcasts all share the same relay. The quickest route is Cloudflare's free TURN service, which
 sd-phone provisions for you. Create a TURN key at **Cloudflare dashboard, Realtime, TURN**, then put
 the two values in your `server.cfg`:
 

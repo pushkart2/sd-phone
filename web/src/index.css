@@ -412,8 +412,6 @@ html, body, #root {
     88% { transform: translateX(-3px); }
 }
 .animate-pin-shake { animation: pin-shake 0.5s ease; }
-@keyframes mdt-live-flash { 0% { opacity: 0.38; } 60% { opacity: 0.3; } 100% { opacity: 0; } }
-.mdt-live-flash           { animation: mdt-live-flash 4s ease-out forwards; }
 @keyframes faceid-dim-in  { from { opacity: 0; } to { opacity: 1; } }
 .animate-faceid-dim-in    { animation: faceid-dim-in 0.24s ease forwards; }
 .faceid-frost             { -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
@@ -976,26 +974,21 @@ input[type='number'] {
 .sd-pet-in  { animation: sd-pet-enter 0.26s ease-out backwards; }
 .sd-pet-out { animation: sd-pet-leave 0.2s ease-in forwards; }
 
-@keyframes mdt-row {
+@keyframes row-enter {
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.mdt-stagger > * { animation: mdt-row 0.26s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
-.mdt-stagger > *:nth-child(1)    { animation-delay: 0ms;   }
-.mdt-stagger > *:nth-child(2)    { animation-delay: 26ms;  }
-.mdt-stagger > *:nth-child(3)    { animation-delay: 52ms;  }
-.mdt-stagger > *:nth-child(4)    { animation-delay: 78ms;  }
-.mdt-stagger > *:nth-child(5)    { animation-delay: 104ms; }
-.mdt-stagger > *:nth-child(6)    { animation-delay: 130ms; }
-.mdt-stagger > *:nth-child(7)    { animation-delay: 156ms; }
-.mdt-stagger > *:nth-child(n+8)  { animation-delay: 180ms; }
+.stagger-rows > * { animation: row-enter 0.26s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+.stagger-rows > *:nth-child(1)    { animation-delay: 0ms;   }
+.stagger-rows > *:nth-child(2)    { animation-delay: 26ms;  }
+.stagger-rows > *:nth-child(3)    { animation-delay: 52ms;  }
+.stagger-rows > *:nth-child(4)    { animation-delay: 78ms;  }
+.stagger-rows > *:nth-child(5)    { animation-delay: 104ms; }
+.stagger-rows > *:nth-child(6)    { animation-delay: 130ms; }
+.stagger-rows > *:nth-child(7)    { animation-delay: 156ms; }
+.stagger-rows > *:nth-child(n+8)  { animation-delay: 180ms; }
 @media (prefers-reduced-motion: reduce) {
-    .mdt-stagger > * { animation: none; }
-}
-
-@keyframes cctv-drift {
-    from { transform: translateY(0); }
-    to   { transform: translateY(9px); }
+    .stagger-rows > * { animation: none; }
 }
 
 @keyframes call-minimise {

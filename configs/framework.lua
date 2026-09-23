@@ -1,7 +1,7 @@
 -- Framework-specific settings.
 --
--- ox_core, not yet wired: employee and owner NAMES come back blank in the Services roster, the
--- MDT people search and Homes offline lookups, and jail features stay off. Identity, cash and
+-- ox_core, not yet wired: employee and owner NAMES come back blank in the Services roster and
+-- Homes offline lookups. Identity, cash and
 -- bank money, jobs, gangs and society balances are all wired.
 --
 -- Only ox_core needs anything here: QBCore, QBox, ESX and ND all name

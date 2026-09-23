@@ -145,12 +145,5 @@ return {
         'weazelnews:feed', 'weazelnews:view', 'stocks:market',
         'banking:overview', 'garages:list', 'homes:list', 'services:directory', 'services:inbox',
         'ryde:history', 'ryde:leaderboard',
-        -- Police terminal. Reads only, and `mdt` is deliberately absent from Offline above: a
-        -- terminal with no signal must refuse rather than pretend, and a stale record is still
-        -- better than a blank pane on a patrol that clips a dead zone.
-        'mdt:bootstrap', 'mdt:home', 'mdt:persons:search', 'mdt:persons:get',
-        'mdt:vehicles:search', 'mdt:vehicles:get', 'mdt:reports:list', 'mdt:reports:get',
-        'mdt:cases:list', 'mdt:cases:get', 'mdt:warrants:list', 'mdt:offences:list',
-        'mdt:roster:list', 'mdt:logs:list',
     },
 }

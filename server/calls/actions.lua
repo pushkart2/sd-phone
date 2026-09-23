@@ -21,7 +21,7 @@ local statebags = require 'server.statebags'
 ---whichever voice script is running.
 local voice    = require 'bridge.server.voice'
 ---@type table Shared ICE provisioning (server.voice.ice): the STUN + Cloudflare TURN set every
----WebRTC feature uses, so one credential pair serves calls, the voice mesh, Live and bodycams.
+---WebRTC feature uses, so one credential pair serves calls, the voice mesh and live broadcasts.
 local ice      = require 'server.voice.ice'
 
 ---@type table Actions module; the table returned at end of file.

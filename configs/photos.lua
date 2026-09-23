@@ -60,8 +60,8 @@ return {
     -- connections you know are fast, and lower it if you see packet loss during uploads.
     UploadBytesPerSec = 262144,
 
-    -- Lets phones upload camera clips, voice memos, voicemails, call recordings, voice messages
-    -- and bodycam footage straight to Fivemanage over HTTPS, instead of sending them through the
+    -- Lets phones upload camera clips, voice memos, voicemails, call recordings and voice messages
+    -- straight to Fivemanage over HTTPS, instead of sending them through the
     -- server over the game network first. That avoids the packet loss a big upload causes.
     --
     -- OFF BY DEFAULT, AND READ THIS BEFORE TURNING IT ON. To do this the server hands the player a
@@ -79,8 +79,8 @@ return {
     AllowDirectUpload = false,
 
     -- Ceilings on how much players can upload to your media provider (Fivemanage or Qbox). Every
-    -- camera photo and clip, voice memo, voicemail, call recording, voice message, bodycam
-    -- recording and Clout voiceover counts. The defaults are far above what a normal player uses.
+    -- camera photo and clip, voice memo, voicemail, call recording, voice message and Clout
+    -- voiceover counts. The defaults are far above what a normal player uses.
     --
     -- A player with no character loaded can never upload. Limits are per FiveM account (license),
     -- so switching or using several characters does not give a player more.

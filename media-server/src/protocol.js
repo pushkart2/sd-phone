@@ -70,7 +70,7 @@ const CLOSE = {
 };
 
 // Clause 5.1: stream key grammar.
-const STREAM_KEY_RE = /^(mdt|photogram|vibez):(cam|live):[A-Za-z0-9_-]{1,64}$/;
+const STREAM_KEY_RE = /^(photogram|vibez):live:[A-Za-z0-9_-]{1,64}$/;
 
 const MODES = new Set(['video', 'image']);
 const WIRES = new Set(['chunks', 'mse']);

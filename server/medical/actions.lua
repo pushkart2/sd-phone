@@ -8,12 +8,8 @@ local job      = require 'bridge.server.job'
 local notify   = require 'bridge.server.notify'
 ---@type table Records bridge (bridge.server.records): the framework's citizen row, normalised.
 local records  = require 'bridge.server.records'
----@type table Settings persistence (server.settings.store): phone number to owner resolution.
-local settings = require 'server.settings.store'
 ---@type table Medical ID persistence layer (server.medical.store): schema bootstrap + the row.
 local store    = require 'server.medical.store'
----@type table MDT permission layer (server.mdt.access): caller identity and terminal domain.
-local access   = require 'server.mdt.access'
 ---@type table Shared server helpers (server.util): envelopes, string caps, TINYINT reads.
 local util     = require 'server.util'
 local ok, fail = util.ok, util.fail
@@ -165,31 +161,6 @@ function actions.set(src, payload)
 
     local record = actions.record(cid, src)
     if not record then return fail('medical.playerNotFound', 'Player not found') end
-    return ok({ record = record })
-end
-
----Another citizen's Medical ID, for a medic working the EMS terminal. The subject is named by
----citizenid or by phone number; nothing about the caller is taken from the payload, and a police
----or court terminal is refused the same way a civilian phone is.
----@param src integer player server id
----@param payload table { citizenid?: string, number?: string }
----@return table envelope { record }
-function actions.lookup(src, payload)
-    local me = access.identity(src)
-    if not me or access.domain(me) ~= 'ems' or not access.can(src, 'patients.view') then
-        return fail('medical.noMedicalAccess', 'You do not have access to medical records')
-    end
-    payload = type(payload) == 'table' and payload or {}
-
-    local cid = util.limitedString(payload.citizenid, 64)
-    if not cid then
-        local number = util.limitedString(payload.number, 20)
-        cid = number and settings.getCitizenByNumber(number) or nil
-    end
-    if not cid then return fail('medical.noSuchCitizen', 'No Medical ID on file for that person') end
-
-    local record = actions.record(cid)
-    if not record then return fail('medical.noSuchCitizen', 'No Medical ID on file for that person') end
     return ok({ record = record })
 end
 

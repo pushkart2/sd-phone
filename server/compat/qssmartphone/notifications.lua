@@ -40,7 +40,6 @@ local APP_MAP = {
     business        = 'services',
     society         = 'services',
     state           = 'documents',
-    meos            = 'emsmdt',
     garage          = 'garages',
     rentel          = 'garages',
     store           = 'appstore',

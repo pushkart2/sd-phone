@@ -55,8 +55,8 @@ if info.name == 'ox' then
     print([[
 ^3[SD-PHONE] Running on ox_core.^0
 ^3Set the group types the phone should treat as jobs and gangs in configs/framework.lua.^0
-^3Not yet wired: employee and owner NAMES come back blank in the Services roster, the MDT people^0
-^3search and Homes offline lookups, and jail features stay off. Identity, cash and bank, jobs,^0
+^3Not yet wired: employee and owner NAMES come back blank in the Services roster and Homes offline^0
+^3lookups. Identity, cash and bank, jobs,^0
 ^3gangs and society balances all work.^0
 ^3Please report anything wrong at github.com/Samuels-Development/sd-phone/issues^0
     ]])
@@ -68,7 +68,7 @@ if info.name == 'nd' then
 ^3Nothing to configure: ND names its jobs and gangs itself, through the isJob flag on nd_groups.^0
 ^3Not wired, because ND_Core has no such concept: COMPANY BALANCES (the Services app keeps its^0
 ^3roster, hiring and boss actions but shows no shared account), ON-DUTY state, and jail features.^0
-^3Identity, cash and bank, jobs, gangs, boss grades, the MDT people and vehicle search, Garages,^0
+^3Identity, cash and bank, jobs, gangs, boss grades, Garages,^0
 ^3Homes and the admin panel all work.^0
 ^3Please report anything wrong at github.com/Samuels-Development/sd-phone/issues^0
     ]])

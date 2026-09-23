@@ -57,7 +57,6 @@ dependencies {
 }
 
 provide 'lb-phone'
-provide 'lb-tablet'
 provide 'yseries'
 
 provide 'qs-smartphone'

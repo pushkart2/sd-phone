@@ -56,9 +56,9 @@ local REFRESH_LEAD = math.max(2, math.floor(tonumber(CFG.RefreshLeadSeconds) or 
 local CONTROL_ENABLED = CFG.ControlChannel ~= false
 
 ---@type table<string, boolean> Stream key namespaces, the app half of '<app>:<kind>:<id>'.
-local STREAM_APPS = { mdt = true, photogram = true, vibez = true }
+local STREAM_APPS = { photogram = true, vibez = true }
 ---@type table<string, boolean> Stream key kinds, the middle half of '<app>:<kind>:<id>'.
-local STREAM_KINDS = { cam = true, live = true }
+local STREAM_KINDS = { live = true }
 ---@type table<string, boolean> Roles a token may be minted for.
 local ROLES = { session = true, publish = true, watch = true }
 
@@ -304,8 +304,8 @@ end
 
 ---Builds a stream key from its parts, nil when the parts do not make a valid one. Features build
 ---their keys through this so the shape lives in one place.
----@param app string 'mdt' | 'photogram' | 'vibez'
----@param kind string 'cam' | 'live'
+---@param app string 'photogram' | 'vibez'
+---@param kind string 'live'
 ---@param id string citizenid or broadcast id
 ---@return string|nil streamId
 function media.streamId(app, kind, id)

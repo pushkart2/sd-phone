@@ -1,6 +1,6 @@
 # sd-phone media relay (SDMR/1)
 
-A small standalone WebSocket server that carries live video between phones: MDT bodycam and dashcam,
+A small standalone WebSocket server that carries live video between phones:
 Photogram Live and Vibez Live. A publisher pushes encoded frames as **binary** WebSocket messages and
 the relay fans them out to the viewers watching that stream.
 
@@ -30,7 +30,7 @@ nothing can do for you.
   that a request carries a valid, unexpired, unused token signed by your game server, and that the token
   names the stream and the role being asked for. A token is a receipt that the Lua checks already passed.
 * **It is not required.** If you never run it, every feature keeps working exactly as it does today over
-  the existing FiveM event path, and MDT bodycams can go straight between two clients over a peer
+  the existing FiveM event path, and live video can go straight between two clients over a peer
   connection with no relay at all. sd-phone falls back to the event path the moment the relay is
   unreachable, and there is no user visible error when it is off.
 * **It is not a place for permissions, storage or business logic.** It moves bytes between sockets.
@@ -207,13 +207,13 @@ curl -s https://media.example.com/health
 `/health` needs no authentication and is safe to point a monitor at. It exposes counts only.
 
 **2. A phone reaches it.** Start the relay with `SD_PHONE_RELAY_LOG=debug`, then have a player open the
-MDT and watch a bodycam. A healthy session looks like this:
+Open a live stream. A healthy session looks like this:
 
 ```
 2026-08-20 19:41:02.114 DEBUG [socket] upgraded ip=203.0.113.9 origin=https://cfx-nui-sd-phone sockets=1
 2026-08-20 19:41:02.140 INFO  [socket] client ready ip=203.0.113.9 sub=ABC12345 src=12 device=phone build=0.9.8
-2026-08-20 19:41:02.402 INFO  [stream] publisher attached key=mdt:cam:ABC12345 gen=7 sub=ABC12345 wire=chunks codec=vp8 viewers=0
-2026-08-20 19:41:05.881 DEBUG [stream] viewer joined key=mdt:cam:ABC12345 sub=DEF67890 viewers=1
+2026-08-20 19:41:02.402 INFO  [stream] publisher attached key=photogram:live:ABC12345 gen=7 sub=ABC12345 wire=chunks codec=vp8 viewers=0
+2026-08-20 19:41:05.881 DEBUG [stream] viewer joined key=photogram:live:ABC12345 sub=DEF67890 viewers=1
 ```
 
 **3. Streams are actually flowing.** Ask the control endpoint for stats. The call is signed with the
@@ -230,7 +230,7 @@ curl -s -X POST https://media.example.com/control \
 The reply lists every live stream with its viewer count, frames in, bytes in and whether the relay is
 holding an init segment for it. `framesIn` climbing while `viewers` is above zero means video is moving.
 
-The same endpoint takes `{"op":"revoke","key":"mdt:cam:ABC12345","reason":"offduty"}` to tear a stream
+The same endpoint takes `{"op":"revoke","key":"photogram:live:ABC12345","reason":"closed"}` to tear a stream
 down immediately, and `{"op":"gen","key":"...","gen":8}` to force a stream epoch forward. Both are
 optional: tokens are short lived and every reconnect re-runs the Lua permission checks anyway.
 

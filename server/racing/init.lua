@@ -24,7 +24,7 @@ local CREATOR = type(RACING.Creator) == 'table' and RACING.Creator or {}
 ---@type boolean Whether Racing runs at all. Read from configs/racing.lua alone rather than through
 ---util.appEnabled('racing'): Racing is laid out for a tablet, so configs/apps.lua ships it with
 ---enabled = false and a companion device switches it on in its own catalog. Reading sd-phone's
----catalog here would turn the whole feature off on every server, exactly as it would for the MDT.
+---catalog here would turn the whole feature off on every server.
 local ENABLED = RACING.Enabled == true
 
 ---@type table Refusal every callback answers with while Racing is switched off. Registering a

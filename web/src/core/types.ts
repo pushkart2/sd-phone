@@ -5,7 +5,6 @@ import type { CrashBust, CrashSettled, CrashSnapshot, CrashTick } from '@/apps/c
 import type { HoldemHandEnd, HoldemStatePush } from '@/apps/casino/holdem/data';
 import type { DocFile } from '@/apps/documents/data';
 import type { MedicalId } from '@/apps/health/medicalApi';
-import type { BodycamRecording, Bulletin, Call, ChatMsg, LiveEvent, Unit } from '@/apps/mdt/data';
 import type { DMsg as PhotogramDM, User as PhotogramUser } from '@/apps/photogram/data';
 import type {
     HudMarker, HudPosition, HudState, HudStyle, LineupState, RaceResult, StartBoard, Standing,
@@ -327,8 +326,6 @@ export type NuiMessage =
     | { action: 'sd-phone:music:receive'; data: MusicSharePush }
     | { action: 'sd-phone:nowPlaying:set';   data: { appId: string; track: ExternalNowPlayingTrack } }
     | { action: 'sd-phone:nowPlaying:clear'; data: { appId: string } }
-    | { action: 'sd-phone:cctv:enter'; data: { cameraId: string; label: string; category: string } }
-    | { action: 'sd-phone:cctv:exit';  data: Record<string, never> }
     | { action: 'sd-phone:lockscreenWidget:show'; data: ActiveLockscreenWidget }
     | { action: 'sd-phone:lockscreenWidget:hide'; data: { key: string } }
     | { action: 'sd-phone:pages:feed';       data: ClassifiedFeedPush }
@@ -488,21 +485,6 @@ export type NuiMessage =
     | { action: 'sd-phone:streaks:newPost';     data: { id: number; author: string; imageUrl: string; caption?: string; dayStreak: number; postDate: string; createdAt: number; likeCount: number; citizenid: string } }
     | { action: 'sd-phone:streaks:postChanged'; data: { postId: number; likeCount: number } }
     | { action: 'sd-phone:streaks:refresh' }
-    | { action: 'sd-phone:mdt:dispatch'; data: { units: Unit[]; calls: Call[] } }
-    | { action: 'sd-phone:mdt:call';     data: { call: Call } }
-    | { action: 'sd-phone:mdt:chat';     data: { message: ChatMsg } }
-    | { action: 'sd-phone:mdt:bulletin'; data: { bulletins: Bulletin[] } }
-    | { action: 'sd-phone:mdt:warrant';  data: { citizenid: string; wanted: boolean } }
-    | { action: 'sd-phone:mdt:live';     data: LiveEvent }
-    | { action: 'sd-phone:mdt:offences'; data: Record<string, never> }
-    | { action: 'sd-phone:mdt:sops';     data: Record<string, never> }
-    | { action: 'sd-phone:mdt:shares';   data: { type: 'report' | 'case' | 'warrant'; ref: string; access?: 'view' | 'edit' } }
-    | { action: 'sd-phone:mdt:bodycam:enter'; data: { cameraId: string; kind: string; officer: string; callsign: string | null; plate: string | null; model: string | null; unit: string | null; rank: string | null; canRecord: boolean; auto: boolean; profile: { fps: number; width: number; bitrate: number; maxSeconds: number; minSeconds: number } } }
-    | { action: 'sd-phone:mdt:bodycam:exit';   data: Record<string, never> }
-    | { action: 'sd-phone:mdt:bodycam:record'; data: Record<string, never> }
-    | { action: 'sd-phone:mdt:recSaved';       data: BodycamRecording }
-    | { action: 'sd-phone:mdt:recFailed';      data: { message?: string } }
-    | { action: 'sd-phone:mdt:recShared';      data: { by?: string } }
     | { action: 'sd-phone:racing:racesChanged' }
     | { action: 'sd-phone:racing:standings';  data: { raceId: string; entries: Standing[] } }
     | { action: 'sd-phone:racing:raceResult'; data: RaceResult }

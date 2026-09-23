@@ -240,7 +240,7 @@ end)
 -- Sliced clip upload. A whole clip is megabytes, and one latent event that size blocks the net
 -- thread for as long as it takes to reassemble - every player's packet loss climbing while one
 -- of them saves a video. The Camera app cuts the clip into slices and sends them one at a time;
--- this is where they are put back together. Same shape as the MDT bodycam uploader.
+-- this is where they are put back together. Same shape as the other large-media upload paths.
 ---@type integer Max slices one clip may be cut into, bounding the assembly table.
 local MAX_SLICES <const> = 256
 ---@type integer Milliseconds an assembly may sit without a new slice before it is abandoned.

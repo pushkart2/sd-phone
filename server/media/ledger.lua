@@ -8,7 +8,7 @@ local util = require 'server.util'
 ---It exists because of a real bug. The claim's uniqueness check originally asked phone_photos,
 ---which is one of more than forty tables holding URLs in the same bucket. A bodycam recording -
 ---same bucket, video/webm, absent from phone_photos - passed every other check and could be
----claimed into any player's gallery as a trusted row, laundering it out of the MDT's access
+---claimed into any player's gallery as a trusted row, laundering it out of its original access
 ---control. Asking "does Photos know this URL" was never the question; "have we ever hosted it"
 ---is.
 local ledger = {}

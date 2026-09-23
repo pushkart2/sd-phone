@@ -34,8 +34,6 @@ return {
     -- Which features use the relay. Turning one off does not break it, it just goes back to
     -- sending video through the game server like normal.
     --
-    -- MDT bodycams are missing on purpose: the watching officer's screen draws the view in-game,
-    -- so there is no video to relay in the first place.
     Features = {
         PhotogramLive = true,   -- Photogram Live broadcasts
         VibezLive     = true,   -- Vibez Live broadcasts

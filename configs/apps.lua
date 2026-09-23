@@ -93,25 +93,6 @@ return {
         { id = 'weazelnews', label = 'Weazel News', icon = 'weazelnews', route = '/weazelnews', accent = '#C8102E', base = false, enabled = true },
         { id = 'streaks', label = 'Streaks', icon = 'streaks', route = '/streaks', accent = '#FF7A1A', base = false, enabled = true },
 
-        -- The three terminals run on BOTH devices. The same code lays itself out per screen: a
-        -- menu root that pushes one section at a time on the phone, the multi-tab browser on the
-        -- tablet. This catalog is also what the tablet's ids validate against, so these rows are
-        -- what let sd-tablet show them at all.
-        --
-        -- `enabled = true` only says this SERVER has the terminals. Which of them a given player
-        -- sees is decided per open by server/appgate.lua, from the departments in configs/mdt.lua:
-        -- a `leo` department gets `mdt`, `ems` gets `emsmdt`, `doj` gets `dojmdt`, and anyone else
-        -- gets no icon rather than one that refuses them. That gate is asked fresh on every open,
-        -- by both devices, so a job change is picked up with no event to miss.
-        --
-        -- `Enabled` in configs/mdt.lua outranks these rows and ships OFF, so all three are hidden
-        -- everywhere and no terminal tables are built until you turn it on. Leaving these rows at
-        -- `enabled = true` costs nothing while it is off.
-        --
-        -- Keep `base = true`. The job gate is what hands a terminal out, so there is nothing to
-        -- download; `base = false` would strand it behind an App Store entry instead.
-        { id = 'dojmdt', label = 'DOJ', icon = 'dojmdt', route = '/dojmdt', accent = '#6D28D9', base = true, enabled = true },
-
         -- Racing runs on both devices too, and unlike the terminals it carries no job gate. Its
         -- backend has its own switch, `Enabled` in configs/racing.lua; with that off this row shows
         -- an app with nothing behind it, so turn both off together.

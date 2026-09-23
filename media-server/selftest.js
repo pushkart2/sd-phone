@@ -23,7 +23,7 @@
     const KEY = Buffer.from(KEY_HEX, 'hex');
     const PORT = 31000 + Math.floor(Math.random() * 2000);
     const ORIGIN = 'https://cfx-nui-sd-phone';
-    const STREAM = 'mdt:cam:ABC12345';
+    const STREAM = 'photogram:live:ABC12345';
 
     const results = [];
     let failures = 0;
@@ -259,7 +259,7 @@
     // The backpressure rules are exercised directly against a stream, because a slow socket cannot be
     // produced on loopback reliably enough to assert on.
     await check('backpressure drops deltas first and catches a viewer up at the next keyframe', async () => {
-        const stream = new Stream({ log, removeStream() {} }, 'mdt:cam:BACKPRESS');
+        const stream = new Stream({ log, removeStream() {} }, 'photogram:live:BACKPRESS');
         stream.gen = 3;
         const record = (kind, seq, size) => ({
             kind,
@@ -679,12 +679,12 @@
         const client = await TestClient.connect();
         await client.hello();
         for (let n = 0; n < 12; n += 1) {
-            const key = `mdt:cam:CAP${String(n).padStart(5, '0')}`;
+            const key = `photogram:live:CAP${String(n).padStart(5, '0')}`;
             client.json({ t: 'join', token: token('watch', key, 0), key });
         }
-        await client.waitText((m) => m.t === 'joined' && m.key === 'mdt:cam:CAP00011', 'the twelfth join');
+        await client.waitText((m) => m.t === 'joined' && m.key === 'photogram:live:CAP00011', 'the twelfth join');
 
-        const key = 'mdt:cam:CAP00012';
+        const key = 'photogram:live:CAP00012';
         client.json({ t: 'join', token: token('watch', key, 0), key });
         const error = await client.waitText((m) => m.t === 'error' && m.code === 'too_many_streams', 'too_many_streams');
         assert.equal(error.fatal, false);

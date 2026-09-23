@@ -59,7 +59,7 @@ end
 
 ---Uploads a base64 data-URL to Fivemanage and hands back the hosted CDN URL. Asynchronous:
 ---calls `cb(url|nil, err, code)` exactly once. `err` is the human sentence the recording and
----bodycam UIs already surface; `code` is a stable token the phone maps to a translated line, so
+---media UIs already surface; `code` is a stable token the phone maps to a translated line, so
 ---a caller can localise the reason without matching on English prose.
 ---@param base64Image string media as a base64 data-URL (data:image/...;base64,...)
 ---@param filename string suggested filename stored alongside the upload

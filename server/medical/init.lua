@@ -3,7 +3,7 @@ local boot = require 'server.boot'
 
 ---@type table Medical ID persistence layer (server.medical.store): schema bootstrap + the row.
 local store   = require 'server.medical.store'
----@type table Authoritative Medical ID handlers (server.medical.actions): read, save, EMS lookup.
+---@type table Authoritative Medical ID handlers (server.medical.actions): read, save, scan.
 local actions = require 'server.medical.actions'
 ---@type table Shared server helpers (server.util): string caps for the export argument.
 local util    = require 'server.util'
@@ -28,7 +28,6 @@ end
 -- App callbacks: thin delegates into server.medical.actions.
 register('get',    function(src) return actions.get(src) end)
 register('set',    function(src, payload) return actions.set(src, payload) end)
-register('lookup', function(src, payload) return actions.lookup(src, payload) end)
 register('scan',   function(src, payload) return actions.scan(src, payload) end)
 
 ---Public export: exports['sd-phone']:getMedicalId(citizenid). Returns the merged card an EMS

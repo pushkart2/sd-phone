@@ -132,7 +132,7 @@ return {
 
     -- Foldable phone. The body carries a hinge and unfolds sideways to twice the width, and the
     -- interface uses the room rather than scaling up: two home-screen pages side by side, the
-    -- list/detail apps (Mail, Files, MDT, Settings) showing both panes at once, and split view
+    -- list/detail apps (Mail, Files, Settings) showing both panes at once, and split view
     -- for running two apps together.
     --
     -- On by default, so players have the option without an owner having to find this setting.
@@ -211,8 +211,7 @@ return {
     -- still looks fine, because the self-view never leaves their machine.
     --
     -- TURN is only for video calls and nearby-voice capture, the two things that talk browser to
-    -- browser. Live broadcasts and MDT bodycams do NOT need it: Live sends its picture through the
-    -- game server, and a bodycam is drawn on the watching terminal itself.
+    -- browser. Live broadcasts do NOT need it: Live sends its picture through the game server.
     --
     -- Configure it once in configs/voice.lua; the free Cloudflare path is two convars:
     --     set sd_cf_turn_token_id  "your-cloudflare-turn-token-id"

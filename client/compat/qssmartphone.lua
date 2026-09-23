@@ -144,7 +144,6 @@ local APP_MAP <const> = {
     business        = 'services',
     society         = 'services',
     state           = 'documents',
-    meos            = 'emsmdt',
     garage          = 'garages',
     rentel          = 'garages',
     store           = 'appstore',

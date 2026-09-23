@@ -160,7 +160,7 @@ export function RacesPane() {
             {settled && rows.length === 0 ? (
                 <div className="px-4 pb-6">{empty}</div>
             ) : (
-                <div className={isPhone ? listStack : "mdt-stagger flex flex-col gap-0.5 px-1"}>
+                <div className={isPhone ? listStack : "stagger-rows flex flex-col gap-0.5 px-1"}>
                     {rows.map(row => (
                         <RaceListRow
                             key={row.id}

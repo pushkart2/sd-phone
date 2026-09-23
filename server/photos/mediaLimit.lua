@@ -4,7 +4,7 @@ local config = require 'configs.config'
 local player = require 'bridge.server.player'
 
 ---@type table Shared upload budget for every player-driven media path (camera, voice memos,
----voicemail, call recordings, message audio, MDT bodycam, Vibez voiceovers). Every byte that
+---voicemail, call recordings, message audio and Vibez voiceovers). Every byte that
 ---reaches the media provider on a player's behalf is paid for here BEFORE it leaves, because the
 ---provider bills the server owner and nothing downstream can take an upload back.
 ---

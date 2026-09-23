@@ -342,8 +342,8 @@ end
 ---@param src number player making the claim
 ---@param url any URL the client reports, entirely untrusted
 ---@param opts { maxBytes: integer, kinds: table<'image'|'video'|'audio', boolean> } what this
----caller will accept. Both belong to the caller rather than to this module: the Camera and the
----MDT bodycam have ceilings an order of magnitude apart, and they take different kinds - Voice
+---caller will accept. Both belong to the caller rather than to this module: the Camera and other
+---large media uploads have ceilings an order of magnitude apart, and they take different kinds - Voice
 ---Memos wants audio and only audio, while a camera claim admitting an mp3 would drop a sound file
 ---into somebody's photo gallery.
 ---@param cb fun(url: string|nil, code: 'no-slot'|'expired'|'foreign-url'|'duplicate'|'probe-failed'|'bad-type'|'too-large'|nil, bytes: integer|nil)
@@ -407,7 +407,7 @@ function presign.claim(src, url, opts, cb)
     -- One byte, not the file. A HEAD would be the natural probe and FiveM cannot send one at all
     -- (PerformHttpRequest answers status 0), but R2 honours Range: asking for `bytes=0-0` returns
     -- 206 with a single byte and a `content-range` naming the object's true length, which is all
-    -- this needs. Downloading the object instead would cost the server 94 MB per bodycam
+    -- this needs. Downloading the object instead could cost the server tens of MB per upload
     -- recording, trading the packet loss this change removes for bandwidth somewhere else.
     PerformHttpRequest(url, function(status, body, headers)
         -- 206 is the expected answer. 200 means the range was ignored - a cached response does

@@ -170,14 +170,13 @@ module.exports = {
                     from: { transform: 'rotate(0deg)' },
                     to:   { transform: 'rotate(360deg)' },
                 },
-                // A terminal pane taking the stage: short rise and fade, no
-                // horizontal travel, since the sidebar stays put beside it.
-                'mdt-pane': {
+                // A pane taking the stage: short rise and fade, no horizontal travel.
+                'pane-enter': {
                     '0%':   { opacity: 0, transform: 'translateY(7px)' },
                     '100%': { opacity: 1, transform: 'translateY(0)' },
                 },
-                // A record drilling in over its master list.
-                'mdt-detail': {
+                // A detail drilling in over its master list.
+                'detail-enter': {
                     '0%':   { opacity: 0, transform: 'translateX(calc(var(--dir-x, 1) * 18px))' },
                     '100%': { opacity: 1, transform: 'translateX(0)' },
                 },
@@ -200,8 +199,8 @@ module.exports = {
                 'heart-pop':       'heart-pop 0.42s cubic-bezier(0.34,1.56,0.64,1)',
                 'burst-ring':      'burst-ring 0.5s ease-out forwards',
                 'disc-spin':       'disc-spin 4s linear infinite',
-                'mdt-pane':        'mdt-pane 0.24s cubic-bezier(0.22,0.9,0.3,1)',
-                'mdt-detail':      'mdt-detail 0.26s cubic-bezier(0.22,0.9,0.3,1)',
+                'pane-enter':      'pane-enter 0.24s cubic-bezier(0.22,0.9,0.3,1)',
+                'detail-enter':    'detail-enter 0.26s cubic-bezier(0.22,0.9,0.3,1)',
             },
         },
     },

@@ -86,7 +86,6 @@ require 'server.vibez.init'
 require 'server.voice.init'
 require 'server.streaks.init'
 require 'server.id.init'
-require 'server.mdt.init'
 require 'server.racing.init'
 require 'server.health.init'
 require 'server.medical.init'
@@ -120,8 +119,6 @@ require 'server.statebags'
 
 -- lb-phone export compatibility shim (inert while the real lb-phone runs; sd_phone_lbcompat kill switch).
 require 'server.compat.lbphone.init'
--- lb-tablet dispatch export compatibility shim (inert while the real lb-tablet runs; sd_phone_lbtabletcompat kill switch).
-require 'server.compat.lbtablet.init'
 -- yseries export compatibility shim (inert while the real yseries runs; sd_phone_yseriescompat kill switch).
 require 'server.compat.yseries.init'
 -- qs-smartphone export compatibility shim (sd_phone_qscompat kill switch).
