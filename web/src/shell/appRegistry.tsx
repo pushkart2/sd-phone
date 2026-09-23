@@ -89,7 +89,6 @@ const APP_REGISTRY = {
     weazelnews:  entry(() => import('@/apps/weazelnews/WeazelNews').then(m => ({ default: m.WeazelNews }))),
     streaks:     entry(() => import('@/apps/streaks/Streaks').then(m => ({ default: m.Streaks }))),
     birdy:       entry(() => import('@/apps/birdy/Birdy').then(m => ({ default: m.Birdy }))),
-    emsmdt:      entry(() => import('@/apps/mdt/Mdt').then(m => ({ default: m.EmsMdt }))),
     dojmdt:      entry(() => import('@/apps/mdt/Mdt').then(m => ({ default: m.DojMdt }))),
     racing:      entry(() => import('@/apps/racing/Racing').then(m => ({ default: m.Racing }))),
     appstore: {

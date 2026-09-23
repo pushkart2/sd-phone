@@ -1365,39 +1365,6 @@ function StreaksIcon() {
     );
 }
 
-function EmsMdtIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs>
-                <LinearGrad id={u('emsbg')} top="#F2456B" mid="#E11D48" bot="#5C0A20" angle={160} />
-                <filter id={u('emssh')} x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" floodColor="#2E0510" floodOpacity="0.45" />
-                </filter>
-            </defs>
-            <rect width={S} height={S} fill={`url(#${u('emsbg')})`} />
-            <path d={`M0 0 H${S} V19 Q${S / 2} 27 0 19 Z`} fill="rgba(255,255,255,0.12)" />
-            <g filter={`url(#${u('emssh')})`}>
-                <path
-                    d="M30 9.5 46 15.4V31.2c0 9-6.8 15.7-16 19.3-9.2-3.6-16-10.3-16-19.3V15.4Z"
-                    fill="#FFFFFF"
-                />
-                <path
-                    d="M30 13.6 42.3 18.1V31.1c0 6.9-5.1 12.1-12.3 15.2-7.2-3.1-12.3-8.3-12.3-15.2V18.1Z"
-                    fill="none"
-                    stroke="#E11D48"
-                    strokeOpacity="0.22"
-                    strokeWidth="1"
-                />
-            </g>
-            <path
-                d="M26.6 19.4h6.8v5.2h5.2v6.8h-5.2v5.2h-6.8v-5.2h-5.2v-6.8h5.2z"
-                fill="#E11D48"
-            />
-        </svg>
-    );
-}
-
 function DojMdtIcon() {
     const u = useIconIds();
     const pan = (cx: number) => (
@@ -1578,7 +1545,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     vibez:       VibezIcon,
     weazelnews:  WeazelNewsIcon,
     streaks:     StreaksIcon,
-    emsmdt:      EmsMdtIcon,
     dojmdt:      DojMdtIcon,
     racing:      RacingIcon,
 };

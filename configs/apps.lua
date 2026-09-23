@@ -110,7 +110,6 @@ return {
         --
         -- Keep `base = true`. The job gate is what hands a terminal out, so there is nothing to
         -- download; `base = false` would strand it behind an App Store entry instead.
-        { id = 'emsmdt', label = 'EMS', icon = 'emsmdt', route = '/emsmdt', accent = '#E11D48', base = true, enabled = true },
         { id = 'dojmdt', label = 'DOJ', icon = 'dojmdt', route = '/dojmdt', accent = '#6D28D9', base = true, enabled = true },
 
         -- Racing runs on both devices too, and unlike the terminals it carries no job gate. Its

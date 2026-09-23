@@ -68,7 +68,6 @@ function getDescriptions(): Record<string, string> {
         streaks:     t('appstore.descStreaks', 'A photo a day, keep your streak'),
         racing:      t('appstore.descRacing', 'Race tracks, rankings and events'),
         id:          t('appstore.descId', 'Your ID, licences and badge'),
-        emsmdt:      t('appstore.descEmsmdt', 'Patient charts and medical dispatch'),
         dojmdt:      t('appstore.descDojmdt', 'Court dockets, charges and case files'),
     };
 }

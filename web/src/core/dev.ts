@@ -76,7 +76,6 @@ export function devInjectMockData(): () => void {
             { id: 'vibez',      label: 'Clout',       icon: 'vibez',      route: '/vibez',      accent: '#A855F7' },
             { id: 'weazelnews', label: 'Weazel News', icon: 'weazelnews', route: '/weazelnews', accent: '#C8102E' },
             { id: 'streaks',    label: 'Streaks',     icon: 'streaks',    route: '/streaks',    accent: '#FF7A1A' },
-            { id: 'emsmdt',     label: 'EMS',         icon: 'emsmdt',     route: '/emsmdt',     accent: '#E11D48', base: true },
             { id: 'dojmdt',     label: 'DOJ',         icon: 'dojmdt',     route: '/dojmdt',     accent: '#6D28D9', base: true },
             { id: 'racing',     label: 'Racing',      icon: 'racing',     route: '/racing',     accent: '#0A8C72', base: true },
         ],
