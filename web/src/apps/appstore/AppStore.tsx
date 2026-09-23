@@ -57,7 +57,6 @@ function getDescriptions(): Record<string, string> {
         weazelnews:  t('appstore.descWeazelnews', 'Statewide headlines'),
         cookie:      t('appstore.descCookie', 'Addictive clicker game'),
         wordle:      t('appstore.descWordle', 'Daily word puzzle'),
-        blocks:      t('appstore.descBlocks', 'Stack and clear the lines'),
         minesweeper: t('appstore.descMinesweeper', 'Sweep the grid, dodge the mines'),
         casino:      t('appstore.descCasino', 'Blackjack, roulette and slots'),
         climber:     t('appstore.descClimber', 'Climb as high as you can'),

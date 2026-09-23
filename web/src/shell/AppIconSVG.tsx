@@ -943,24 +943,6 @@ export function WordleIcon() {
     );
 }
 
-export function BlocksIcon() {
-    const u = useIconIds();
-    const c = 11;
-    const ox = 8, oy = 9;
-    const cell = (cx: number, cy: number, fill: string) => (
-        <rect key={`${cx}-${cy}`} x={ox + cx * c} y={oy + cy * c} width={c - 1.5} height={c - 1.5} rx="2" fill={fill} />
-    );
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs><LinearGrad id={u('blk')} top="#3A3550" mid="#241F38" bot="#15111F" angle={150} /></defs>
-            <rect width={S} height={S} fill={`url(#${u('blk')})`} />
-            {cell(0, 0, '#A65CFF')}{cell(1, 0, '#A65CFF')}{cell(2, 0, '#A65CFF')}{cell(1, 1, '#A65CFF')}
-            {cell(3, 2, '#F2C53D')}{cell(4, 2, '#F2C53D')}{cell(3, 3, '#F2C53D')}{cell(4, 3, '#F2C53D')}
-            {cell(0, 2, '#36C9E0')}{cell(0, 3, '#36C9E0')}{cell(1, 3, '#36C9E0')}{cell(2, 3, '#36C9E0')}
-        </svg>
-    );
-}
-
 export function MinesweeperIcon() {
     const u = useIconIds();
     const c = 13, g = 1.5, o = 9;
@@ -1460,7 +1442,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     cookie:      CookieIcon,
     passwords:   PasswordsIcon,
     wordle:      WordleIcon,
-    blocks:      BlocksIcon,
     minesweeper: MinesweeperIcon,
     blackjack:   BlackjackIcon,
     casino:      CasinoIcon,
