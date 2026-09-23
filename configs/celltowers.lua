@@ -95,13 +95,11 @@ return {
     -- they cannot end. radio is RF, not cellular. payphone is a landline, and being reachable on
     -- one in a dead zone is the entire point of it. voice carries both the voice memo library
     -- and the peer signalling a live call's audio runs on, so gating it would connect calls that
-    -- nobody can hear. cookie is a single-player clicker whose save is the player's own
-    -- progress; refusing it would lose their clicks rather than tell them anything useful.
     Offline = {
         'settings', 'phone', 'apps', 'sim', 'admin', 'badges', 'compat',
         'notes', 'documents', 'photos', 'albums', 'music', 'clock', 'voice',
         'contacts', 'call', 'calls', 'messages', 'payphone', 'share', 'airshare',
-        'radio', 'cookie', 'medical',
+        'radio', 'medical',
     },
 
     -- Single actions that need Thresholds.Data even though the app around them is offline-safe,

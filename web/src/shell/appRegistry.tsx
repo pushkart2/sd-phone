@@ -75,7 +75,6 @@ const APP_REGISTRY = {
     homes:       entry(() => import('@/apps/homes/Homes').then(m => ({ default: m.Homes }))),
     calculator:  entry(() => import('@/apps/calculator/Calculator').then(m => ({ default: m.Calculator }))),
     passwords:   entry(() => import('@/apps/passwords/Passwords').then(m => ({ default: m.Passwords }))),
-    cookie:      entry(() => import('@/apps/cookie/Cookie').then(m => ({ default: m.Cookie }))),
     casino:      entry(() => import('@/apps/casino/Casino').then(m => ({ default: m.Casino }))),
     climber:     entry(() => import('@/apps/climber/Climber').then(m => ({ default: m.Climber }))),
     connectfour: entry(() => import('@/apps/connectfour/ConnectFour').then(m => ({ default: m.ConnectFour }))),
@@ -114,9 +113,9 @@ export function getAppEntry(id: AppId): AppEntry {
 // Apps show a real frozen "where you left off" card by DEFAULT. Backgrounded apps are
 // SUSPENDED (see web/src/shell/deckActive.ts): a boolean plumbed down each app's subtree
 // flips to false when it is not the interactive foreground instance, and the shared
-// choke points (useGameLoop, useOnlineLobby, useSelfLocation, the ryde/photogram/cookie/
+// choke points (useGameLoop, useOnlineLobby, useSelfLocation, the ryde/photogram/
 // blocks effects) fold it into their gates so the loop / poll / render / media halts and
-// the last frame simply freezes at ~0 CPU. That makes maps, ryde, photogram, cookie, the
+// the last frame simply freezes at ~0 CPU. That makes maps, ryde, photogram, the
 // arcade + board games, and phone all cheap to keep mounted and previewable.
 //
 // camera is the ONLY genuine exception: it drives a GTA-native cell-cam through a

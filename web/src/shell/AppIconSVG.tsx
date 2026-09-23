@@ -867,31 +867,6 @@ function HomesIcon() {
     );
 }
 
-function CookieIcon() {
-    const u = useIconIds();
-    const chips = [
-        [22, 22, 4], [40, 19, 4.4], [30, 36, 4], [44, 39, 3.6], [21, 42, 3.4],
-    ] as const;
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs>
-                <LinearGrad id={u('ckie-bg')} top="#E7A856" mid="#C77D2E" bot="#9C5A1C" angle={150} />
-                <RadialGrad id={u('ckie-b')} inner="#EFC684" outer="#B9772F" cx="38%" cy="32%" />
-            </defs>
-            <rect width={S} height={S} fill={`url(#${u('ckie-bg')})`} />
-            <circle cx="30" cy="30" r="20" fill={`url(#${u('ckie-b')})`} />
-            <circle cx="30" cy="30" r="20" fill="none" stroke="rgba(80,46,20,0.30)" strokeWidth="1.4" />
-            <path d="M16,21 A17,17 0 0 1 30,13" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" />
-            {chips.map(([cx, cy, r], i) => (
-                <g key={i}>
-                    <circle cx={cx} cy={cy} r={r} fill="#5A3417" />
-                    <circle cx={cx - r * 0.32} cy={cy - r * 0.34} r={r * 0.4} fill="#7A4A24" opacity="0.85" />
-                </g>
-            ))}
-        </svg>
-    );
-}
-
 function PasswordsIcon() {
     const u = useIconIds();
     const BG = '#202022';
@@ -1383,7 +1358,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     photogram:   PhotogramIcon,
     garages:     GaragesIcon,
     homes:       HomesIcon,
-    cookie:      CookieIcon,
     passwords:   PasswordsIcon,
     blackjack:   BlackjackIcon,
     casino:      CasinoIcon,

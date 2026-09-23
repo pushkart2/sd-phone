@@ -55,7 +55,6 @@ function getDescriptions(): Record<string, string> {
         stocks:      t('appstore.descStocks', 'Trade stocks & crypto'),
         vibez:       t('appstore.descVibez', 'Short videos and trends'),
         weazelnews:  t('appstore.descWeazelnews', 'Statewide headlines'),
-        cookie:      t('appstore.descCookie', 'Addictive clicker game'),
         casino:      t('appstore.descCasino', 'Blackjack, roulette and slots'),
         climber:     t('appstore.descClimber', 'Climb as high as you can'),
         connectfour: t('appstore.descConnectfour', 'Line up four to win'),

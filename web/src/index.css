@@ -858,45 +858,11 @@ input[type='number'] {
     0%, 60%, 100% { opacity: 0.35; transform: translateY(0);     }
     30%           { opacity: 1;    transform: translateY(-3px);  }
 }
-@keyframes cookie-pop {
-    0%   { opacity: 0; transform: translate(-50%, 0)      scale(0.6); }
-    18%  { opacity: 1; transform: translate(-50%, -8px)   scale(1.1); }
-    100% { opacity: 0; transform: translate(-50%, -64px)  scale(1);   }
-}
-
-@keyframes cookie-crumb {
-    0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4); }
-}
-
-@keyframes golden-drift {
-    0%   { left: -16%; transform: rotate(-12deg); }
-    100% { left: 116%; transform: rotate(12deg);  }
-}
-
-@keyframes golden-pulse {
-    0%, 100% { filter: drop-shadow(0 0 6px rgba(255,196,60,0.85)); }
-    50%      { filter: drop-shadow(0 0 16px rgba(255,210,80,1));   }
-}
 @keyframes chess-check-pulse {
     0%, 100% { opacity: 0.5; }
     50%      { opacity: 0.92; }
 }
 
-@keyframes cookie-toast-in {
-    from { opacity: 0; transform: translateY(-14px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0)     scale(1);    }
-}
-
-@keyframes cookie-toast-out {
-    from { opacity: 1; transform: translateY(0)     scale(1);    }
-    to   { opacity: 0; transform: translateY(-14px) scale(0.96); }
-}
-
-@keyframes cookie-fade-in {
-    from { opacity: 0; transform: translateY(5px); }
-    to   { opacity: 1; transform: translateY(0);   }
-}
 
 @keyframes notif-in {
     0%   { opacity: 0; transform: translateY(-150%); }
@@ -925,12 +891,6 @@ input[type='number'] {
 @keyframes folder-fade-out {
     0%   { opacity: 1; }
     100% { opacity: 0; }
-}
-@keyframes cookie-rain {
-    0%   { opacity: 0;    transform: translateY(0)           rotate(0deg); }
-    12%  { opacity: 0.92; }
-    85%  { opacity: 0.92; }
-    100% { opacity: 0;    transform: translateY(var(--fall)) rotate(var(--spin)); }
 }
 @keyframes live-comment-in {
     0%   { opacity: 0; transform: translateY(10px); }

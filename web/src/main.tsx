@@ -39,7 +39,6 @@ document.addEventListener('mousedown', e => {
 // having the seed stomp it straight back.
 if (useMocks) {
     if (!localStorage.getItem('sd-phone:setup:v1')) localStorage.setItem('sd-phone:setup:v1', JSON.stringify({ completed: true, theme: 'light', wallpaper: 'lockscreen.jpg' }));
-    if (!localStorage.getItem('sd-phone:cookie:v1')) localStorage.setItem('sd-phone:cookie:v1', JSON.stringify({ cookies: 25040, earned: 25040, owned: { cursor: 8, grandma: 4 }, achievements: ['a100', 'a1k', 'a10k', 'cps5'], rainOn: true }));
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

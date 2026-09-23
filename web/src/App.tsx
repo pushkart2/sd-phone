@@ -90,7 +90,7 @@ setAppLabelSource(() => useThemeStore.getState().appLabels);
 const PEEK_FALLBACK_WALL = 'lockscreen.jpg';
 
 
-const RESET_KEEPS_LOCAL = ['sd-phone:setup:', 'sd-phone:auth:', 'sd-phone:music:lib', 'sd-phone:cookie:'];
+const RESET_KEEPS_LOCAL = ['sd-phone:setup:', 'sd-phone:auth:', 'sd-phone:music:lib'];
 
 const APP_CLOSE_MS = 300;
 
