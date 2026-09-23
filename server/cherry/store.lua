@@ -109,11 +109,19 @@ function store.ensureSchema()
     -- uq_cherry_pair leads on `a`, so matchesFor's `WHERE a = ? OR b = ?` had no index for the
     -- `b` half and fell back to a full scan on every Cherry open.
     util.ensureIndex('phone_cherry_matches', 'idx_cherry_match_b', '(b)')
+    util.ensureIndex('phone_cherry_messages', 'idx_cherry_msgs_thread', '(match_id, created_at, id)')
 
     -- Referential integrity, added on boot so existing installs migrate with no manual SQL.
     -- Each is a no-op once present; orphaned children are cleared first (they point at a
     -- parent that is already gone) and a type or collation mismatch is skipped, never fatal.
     util.ensureForeignKey('phone_cherry_messages', 'match_id', 'phone_cherry_matches', 'id', 'fk_cherry_messages_match')
+    util.ensureForeignKey('phone_cherry_swipes', 'swiper', 'phone_cherry_profiles', 'username', 'fk_cherry_swipes_swiper')
+    util.ensureForeignKey('phone_cherry_swipes', 'target', 'phone_cherry_profiles', 'username', 'fk_cherry_swipes_target')
+    util.ensureForeignKey('phone_cherry_matches', 'a', 'phone_cherry_profiles', 'username', 'fk_cherry_matches_a')
+    util.ensureForeignKey('phone_cherry_matches', 'b', 'phone_cherry_profiles', 'username', 'fk_cherry_matches_b')
+    util.ensureForeignKey('phone_cherry_blocks', 'blocker', 'phone_cherry_profiles', 'username', 'fk_cherry_blocks_blocker')
+    util.ensureForeignKey('phone_cherry_blocks', 'blocked', 'phone_cherry_profiles', 'username', 'fk_cherry_blocks_blocked')
+    util.ensureForeignKey('phone_cherry_messages', 'sender', 'phone_cherry_profiles', 'username', 'fk_cherry_messages_sender')
 end
 
 ---A profile row by username (nil if none).
@@ -340,18 +348,29 @@ function store.deleteMatch(id)
     MySQL.update.await('DELETE FROM phone_cherry_matches WHERE id = ?', { id })
 end
 
----All of a user's matches, newest activity first: ordered by each thread's newest message time,
----falling back to the match creation time for messageless matches.
+---A bounded match list with its last-message preview joined in one query, newest activity first.
+---The correlated id lookup seeks `(match_id, created_at, id)` and avoids the former N+1 query per
+---match in the app-open path.
 ---@param username string viewer's username
+---@param limit? number row cap (default 100)
 ---@return table[] rows match rows (+ last_at)
-function store.matchesFor(username)
+function store.matchesFor(username, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 100), 100))
     local rows = MySQL.query.await([[
         SELECT m.id, m.a, m.b, m.created_at,
-               (SELECT MAX(c.created_at) FROM phone_cherry_messages c WHERE c.match_id = m.id) AS last_at
+               lm.id AS last_message_id, lm.sender AS last_sender, lm.kind AS last_kind,
+               lm.body AS last_body, lm.meta AS last_meta, lm.reactions AS last_reactions,
+               lm.created_at AS last_at
         FROM phone_cherry_matches m
+        LEFT JOIN phone_cherry_messages lm ON lm.id = (
+            SELECT c.id FROM phone_cherry_messages c
+            WHERE c.match_id = m.id
+            ORDER BY c.created_at DESC, c.id DESC LIMIT 1
+        )
         WHERE m.a = ? OR m.b = ?
         ORDER BY COALESCE(last_at, m.created_at) DESC
-    ]], { username, username }) or {}
+        LIMIT ?
+    ]], { username, username, limit }) or {}
     return rows
 end
 

@@ -428,13 +428,13 @@ export function Birdy({ onClose }: { onClose: () => void }) {
                     { key: 'name',     label: t('squawk.name', 'Name') },
                     { key: 'password', label: t('squawk.password', 'Password'), type: 'password' },
                     { key: 'email',    label: t('squawk.email', 'Email'), suffix: `@${MAIL_DOMAIN}`, createOnly: true },
-                    { key: 'phone',    label: t('squawk.phone', 'Phone'), type: 'tel',   createOnly: true },
+                    { key: 'phone',    label: t('squawk.phone', 'Phone'), type: 'tel',   createOnly: true, optional: true },
                     { key: 'bio',      label: t('squawk.bio', 'Bio'), createOnly: true, optional: true },
                 ]}
                 onSubmit={async (mode, vals) => {
                     if (mode === 'create') {
                         const r = await apiRegister({ name: vals.name ?? '', username: vals.username ?? '', password: vals.password ?? '', bio: vals.bio ?? '', email: vals.email ?? '', phone: vals.phone });
-                        return { ok: r.ok, message: r.message };
+                        return { ok: r.ok, message: r.message, field: r.field };
                     }
                     const r = await apiLogin({ username: vals.username ?? '', password: vals.password ?? '' });
                     return { ok: r.ok, message: r.message };

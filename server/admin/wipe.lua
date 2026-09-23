@@ -172,32 +172,22 @@ local function wipeCid(cid)
         rows = rows + del('DELETE FROM phone_ryde_drivers WHERE username = ?', { ry })
     end
 
-    local mails = MySQL.query.await(
-        "SELECT email, logged_in_citizens FROM phone_mail_accounts WHERE JSON_SEARCH(logged_in_citizens, 'one', ?) IS NOT NULL",
-        { cid }
-    ) or {}
-    for _, m in ipairs(mails) do
-        local arr = json.decode(m.logged_in_citizens or '[]') or {}
-        local keep = {}
-        for _, c in ipairs(arr) do if c ~= cid then keep[#keep + 1] = c end end
-        del('UPDATE phone_mail_accounts SET logged_in_citizens = ? WHERE email = ?', { json.encode(keep), m.email })
-    end
-    -- phone_mail_sessions indexes the column rewritten above; it has to be dropped in the same
-    -- pass or mail.listAccountsForCitizen keeps reading rows this wipe just signed out of.
+    -- Mail sessions are normalized; one indexed delete signs this character out everywhere.
     del('DELETE FROM phone_mail_sessions WHERE citizenid = ?', { cid })
 
     -- Signing out above is not enough: the per-character mail cap counts rows by created_by_cid,
     -- so an account left standing keeps its slot and its address forever, and a "wiped" character
     -- cannot re-register the same email. Deleted after the sign-out pass, so an account shared with
     -- someone else has already had this character removed from it and is then left alone.
-    local owned = MySQL.query.await(
-        'SELECT email, logged_in_citizens FROM phone_mail_accounts WHERE created_by_cid = ?', { cid }) or {}
+    local owned = MySQL.query.await([[
+        SELECT a.email, COUNT(s.citizenid) AS other_sessions
+        FROM phone_mail_accounts a
+        LEFT JOIN phone_mail_sessions s ON s.email = a.email
+        WHERE a.created_by_cid = ?
+        GROUP BY a.email
+    ]], { cid }) or {}
     for _, m in ipairs(owned) do
-        local signedIn = json.decode(m.logged_in_citizens or '[]') or {}
-        local others = 0
-        for _, c in ipairs(signedIn) do if c ~= cid then others = others + 1 end end
-        if others == 0 then
-            del('DELETE FROM phone_mail_sessions WHERE email = ?', { m.email })
+        if (tonumber(m.other_sessions) or 0) == 0 then
             rows = rows + del('DELETE FROM phone_mail_accounts WHERE email = ?', { m.email })
         end
     end
@@ -262,17 +252,18 @@ local function wipeAccountsFor(cid)
 
     local result = { mail = {}, apps = {}, skipped = {} }
 
-    local mails = MySQL.query.await(
-        'SELECT email, logged_in_citizens FROM phone_mail_accounts WHERE created_by_cid = ?', { cid }) or {}
+    local mails = MySQL.query.await([[
+        SELECT a.email, COUNT(s.citizenid) AS other_sessions
+        FROM phone_mail_accounts a
+        LEFT JOIN phone_mail_sessions s ON s.email = a.email AND s.citizenid <> ?
+        WHERE a.created_by_cid = ?
+        GROUP BY a.email
+    ]], { cid, cid }) or {}
     for _, m in ipairs(mails) do
-        local signedIn = json.decode(m.logged_in_citizens or '[]') or {}
-        local others = 0
-        for _, c in ipairs(signedIn) do if c ~= cid then others = others + 1 end end
-
+        local others = tonumber(m.other_sessions) or 0
         if others > 0 then
             result.skipped[#result.skipped + 1] = ('%s (%d other session(s))'):format(m.email, others)
         else
-            del('DELETE FROM phone_mail_sessions WHERE email = ?', { m.email })
             del('DELETE FROM phone_mail_accounts WHERE email = ?', { m.email })
             result.mail[#result.mail + 1] = m.email
         end

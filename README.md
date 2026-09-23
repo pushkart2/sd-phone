@@ -225,7 +225,19 @@ ensure sd-phone-props
 ensure sd-phone
 ```
 
-Database tables create themselves on first boot.
+Database tables create themselves on first boot. After the console prints that sd-phone is ready,
+run the manual schema maintenance once (and again after updating sd-phone):
+
+```text
+sdphone:schema
+```
+
+This installs or repairs upgraded columns, indexes, collations and foreign keys without making
+every normal resource restart repeat dozens of MariaDB catalogue audits. Use
+`sdphone:schema status` to see how many operations the current build registered.
+
+Migrating player data from LB Phone is separate and manual: preview with `sdphone:migrate dry`,
+then run `sdphone:migrate` from the server console.
 
 ### 2. Add the phone items
 

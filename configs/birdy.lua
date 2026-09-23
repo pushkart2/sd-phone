@@ -36,6 +36,14 @@ return {
     -- Posts returned per feed load (newest first).
     FeedLimit = 50,
 
+    -- Large relationship/reply collections are bounded independently from the feed. These
+    -- endpoints are not paged by the current UI, so hard caps prevent one popular account/post
+    -- from turning a single screen-open into an unbounded database and network response.
+    FollowListLimit = 100,
+    ReplyLimit      = 200,
+    DmThreadLimit   = 200,
+    PostFanoutLimit = 500,
+
     -- Days of post history the Search tab's trending-hashtag counts look at.
     TrendingWindowDays = 7,
 

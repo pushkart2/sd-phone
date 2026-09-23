@@ -49,7 +49,10 @@ local OWNED = '_sdphone_migrate_owned'
 function store.lbSource(name, markerColumn)
     local full = PREFIX .. name
     local rescued = full .. '_lb'
-    if store.tableExists(rescued) then return rescued end
+    if store.tableExists(rescued)
+        and (not markerColumn or store.tableHasColumn(rescued, markerColumn)) then
+        return rescued
+    end
     if not store.tableExists(full) then return nil end
     if markerColumn and not store.tableHasColumn(full, markerColumn) then return nil end
     return full
@@ -754,16 +757,20 @@ end
 
 ---@return { address: string, password: string }[]
 function store.lbMailAccounts()
-    return MySQL.query.await(('SELECT address, password FROM %s'):format(lbt('mail_accounts'))) or {}
+    local source = store.lbSource('mail_accounts', 'address')
+    if not source then return {} end
+    return MySQL.query.await(('SELECT address, password FROM %s'):format(source)) or {}
 end
 
 ---@return table[]
 function store.lbMailMessages()
+    local source = store.lbSource('mail_messages', 'recipient')
+    if not source then return {} end
     return MySQL.query.await(([[
         SELECT id, recipient, sender, subject, content, attachments, actions, `read`,
                UNIX_TIMESTAMP(`timestamp`) AS ts
         FROM %s ORDER BY `timestamp` ASC
-    ]]):format(lbt('mail_messages'))) or {}
+    ]]):format(source)) or {}
 end
 
 ---@return { phone_number: string, app: string, username: string }[]

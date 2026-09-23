@@ -1,8 +1,6 @@
 ---@type table Boot reporter (server.boot): one console summary instead of per-module prints.
 local boot = require 'server.boot'
 
----@type table Money bridge (bridge.server.money): framework-agnostic bank account read/credit/debit.
-local money   = require 'bridge.server.money'
 ---@type table Player bridge (bridge.server.player): identity from a server-trusted source only.
 local player  = require 'bridge.server.player'
 ---@type table Banking actions (server.banking.actions): Wallet transaction log (log-only, moves no money).
@@ -128,12 +126,18 @@ function chips.buy(src, amount, game)
     local cid = cidOf(src); if not cid then return nil, 'Player not found' end
     amount = clampTx(amount)
     if amount <= 0 then return nil, 'Enter a valid amount' end
+    local beforeChips = chips.get(cid)
+    if beforeChips > CHIP_CEILING - amount then return nil, 'Chip wallet limit reached' end
     if not bankBridge.removeMoney(src, amount, 'casino-chips') then
         return nil, 'Not enough money in the bank'
     end
     local bal = chips.add(cid, amount)
+    if bal < beforeChips + amount then
+        bankBridge.addMoney(src, amount, 'casino-chips-refund')
+        return nil, 'Failed to credit chips'
+    end
     banking.addExternal(cid, { label = 'Chip purchase', amount = -amount, category = categoryOf(game) })
-    return { chips = bal, bank = money.get(src, 'bank') or 0 }
+    return { chips = bal, bank = bankBridge.getBalance(src) or 0 }
 end
 
 ---Sells chips back for bank money (1:1), debit-before-credit. Logs a +amount Wallet transaction.
@@ -153,13 +157,13 @@ function chips.sell(src, amount, game)
         return nil, 'Could not reach your bank account'
     end
     banking.addExternal(cid, { label = 'Chip cashout', amount = amount, category = categoryOf(game) })
-    return { chips = bal, bank = money.get(src, 'bank') or 0 }
+    return { chips = bal, bank = bankBridge.getBalance(src) or 0 }
 end
 
 ---Read the caller's chip + bank balances (identity from source only). Read-only.
 lib.callback.register('sd-phone:server:games:chipsGet', function(src)
     local cid = cidOf(src); if not cid then return { success = false } end
-    return { success = true, data = { chips = chips.get(cid), bank = money.get(src, 'bank') or 0 } }
+    return { success = true, data = { chips = chips.get(cid), bank = bankBridge.getBalance(src) or 0 } }
 end)
 
 ---Buy chips with the caller's own bank money (validated + clamped in chips.buy).

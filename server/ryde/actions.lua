@@ -2,8 +2,8 @@
 local player    = require 'bridge.server.player'
 ---@type table Shared app-accounts store (server.accounts.store): signed-in session -> account rows.
 local acctStore = require 'server.accounts.store'
----@type table Money bridge (bridge.server.money): framework-agnostic bank debits/credits.
-local money     = require 'bridge.server.money'
+---@type table Banking bridge: authoritative active-provider balance movements.
+local ledger    = require 'bridge.server.banking'
 ---@type table Ryde persistence layer (server.ryde.store): driver profiles + finished rides.
 local store     = require 'server.ryde.store'
 ---@type table Settings store (server.settings.store): phone-number provisioning for trip cards.
@@ -541,10 +541,13 @@ function actions.complete(src, payload)
     local driverEarn = lib.math.round(trip.fare * (config.DriverCut or 1.0))
 
     local paid = false
-    if riderSrc and money.get(riderSrc, 'bank') >= trip.fare then
-        money.remove(riderSrc, 'bank', trip.fare, 'Ryde fare')
-        if driverSrc then money.add(driverSrc, 'bank', driverEarn, 'Ryde earnings') end
-        paid = true
+    if riderSrc and driverSrc and ledger.removeMoney(riderSrc, trip.fare, 'Ryde fare') then
+        if ledger.addMoney(driverSrc, driverEarn, 'Ryde earnings') then
+            paid = true
+        else
+            -- Never keep the fare when the paired credit failed.
+            ledger.addMoney(riderSrc, trip.fare, 'Ryde fare refund')
+        end
     end
 
     if paid then
@@ -638,10 +641,12 @@ function actions.rate(src, payload)
     tip = tip and math.floor(tip) or 0
     local tipPaid = 0
     if tip > 0 and driverSrc then
-        if money.get(src, 'bank') >= tip then
-            money.remove(src, 'bank', tip, 'Ryde tip')
-            money.add(driverSrc, 'bank', tip, 'Ryde tip')
-            tipPaid = tip
+        if ledger.removeMoney(src, tip, 'Ryde tip') then
+            if ledger.addMoney(driverSrc, tip, 'Ryde tip') then
+                tipPaid = tip
+            else
+                ledger.addMoney(src, tip, 'Ryde tip refund')
+            end
         end
     end
 

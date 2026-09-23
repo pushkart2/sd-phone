@@ -19,13 +19,9 @@ function store.ensureSchema()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
 
-    local hasCol = MySQL.scalar.await([[
-        SELECT COUNT(*) FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'phone_service_prefs' AND COLUMN_NAME = 'job_messages'
-    ]])
-    if not hasCol or hasCol == 0 then
-        MySQL.query.await('ALTER TABLE phone_service_prefs ADD COLUMN job_messages TINYINT(1) NOT NULL DEFAULT 1 AFTER job_calls')
-    end
+    util.ensureColumns('phone_service_prefs', {
+        job_messages = 'job_messages TINYINT(1) NOT NULL DEFAULT 1 AFTER job_calls',
+    })
 end
 
 ---@type integer How long a cached prefs entry is reused, in ms. A backstop under the explicit

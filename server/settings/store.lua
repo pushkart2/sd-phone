@@ -23,21 +23,6 @@ end
 ---@type fun(): string Random number candidate at config.Phone.Number.Length (server.util).
 local genNumber = util.randomNumber
 
----Returns a varchar column's declared character cap, or nil when the column is missing or not
----length-bounded (information_schema probe).
----@param tbl string table name
----@param name string column name
----@return number|nil length
-local function columnLength(tbl, name)
-    local row = MySQL.single.await([[
-        SELECT CHARACTER_MAXIMUM_LENGTH AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name = ?
-          AND column_name = ?
-    ]], { tbl, name })
-    return row and tonumber(row.n) or nil
-end
-
 ---Clamps a tone id to a lowercase slug capped at 64 chars; nil for empty/invalid input.
 ---@param id any client-supplied tone id
 ---@return string|nil clean lowercase [a-z0-9_-] slug, nil if unusable
@@ -121,75 +106,50 @@ function store.ensureSchema()
     -- shape, which every fresh install gets from the CREATE TABLE directly.
     migrations.apply('phone_settings')
 
-    -- Number-to-citizen is the hottest lookup in the resource (every dial, text and contact add)
-    -- and the primary key cannot serve it.
+    util.registerSchemaTask('settings-current-shape', 10, function()
+        -- Settings became per-device. Existing rows already carry device='phone', so widening the
+        -- key keeps every row attached to the original phone profile.
+        local primary = util.schemaIndex('phone_settings', 'PRIMARY')
+        local pkSecond = primary[2] and primary[2].col or nil
+        if pkSecond ~= 'device' then
+            MySQL.query.await('ALTER TABLE phone_settings DROP PRIMARY KEY, ADD PRIMARY KEY (citizenid, device)')
+        end
+
+        local appNames = util.schemaColumn('phone_settings', 'show_app_names')
+        if appNames and appNames.nullable == 'YES' then
+            MySQL.update.await('UPDATE phone_settings SET show_app_names = 1 WHERE show_app_names IS NULL')
+            MySQL.query.await('ALTER TABLE phone_settings MODIFY show_app_names TINYINT(1) NOT NULL DEFAULT 1')
+        end
+
+        local motion = util.schemaColumn('phone_settings', 'reduce_motion')
+        if not motion then
+            MySQL.query.await([[
+                ALTER TABLE phone_settings
+                    ADD COLUMN reduce_motion TINYINT      NULL,
+                    ADD COLUMN bold_text     TINYINT(1)   NULL,
+                    ADD COLUMN text_scale    DECIMAL(3,2) NULL,
+                    ADD COLUMN app_labels    TEXT         NULL
+            ]])
+        end
+
+        -- Three motion levels cannot use TINYINT(1): oxmysql maps that width to boolean.
+        local motionType = motion and motion.column_type or nil
+        if type(motionType) == 'string' and motionType:lower():find('tinyint(1)', 1, true) then
+            MySQL.query.await('ALTER TABLE phone_settings MODIFY reduce_motion TINYINT NULL')
+        end
+    end)
+
     util.ensureIndex('phone_settings', 'idx_phone_settings_number', '(phone_number)')
-
-    -- Settings became per-device, so the key widened. Existing rows already carry device='phone'
-    -- from the column default, which is what makes this safe: every row a player had stays their
-    -- phone's, and a tablet mints its own row on first use. Keyed off the second PK column rather
-    -- than a version flag, so it is a no-op on every boot after the first.
-    local pkSecond = MySQL.scalar.await([[
-        SELECT COLUMN_NAME FROM information_schema.statistics
-        WHERE table_schema = DATABASE() AND table_name = 'phone_settings'
-          AND index_name = 'PRIMARY' AND SEQ_IN_INDEX = 2
-    ]])
-    if pkSecond ~= 'device' then
-        MySQL.query.await('ALTER TABLE phone_settings DROP PRIMARY KEY, ADD PRIMARY KEY (citizenid, device)')
-    end
-
-    local appNamesNullable = MySQL.scalar.await([[
-        SELECT IS_NULLABLE FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_settings'
-          AND COLUMN_NAME = 'show_app_names'
-    ]])
-    if appNamesNullable == 'YES' then
-        MySQL.update.await('UPDATE phone_settings SET show_app_names = 1 WHERE show_app_names IS NULL')
-        MySQL.query.await('ALTER TABLE phone_settings MODIFY show_app_names TINYINT(1) NOT NULL DEFAULT 1')
-    end
-
-    -- Personalisation columns added after the table shipped. Keyed off the first of them so the
-    -- whole group is added in one ALTER on an existing install and skipped on every boot after,
-    -- and so a fresh install (which gets them from the CREATE TABLE above) never runs it at all.
-    local hasPersonalisation = MySQL.scalar.await([[
-        SELECT COUNT(*) FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_settings'
-          AND COLUMN_NAME = 'reduce_motion'
-    ]])
-    if tonumber(hasPersonalisation) == 0 then
-        MySQL.query.await([[
-            ALTER TABLE phone_settings
-                ADD COLUMN reduce_motion TINYINT      NULL,
-                ADD COLUMN bold_text     TINYINT(1)   NULL,
-                ADD COLUMN text_scale    DECIMAL(3,2) NULL,
-                ADD COLUMN app_labels    TEXT         NULL
-        ]])
-    end
-
-    -- reduce_motion holds three levels (0 full, 1 reduced, 2 off), so it must NOT be TINYINT(1):
-    -- oxmysql maps that width to a Lua boolean, which would read both 1 and 2 back as `true` and
-    -- collapse the setting to off/on. Early installs got the narrow type; widen them.
-    local motionType = MySQL.scalar.await([[
-        SELECT COLUMN_TYPE FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_settings'
-          AND COLUMN_NAME = 'reduce_motion'
-    ]])
-    if type(motionType) == 'string' and motionType:lower():find('tinyint(1)', 1, true) then
-        MySQL.query.await('ALTER TABLE phone_settings MODIFY reduce_motion TINYINT NULL')
-    end
 
     util.ensureColumns('phone_settings', {
         card_style = 'card_style TEXT NULL',
     })
 
-    local hasBankBrand = MySQL.scalar.await([[
-        SELECT COUNT(*) FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_settings'
-          AND COLUMN_NAME = 'bank_brand'
-    ]])
-    if tonumber(hasBankBrand) == 1 then
-        MySQL.query.await('ALTER TABLE phone_settings DROP COLUMN bank_brand')
-    end
+    util.registerSchemaTask('settings-drop-bank-brand', 30, function()
+        if util.schemaColumn('phone_settings', 'bank_brand') then
+            MySQL.query.await('ALTER TABLE phone_settings DROP COLUMN bank_brand')
+        end
+    end)
 
     util.ensureTable('phone_custom_ringtones', 'citizenid', [[
         CREATE TABLE IF NOT EXISTS phone_custom_ringtones (
@@ -230,6 +190,53 @@ function store.ensureSchema()
         ):format(stripCol('phone_number'), stripCol('phone_number')))
         return { normalized = tonumber(n) or 0 }
     end)
+
+    -- A phone number identifies exactly one phone identity. Resolve historical duplicates
+    -- deterministically (prefer the phone device, then the most recently updated row) before
+    -- making that invariant concurrency-safe in the database.
+    util.runOnce('settings_phone_number_unique_v1', function()
+        local duplicates = MySQL.query.await([[
+            SELECT phone_number
+            FROM phone_settings
+            WHERE phone_number IS NOT NULL AND phone_number <> ''
+            GROUP BY phone_number HAVING COUNT(*) > 1
+        ]]) or {}
+        local cleared = 0
+        for i = 1, #duplicates do
+            local rows = MySQL.query.await([[
+                SELECT citizenid, device
+                FROM phone_settings
+                WHERE phone_number = ?
+                ORDER BY (device = 'phone') DESC, updated_at DESC, citizenid ASC
+            ]], { duplicates[i].phone_number }) or {}
+            for j = 2, #rows do
+                cleared = cleared + (tonumber(MySQL.update.await([[
+                    UPDATE phone_settings SET phone_number = NULL
+                    WHERE citizenid = ? AND device = ? AND phone_number = ?
+                ]], { rows[j].citizenid, rows[j].device, duplicates[i].phone_number })) or 0)
+            end
+        end
+        return { numbers = #duplicates, cleared = cleared }
+    end)
+    util.ensureUniqueIndex('phone_settings', 'uq_phone_settings_number', '(phone_number)')
+    util.registerSchemaTask('settings-drop-redundant-number-index', 30, function()
+        local hasNumberUnique = tonumber(MySQL.scalar.await([[
+            SELECT COUNT(*) FROM information_schema.statistics
+            WHERE table_schema = DATABASE() AND table_name = 'phone_settings'
+              AND index_name = 'uq_phone_settings_number' AND non_unique = 0
+        ]])) or 0
+        local hasLegacyNumberIndex = tonumber(MySQL.scalar.await([[
+            SELECT COUNT(*) FROM information_schema.statistics
+            WHERE table_schema = DATABASE() AND table_name = 'phone_settings'
+              AND index_name = 'idx_phone_settings_number'
+        ]])) or 0
+        if hasNumberUnique > 0 and hasLegacyNumberIndex > 0 then
+            MySQL.query.await('ALTER TABLE phone_settings DROP INDEX idx_phone_settings_number')
+        end
+    end)
+    util.ensureForeignKey('phone_settings', 'active_group_id', 'phone_groups', 'id', 'fk_settings_active_group', {
+        onDelete = 'SET NULL', cleanup = 'null', replace = true,
+    })
 end
 
 ---Clamps an app id to a lowercase slug capped at 32 chars; nil for empty/invalid input.
@@ -547,14 +554,18 @@ end
 ---releases that number from every other identity so a number lookup resolves to one owner.
 ---@param citizenid string framework per-character id
 ---@param number string phone number in any formatting (separators stripped)
+---@return boolean saved
 function store.setPhoneNumber(citizenid, number)
-    if not citizenid or citizenid == '' then return end
+    if not citizenid or citizenid == '' then return false end
     local clean = (tostring(number or ''):gsub('%D', ''))
-    MySQL.update.await([[
+    if clean == '' then clean = nil end
+    local ok, affected = pcall(MySQL.update.await, [[
         INSERT INTO phone_settings (citizenid, device, phone_number) VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE phone_number = VALUES(phone_number)
     ]], { citizenid, 'phone', clean })
+    if not ok or affected == nil then return false end
     store.releasePhoneNumber(citizenid, clean)
+    return true
 end
 
 ---Clears `number` from every settings row other than `citizenid`'s, so a number lookup resolves
@@ -588,8 +599,9 @@ function store.hasData(citizenid)
     return MySQL.scalar.await("SELECT 1 FROM phone_settings WHERE citizenid = ? AND device = 'phone' LIMIT 1", { citizenid }) ~= nil
 end
 
----Returns a player's number, generating and saving a unique one on first access; tries 20
----random candidates against numberExists, then accepts an unchecked one. Under unique-phones
+---Returns a player's number, atomically generating and saving a unique one on first access. The
+---database unique key arbitrates concurrent callers; collisions are retried, never returned.
+---Under unique-phones
 ---mode numbers live on SIM cards (server/sim), so first-access generation is disabled and only
 ---an already-synced number is returned.
 ---@param citizenid string framework per-character id
@@ -605,19 +617,27 @@ function store.ensurePhoneNumber(citizenid)
     local sim = require 'server.sim.state'
     if sim.active and not sim.character then return nil end
 
-    local number
-    for _ = 1, 20 do
+    for _ = 1, 40 do
         local candidate = genNumber()
-        if not store.numberExists(candidate) then
-            number = candidate
-            break
+        -- Do not let two first-use requests overwrite each other through ON DUPLICATE KEY. Only
+        -- the request whose candidate actually became the row's value announces the assignment.
+        local saved = pcall(MySQL.update.await, [[
+            INSERT INTO phone_settings (citizenid, device, phone_number) VALUES (?, 'phone', ?)
+            ON DUPLICATE KEY UPDATE phone_number = IF(
+                phone_number IS NULL OR phone_number = '', VALUES(phone_number), phone_number)
+        ]], { citizenid, candidate })
+        local assigned = store.getPhoneNumber(citizenid)
+        if saved and assigned == candidate then
+            -- Announces the first assignment (citizenid, number).
+            TriggerEvent('sd-phone:server:number:assigned', citizenid, candidate)
+            return candidate
         end
+        -- A concurrent resolver may have assigned this character while our insert collided.
+        if assigned then return assigned end
     end
-    number = number or genNumber()
-    store.setPhoneNumber(citizenid, number)
-    -- Announces the first assignment (citizenid, number).
-    TriggerEvent('sd-phone:server:number:assigned', citizenid, number)
-    return number
+    print(('^3[sd-phone]^0 could not allocate a unique phone number for %s after 40 attempts')
+        :format(citizenid))
+    return nil
 end
 
 ---Batch-resolves many citizenids to their stored phone numbers in one query, returning a

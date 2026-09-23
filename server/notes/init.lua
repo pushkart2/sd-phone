@@ -27,6 +27,10 @@ lib.callback.register('sd-phone:server:notes:list', function(src)
     return actions.list(src)
 end)
 
+lib.callback.register('sd-phone:server:notes:get', function(src, payload)
+    return actions.get(src, payload)
+end)
+
 lib.callback.register('sd-phone:server:notes:save', function(src, payload)
     return actions.save(src, payload)
 end)

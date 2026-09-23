@@ -14,6 +14,20 @@ local nd          = framework.name == 'nd' and require 'bridge.shared.ndcore' or
 ---metadata worth on QBCore, and a true account on ESX; each path is dispatched once at module load.
 local money = {}
 
+---@type integer Largest single movement accepted by the bridge. Keeps framework and SQL-backed
+---providers inside signed 32-bit money fields and rejects infinities/NaN at the trust boundary.
+local MAX_AMOUNT = 2147483647
+
+---@param value any
+---@return integer|nil
+local function amountOf(value)
+    local n = tonumber(value)
+    if not n or n ~= n or n == math.huge or n == -math.huge then return nil end
+    n = math.floor(n)
+    if n <= 0 or n > MAX_AMOUNT then return nil end
+    return n
+end
+
 ---Normalise caller-passed money type names across frameworks. ESX wants `money` for cash, QBCore
 ---and ND want `cash`; all three accept `bank` as-is. ox_core is not in here: it has no account
 ---named for a money type at all, so its paths below branch on the type rather than renaming it.
@@ -39,30 +53,36 @@ local function oxAccount(source)
     return cid and ox.account(cid) or nil
 end
 
----Credit one of the player's framework accounts (cash, bank, ...). Returns nothing by contract;
----a no-op when the player can't be resolved.
+---Credit one of the player's framework accounts (cash, bank, ...). Returns true only when the
+---selected framework path accepted the movement.
 ---@param source number
 ---@param moneyType string
 ---@param amount number
 ---@param reason? string Optional reason string passed to the framework's logger.
+---@return boolean added
 function money.add(source, moneyType, amount, reason)
+    amount = amountOf(amount)
+    if not amount then return false end
     local p = player_mod.get(source)
-    if not p then return end
+    if not p then return false end
 
     if framework.qb then
-        p.Functions.AddMoney(convertType(moneyType), amount, reason)
+        return p.Functions.AddMoney(convertType(moneyType), amount, reason) ~= false
     elseif framework.name == 'esx' then
         p.addAccountMoney(convertType(moneyType), amount)
+        return true
     elseif framework.name == 'ox' then
         if oxIsCash(moneyType) then
-            require('bridge.server.inventory').add(source, 'money', amount)
-            return
+            return require('bridge.server.inventory').add(source, 'money', amount) ~= false
         end
         local acc = oxAccount(source)
-        if acc then ox.accountCall(acc.accountId, 'addBalance', { amount = amount, message = reason }) end
+        if not acc then return false end
+        return ox.accountCall(acc.accountId, 'addBalance', { amount = amount, message = reason }) ~= false
     elseif framework.name == 'nd' then
-        if type(p.addMoney) == 'function' then p.addMoney(convertType(moneyType), amount, reason) end
+        if type(p.addMoney) ~= 'function' then return false end
+        return p.addMoney(convertType(moneyType), amount, reason) ~= false
     end
+    return false
 end
 
 ---Debit one of the player's framework accounts. False when the player could not be resolved or the
@@ -73,14 +93,18 @@ end
 ---@param reason? string Optional reason string passed to the framework's logger.
 ---@return boolean removed
 function money.remove(source, moneyType, amount, reason)
+    amount = amountOf(amount)
+    if not amount then return false end
     local p = player_mod.get(source)
     if not p then return false end
+    local before = money.get(source, moneyType)
+    if before < amount then return false end
 
     if framework.qb then
         return p.Functions.RemoveMoney(convertType(moneyType), amount, reason) ~= false
     elseif framework.name == 'esx' then
         p.removeAccountMoney(convertType(moneyType), amount)
-        return true
+        return money.get(source, moneyType) <= before - amount
     elseif framework.name == 'ox' then
         if oxIsCash(moneyType) then
             return require('bridge.server.inventory').remove(source, 'money', amount)
@@ -110,7 +134,7 @@ function money.get(source, moneyType)
     if not p then return 0 end
 
     if framework.qb then
-        return p.PlayerData.money[convertType(moneyType)] or 0
+        return tonumber(p.PlayerData.money[convertType(moneyType)]) or 0
     elseif framework.name == 'esx' then
         local account = p.getAccount(convertType(moneyType))
         return account and account.money or 0
@@ -139,7 +163,7 @@ local function chooseGetBlack()
             local worth = 0
             for _, bill in pairs(bills) do
                 if bill.info and bill.info.worth then
-                    worth = worth + bill.info.worth
+                    worth = worth + math.max(0, tonumber(bill.info.worth) or 0)
                 end
             end
             return worth
@@ -194,7 +218,10 @@ local addBlack = chooseAddBlack()
 ---@param source number
 ---@param amount number
 ---@return boolean
-function money.addBlack(source, amount) return addBlack(source, amount) end
+function money.addBlack(source, amount)
+    amount = amountOf(amount)
+    return amount and addBlack(source, amount) or false
+end
 
 ---Pick the "debit black money" implementation once at module load; true only when the full amount
 ---left the player. The qb path removes bills by slot, re-adding a reduced bill on a partial consume.
@@ -212,7 +239,9 @@ local function chooseRemoveBlack()
 
             local total = 0
             for _, bill in pairs(bills) do
-                if bill.info and bill.info.worth then total = total + bill.info.worth end
+                if bill.info and bill.info.worth then
+                    total = total + math.max(0, tonumber(bill.info.worth) or 0)
+                end
             end
             if total < amount then return false end
 
@@ -220,12 +249,13 @@ local function chooseRemoveBlack()
             for slot, bill in pairs(bills) do
                 if remaining <= 0 then break end
                 if bill.info and bill.info.worth then
-                    if bill.info.worth <= remaining then
+                    local worth = math.max(0, math.floor(tonumber(bill.info.worth) or 0))
+                    if worth > 0 and worth <= remaining then
                         if p.Functions.RemoveItem('markedbills', 1, bill.slot or slot) then
-                            remaining = remaining - bill.info.worth
+                            remaining = remaining - worth
                         end
-                    elseif p.Functions.RemoveItem('markedbills', 1, bill.slot or slot) then
-                        p.Functions.AddItem('markedbills', 1, false, { worth = bill.info.worth - remaining })
+                    elseif worth > remaining and p.Functions.RemoveItem('markedbills', 1, bill.slot or slot) then
+                        p.Functions.AddItem('markedbills', 1, false, { worth = worth - remaining })
                         remaining = 0
                     end
                 end
@@ -253,6 +283,9 @@ local removeBlack = chooseRemoveBlack()
 ---@param source number
 ---@param amount number
 ---@return boolean
-function money.removeBlack(source, amount) return removeBlack(source, amount) end
+function money.removeBlack(source, amount)
+    amount = amountOf(amount)
+    return amount and removeBlack(source, amount) or false
+end
 
 return money

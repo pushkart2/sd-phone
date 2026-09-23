@@ -263,28 +263,15 @@ function backup.restore(fromId, toId, toNumber, liveFromId)
     rows = rows + run(
         'UPDATE phone_message_groups SET owner_cid = ? WHERE owner_cid = ?', { toId, liveFromId })
 
-    -- Mailboxes: add the new identity to every account the previously enrolled phone was
-    -- signed into (mail logins are live state - the snapshot identity never signs in).
-    local ok, mails = pcall(function()
-        return MySQL.query.await(
-            "SELECT email, logged_in_citizens FROM phone_mail_accounts WHERE JSON_SEARCH(logged_in_citizens, 'one', ?) IS NOT NULL",
-            { liveFromId })
-    end)
-    if ok and type(mails) == 'table' then
-        for _, m in ipairs(mails) do
-            -- Unconditional: the JSON ends up carrying toId either way, and phone_mail_sessions
-            -- indexes it, so a restore that skipped the write must still leave the index right.
-            run('INSERT IGNORE INTO phone_mail_sessions (citizenid, email) VALUES (?, ?)', { toId, m.email })
-
-            local arr = json.decode(m.logged_in_citizens or '[]') or {}
-            if not lib.table.contains(arr, toId) then
-                arr[#arr + 1] = toId
-                rows = rows + run(
-                    'UPDATE phone_mail_accounts SET logged_in_citizens = ? WHERE email = ?',
-                    { json.encode(arr), m.email })
-            end
-        end
-    end
+    -- Mailboxes: copy normalized sessions in one statement. The derived table makes the
+    -- INSERT-from-the-same-table portable across MySQL/MariaDB versions.
+    rows = rows + run([[
+        INSERT IGNORE INTO phone_mail_sessions (citizenid, email)
+        SELECT ?, enrolled.email
+        FROM (
+            SELECT email FROM phone_mail_sessions WHERE citizenid = ?
+        ) enrolled
+    ]], { toId, liveFromId })
 
     return rows
 end

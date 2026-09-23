@@ -55,7 +55,7 @@ lib.callback.register('sd-phone:server:accounts:deletePassword', function(src, p
 ---foreign key points at, and three constraints point at phone_birdy_posts alone.
 local APP_TABLES = {
     mail = {
-        'phone_mail_saved_emails', 'phone_mail_sessions', 'phone_mail_accounts',
+        'phone_mail_saved_emails', 'phone_mail_sessions', 'phone_mail_messages', 'phone_mail_accounts',
     },
     birdy = {
         'phone_birdy_notifications', 'phone_birdy_dms', 'phone_birdy_follows',

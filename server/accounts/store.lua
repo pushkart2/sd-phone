@@ -128,6 +128,7 @@ function store.ensureSchema()
         last_used = 'last_used TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
     })
     util.ensureIndex('phone_app_sessions', 'idx_app_sessions_active', '(app, citizenid, last_used)')
+    util.ensureIndex('phone_app_sessions', 'idx_app_sessions_account', '(app, account_id, citizenid)')
 
     util.ensureColumns('phone_app_accounts', {
         created_by = 'created_by VARCHAR(64) NULL',

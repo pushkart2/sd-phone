@@ -25,7 +25,7 @@ export function Account({ onClose }: { onClose: () => void }) {
 
     const { authChecked, authed, me, setAuth } = g;
     const [myNumber,    setMyNumber]    = useState<string | null>(null);
-    const [myEmails,    setMyEmails]    = useState<string[]>([]);
+    const [myEmails,    setMyEmails]    = useState<string[] | null>(null);
     const [savedAccounts, setSavedAccounts] = useState<SwitchableAccount[]>([]);
     const [savedLogin,  setSavedLogin]  = useState<{ username: string; password: string } | null>(null);
     const [confirmSignOut, setConfirmSignOut] = useState(false);
@@ -79,8 +79,8 @@ export function Account({ onClose }: { onClose: () => void }) {
                     { key: 'username', label: t('ryde.fieldUsername', 'Username') },
                     { key: 'name',     label: t('ryde.fieldName', 'Name') },
                     { key: 'password', label: t('ryde.fieldPassword', 'Password'), type: 'password' },
-                    { key: 'email',    label: t('ryde.fieldEmail', 'Email'), suffix: `@${MAIL_DOMAIN}`, createOnly: true },
-                    { key: 'phone',    label: t('ryde.fieldPhone', 'Phone'), type: 'tel', createOnly: true },
+                    { key: 'email',    label: t('ryde.fieldEmail', 'Email'), suffix: `@${MAIL_DOMAIN}`, createOnly: true, optional: true },
+                    { key: 'phone',    label: t('ryde.fieldPhone', 'Phone'), type: 'tel', createOnly: true, optional: true },
                 ]}
                 onSubmit={async (mode, vals) => {
                     const r = mode === 'create'

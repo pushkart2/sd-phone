@@ -16,8 +16,8 @@ local OXLIB_FLOOR = '3.30.5'
 ---@type integer Milliseconds between quiescence checks while modules bootstrap.
 local TICK_MS = 1000
 ---@type integer Consecutive quiet ticks before the summary prints. Waiting for the count to stop
----moving, rather than a fixed delay, keeps the total right on a first boot where schema work is
----slow (new indexes, the foreign keys and their orphan sweep all land on that first start).
+---moving, rather than a fixed delay, keeps the total right while stores create any missing tables.
+---Indexes and foreign keys are maintained explicitly through `sdphone:schema`, not during boot.
 local QUIET_TICKS = 3
 
 ---@type table Boot reporter; the table returned at end of file. Modules report their schema state
@@ -26,6 +26,7 @@ local QUIET_TICKS = 3
 local M = {}
 
 local ready = 0
+local schemasSettled = false
 local failures = {}
 ---@type string[] Deferred setup warnings, printed with the summary so a module never has to
 ---print on its own and race the rest of the boot output.
@@ -40,6 +41,12 @@ end
 ---Records a module's schema as bootstrapped.
 function M.schemaReady()
     ready = ready + 1
+end
+
+---Whether all schema-owning modules have reached a quiet registration point.
+---@return boolean settled
+function M.isSchemaSettled()
+    return schemasSettled
 end
 
 ---Records a module's schema as failed. Printed immediately as well as counted: a failure is rare
@@ -58,6 +65,7 @@ CreateThread(function()
         Wait(TICK_MS)
         if ready == last then quiet = quiet + 1 else quiet, last = 0, ready end
     end
+    schemasSettled = true
 
     local current = version.current()
     print(('^2[sd-phone]^0 v%s ready ^2·^0 %d schemas'):format(current or '?', ready))

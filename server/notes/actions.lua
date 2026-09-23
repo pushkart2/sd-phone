@@ -19,9 +19,9 @@ local N = config.Notes
 ---server validates, clamps and persists them, scoped to the caller's citizenid.
 local actions = {}
 
----@type integer Upper bound (bytes) for each encoded sketches/images JSON column, just under the
----MEDIUMTEXT limit (16,777,215).
-local MAX_MEDIA_JSON = 16000000
+---@type integer Upper bound for all encoded media in one note. Sketches are lazy-loaded, but a
+---single editor open must still stay comfortably below typical FiveM/NUI payload ceilings.
+local MAX_MEDIA_JSON = 6 * 1024 * 1024
 ---@type integer Per-sketch ceiling. A sketch is a phone-screen PNG data URL; even a canvas
 ---scribbled edge to edge lands near 350 KB, so a megabyte only rejects a fabricated entry.
 local MAX_SKETCH_BYTES = 1024 * 1024
@@ -32,6 +32,8 @@ local MAX_IMAGE_BYTES = 512
 ---pause in typing, so even a hunt-and-peck typist tops out near 170 writes a minute; 300 sits
 ---clear of that yet cuts a scripted flood by three orders of magnitude.
 local SAVE_WINDOW, SAVE_MAX = 60000, 300
+---@type integer Full note opens allowed per character in the same rolling window.
+local GET_MAX = 60
 
 ---The acting player's citizenid, resolved from src via the player bridge.
 ---@param src integer player server id
@@ -83,11 +85,42 @@ function actions.list(src)
             body      = row.body or '',
             sketches  = decodeArr(row.sketches),
             images    = decodeArr(row.images),
+            sketchCount = tonumber(row.sketch_count) or 0,
+            imageCount  = tonumber(row.image_count) or 0,
+            loaded    = false,
             createdAt = row.created_at,
             updatedAt = row.updated_at,
         }
     end
     return { success = true, data = { notes = out } }
+end
+
+---Full note body/media for one editor open. The initial list deliberately carries only a text
+---preview and media counts so inline sketch data URLs are never bulk-pushed to NUI.
+---@param src integer player server id
+---@param payload any { id?: string }
+---@return table result envelope with { note }
+function actions.get(src, payload)
+    local cid = cidOf(src)
+    if not cid then return { success = false, message = 'Player not found' } end
+    local id = type(payload) == 'table' and payload.id or nil
+    if type(id) ~= 'string' or id == '' or #id > 40 then
+        return { success = false, message = 'Note not found' }
+    end
+    if not util.rateLimit(cid, 'notes:get', SAVE_WINDOW, GET_MAX) then
+        return { success = false, message = 'Slow down a moment' }
+    end
+    local row = store.get(cid, id)
+    if not row then return { success = false, message = 'Note not found' } end
+    return { success = true, data = { note = {
+        id = row.id,
+        body = row.body or '',
+        sketches = decodeArr(row.sketches),
+        images = decodeArr(row.images),
+        loaded = true,
+        createdAt = row.created_at,
+        updatedAt = row.updated_at,
+    } } }
 end
 
 ---Inserts or updates one of the caller's notes (PK citizenid+id). The per-player cap applies only
@@ -118,7 +151,7 @@ function actions.save(src, payload)
     local images       = mediaGuard.photos(cid, payload.images, N.MaxImages)
     local sketchesJson = json.encode(sketches)
     local imagesJson   = json.encode(images)
-    if #sketchesJson > MAX_MEDIA_JSON or #imagesJson > MAX_MEDIA_JSON then
+    if #sketchesJson + #imagesJson > MAX_MEDIA_JSON then
         return { success = false, messageKey = 'notes.noteTooLarge', message = 'Note is too large' }
     end
 
@@ -188,14 +221,15 @@ function actions.deliverShare(targetSrc, payload)
 
     local sketchesJson = json.encode(sketches)
     local imagesJson   = json.encode(images)
-    if #sketchesJson > MAX_MEDIA_JSON or #imagesJson > MAX_MEDIA_JSON then return false end
+    if #sketchesJson + #imagesJson > MAX_MEDIA_JSON then return false end
 
     local now = os.date('!%Y-%m-%dT%H:%M:%S.000Z')
     local id  = ('shr%d%d'):format(os.time(), math.random(100000, 999999))
     store.upsert(tcid, id, body, sketchesJson, imagesJson, now, now)
 
     TriggerClientEvent('sd-phone:client:notes:added', targetSrc, {
-        id = id, body = body, sketches = sketches, images = images, createdAt = now, updatedAt = now,
+        id = id, body = body, sketches = sketches, images = images, loaded = true,
+        createdAt = now, updatedAt = now,
     })
     return true
 end

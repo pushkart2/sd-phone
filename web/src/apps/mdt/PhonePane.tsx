@@ -338,15 +338,15 @@ function NoteRow({ note, citizenid, open, onToggle, onView }: {
     onToggle:  () => void;
     onView:    (url: string) => void;
 }) {
-    const { title, preview, rest } = noteLines(note.body);
-    const attachments = note.hasSketch || note.hasImage;
-
-    // Sketches are megabyte data URLs, so they are fetched for the one note actually opened.
-    const { data: sketches } = useAsyncData(
-        () => (open && note.sketchCount > 0 ? mdtPhoneNote(citizenid, note.id) : Promise.resolve([])),
-        [open, citizenid, note.id, note.sketchCount],
+    // Body, hosted-image URLs, and sketches are fetched together for only the opened note.
+    const { data: detail } = useAsyncData(
+        () => (open && note.loaded === false ? mdtPhoneNote(citizenid, note.id) : Promise.resolve(note)),
+        [open, citizenid, note.id, note.loaded],
     );
-    const media = [...(note.images ?? []), ...(sketches ?? [])];
+    const shown = detail ?? note;
+    const { title, preview, rest } = noteLines(shown.body);
+    const attachments = note.hasSketch || note.hasImage;
+    const media = [...(shown.images ?? []), ...(shown.sketches ?? [])];
 
     return (
         <div>

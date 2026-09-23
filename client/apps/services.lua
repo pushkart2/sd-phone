@@ -18,6 +18,7 @@ proxy('sd-phone:services:quit',        'sd-phone:server:services:quit')
 -- Thin delegates: company calls and the company message inbox.
 proxy('sd-phone:services:callCompany',    'sd-phone:server:services:callCompany')
 proxy('sd-phone:services:inbox',          'sd-phone:server:services:inbox')
+proxy('sd-phone:services:thread',         'sd-phone:server:services:thread')
 proxy('sd-phone:services:markRead',       'sd-phone:server:services:markRead')
 proxy('sd-phone:services:messageCompany', 'sd-phone:server:services:messageCompany')
 proxy('sd-phone:services:replyCompany',   'sd-phone:server:services:replyCompany')

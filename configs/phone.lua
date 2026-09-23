@@ -9,7 +9,7 @@ return {
     -- exports, compat commands) requires one of these items, so {} means
     -- nobody can open the phone.
     Items = {
-        { item = 'phone_black',  color = 'black'  },
+        { item = 'phone',  color = 'black'  },
         { item = 'phone_blue',   color = 'blue'   },
         { item = 'phone_green',  color = 'green'  },
         { item = 'phone_orange', color = 'orange' },

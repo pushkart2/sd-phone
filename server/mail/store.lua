@@ -1,23 +1,25 @@
 ---@type table Store module; the table returned at end of file.
 local store = {}
 
-
 local util = require 'server.util'
-local function newId() return util.newId(10) end
+local credentialStore = require 'server.accounts.store'
+local mailConfig = require('configs.config').Mail
 
----@type fun(): string Public alias - composers outside this module (mail actions, the
----accounts-engine delivery mailer) mint their message ids through the store.
+local function newId() return util.newId(10) end
 store.newId = newId
 
--- Server-side pepper mixed into every password hash.
----@type string
-local PEPPER = 'sd-phone-v1::mail::do-not-leak-this-string'
+-- Mail uses the same salted scrypt format as the account engine. These aliases retain the
+-- public store API and the legacy verifier while ensuring nothing new is written with Mail's
+-- old deterministic 96-bit digest.
+store.hashPassword = credentialStore.hashPassword
+store.needsPasswordRehash = credentialStore.needsRehash
 
----Hashes a password into a stable, deterministic 24-character hex digest.
+local LEGACY_MAIL_PEPPER = 'sd-phone-v1::mail::do-not-leak-this-string'
+
 ---@param password string
----@return string 24-char hex digest
-function store.hashPassword(password)
-    local input = password .. PEPPER
+---@return string
+local function legacyMailHash(password)
+    local input = password .. LEGACY_MAIL_PEPPER
     local h1, h2, h3 = 0x12345678, 0x87654321, 0xABCDEF01
     for i = 1, #input do
         local b = input:byte(i)
@@ -28,8 +30,17 @@ function store.hashPassword(password)
     return ('%08x%08x%08x'):format(h1, h2, h3)
 end
 
----Decodes a JSON column value: tables pass through, strings are JSON-decoded, and anything
----else (or a failed decode) becomes {}.
+-- Exported only for the account engine's one-time verification of rows imported from old Mail.
+store.legacyHashPassword = legacyMailHash
+
+---@param plain string
+---@param stored any
+---@return boolean
+function store.verifyPassword(plain, stored)
+    return credentialStore.verifyPassword(plain, stored)
+        or (type(stored) == 'string' and legacyMailHash(plain) == stored)
+end
+
 ---@param value any
 ---@return table
 local function decodeJson(value)
@@ -42,116 +53,256 @@ local function decodeJson(value)
     return {}
 end
 
----Encode a table for a JSON column; nil becomes an empty array/object.
 ---@param tbl table|nil
 ---@return string
-local function encodeJson(tbl) return json.encode(tbl or {}) end
-
----@type integer Hard ceiling on one account's stored messages blob. Every append, mark-read and
----flag is a read-decode-encode-write of the WHOLE blob on the main thread, so the blob size is
----what a caller pays per call - MaxMessagesPerAccount alone does not bound it, because one
----message can carry a 10k body plus five 5k note attachments.
-local MAX_ACCOUNT_BYTES = 512 * 1024
-
----Drops the oldest messages until the array's encoded size fits the account budget. The newest
----message is always kept, even alone over budget, so a delivery is never silently lost.
----@param messages table[] oldest-first
----@return table[] messages the same array when it already fits
-local function fitBudget(messages)
-    local total, from = 2, 1
-    for i = #messages, 1, -1 do
-        local encodedOk, encoded = pcall(json.encode, messages[i])
-        total = total + ((encodedOk and type(encoded) == 'string') and #encoded + 1 or MAX_ACCOUNT_BYTES)
-        if total > MAX_ACCOUNT_BYTES and i < #messages then from = i + 1; break end
-    end
-    if from == 1 then return messages end
-
-    local out = {}
-    for i = from, #messages do out[#out + 1] = messages[i] end
-    return out
+local function encodeJson(tbl)
+    return json.encode(tbl or {})
 end
 
----Hydrate a raw row from `phone_mail_accounts` into the canonical Lua shape with `messages`
----and `logged_in_citizens` pre-decoded.
----@param row table|nil
----@return table|nil
-local function hydrateRow(row)
-    if not row then return nil end
+local MAX_MESSAGE_BODY = 10000
+local MAX_ATTACHMENTS_JSON = 2 * 1024 * 1024
+local MESSAGE_RETENTION = math.max(1, math.min(tonumber(mailConfig.MaxMessagesPerAccount) or 200, 1000))
+local ACCOUNT_LIST_CAP = math.max(1, math.min(tonumber(mailConfig.MaxAccountsPerPlayer) or 3, 10))
+local SAVED_EMAIL_LIST_CAP = 200
+
+---@param attachments any
+---@return string|nil
+local function encodeAttachments(attachments)
+    if type(attachments) ~= 'table' then return nil end
+    local encoded = encodeJson(attachments)
+    return #encoded <= MAX_ATTACHMENTS_JSON and encoded or nil
+end
+
+---@param value any
+---@return boolean
+local function dbBool(value)
+    return value == true or tonumber(value) == 1
+end
+
+---@param row table
+---@return table
+local function hydrateMessage(row)
     return {
-        email              = row.email,
-        password_hash      = row.password_hash,
-        display_name       = row.display_name,
-        messages           = decodeJson(row.messages),
-        logged_in_citizens = decodeJson(row.logged_in_citizens),
+        id = row.id,
+        folder = row.folder or 'inbox',
+        from = { name = row.from_name or '', email = row.from_email or '' },
+        to = decodeJson(row.recipients),
+        subject = row.subject or '',
+        body = row.body or '',
+        sentAt = row.sent_at or '',
+        read = dbBool(row.read_flag),
+        flagged = dbBool(row.flagged),
+        attachments = row.attachments == nil and nil or decodeJson(row.attachments),
+        loaded = row.loaded == nil or dbBool(row.loaded),
     }
 end
 
----@type integer Rows per statement when the session index is rebuilt, matching the lb-phone
----importer's chunk size.
-local RECONCILE_CHUNK = 300
+---@param rows table[]
+---@return string, table
+local function placeholdersFor(rows)
+    local marks, params = {}, {}
+    for i = 1, #rows do
+        marks[i] = '?'
+        params[i] = rows[i].email
+    end
+    return table.concat(marks, ','), params
+end
 
----Rebuilds `phone_mail_sessions` from `logged_in_citizens`, which stays the source of truth.
----Runs every boot so an older install, a hand-edited row or a table truncated out from under the
----index self-heals; when the two already agree it is two reads and no writes.
+---Attaches sessions and, optionally, messages to account rows with a constant number of indexed
+---queries. This avoids both N+1 reads and the former JSON_SEARCH full-table scan.
+---@param rows table[]
+---@param includeMessages? boolean|'summary'
+---@return table[]
+local function hydrateAccounts(rows, includeMessages)
+    if #rows == 0 then return rows end
+    local marks, params = placeholdersFor(rows)
+    local sessions = MySQL.query.await(([[
+        SELECT email, citizenid
+        FROM phone_mail_sessions
+        WHERE email IN (%s)
+        ORDER BY email, citizenid
+    ]]):format(marks), params) or {}
+
+    local sessionsByEmail = {}
+    for i = 1, #sessions do
+        local list = sessionsByEmail[sessions[i].email]
+        if not list then list = {}; sessionsByEmail[sessions[i].email] = list end
+        list[#list + 1] = sessions[i].citizenid
+    end
+
+    local messagesByEmail = {}
+    if includeMessages ~= false then
+        local messageSql
+        if includeMessages == 'summary' then
+            -- The first Mail snapshot is only a recent window of lightweight previews. Full
+            -- bodies and attachments are fetched by getMessage after a row is opened.
+            messageSql = ([[
+                SELECT account_email, id, folder, from_name, from_email, recipients, subject,
+                       LEFT(body, 240) AS body, sent_at, read_flag, flagged,
+                       NULL AS attachments, 0 AS loaded
+                FROM (
+                    SELECT account_email, id, folder, from_name, from_email, recipients, subject,
+                           body, sent_at, read_flag, flagged, seq,
+                           ROW_NUMBER() OVER (PARTITION BY account_email ORDER BY seq DESC) AS row_num
+                    FROM phone_mail_messages
+                    WHERE account_email IN (%s)
+                ) recent
+                WHERE row_num <= 20
+                ORDER BY account_email, seq ASC
+            ]]):format(marks)
+        else
+            messageSql = ([[
+            SELECT account_email, id, folder, from_name, from_email, recipients, subject,
+                   LEFT(body, 10000) AS body,
+                   sent_at, read_flag, flagged, attachments, 1 AS loaded
+            FROM phone_mail_messages
+            WHERE account_email IN (%s)
+            ORDER BY seq ASC
+            ]]):format(marks)
+        end
+        local messages = MySQL.query.await(messageSql, params) or {}
+        for i = 1, #messages do
+            local list = messagesByEmail[messages[i].account_email]
+            if not list then list = {}; messagesByEmail[messages[i].account_email] = list end
+            list[#list + 1] = hydrateMessage(messages[i])
+        end
+    end
+
+    for i = 1, #rows do
+        local row = rows[i]
+        rows[i] = {
+            email = row.email,
+            password_hash = row.password_hash,
+            display_name = row.display_name,
+            messages = messagesByEmail[row.email] or {},
+            logged_in_citizens = sessionsByEmail[row.email] or {},
+        }
+    end
+    return rows
+end
+
+---@type integer
+local MIGRATION_CHUNK = 300
+
+---@param email string
+---@param cap? number
+---@return number removed
+local function pruneAccount(email, cap)
+    cap = math.max(1, math.min(math.floor(tonumber(cap) or MESSAGE_RETENTION), 1000))
+    local threshold = MySQL.scalar.await(([[
+        SELECT seq FROM phone_mail_messages
+        WHERE account_email = ?
+        ORDER BY seq DESC
+        LIMIT 1 OFFSET %d
+    ]]):format(cap - 1), { email })
+    if not threshold then return 0 end
+    return tonumber(MySQL.update.await(
+        'DELETE FROM phone_mail_messages WHERE account_email = ? AND seq < ?',
+        { email, threshold })) or 0
+end
+
+---Imports legacy logged_in_citizens JSON into the authoritative junction table. It deliberately
+---never removes junction rows: current sessions must not be destroyed by stale import JSON.
+---The legacy column is cleared after each account so future boots do no table-wide reconciliation.
 ---@return integer added
----@return integer removed
+---@return integer removed always zero; retained for importer compatibility
 local function reconcileSessions()
-    local accounts = MySQL.query.await('SELECT email, logged_in_citizens FROM phone_mail_accounts') or {}
-    local want = {}
+    local accounts = MySQL.query.await([[
+        SELECT email, logged_in_citizens
+        FROM phone_mail_accounts
+        WHERE logged_in_citizens IS NOT NULL AND JSON_LENGTH(logged_in_citizens) > 0
+    ]]) or {}
+    local pairs, seen = {}, {}
     for i = 1, #accounts do
         local email = accounts[i].email
         local list = decodeJson(accounts[i].logged_in_citizens)
         for j = 1, #list do
             local cid = list[j]
-            if type(cid) == 'string' and cid ~= '' and type(email) == 'string' then
-                want[cid .. '\0' .. email:lower()] = { cid, email }
+            local key = tostring(cid) .. '\0' .. tostring(email):lower()
+            if type(cid) == 'string' and cid ~= '' and not seen[key] then
+                seen[key] = true
+                pairs[#pairs + 1] = { cid, email }
             end
         end
     end
 
-    local have = MySQL.query.await('SELECT citizenid, email FROM phone_mail_sessions') or {}
-    local stale = {}
-    for i = 1, #have do
-        local key = tostring(have[i].citizenid) .. '\0' .. tostring(have[i].email):lower()
-        if want[key] then want[key] = nil else stale[#stale + 1] = have[i] end
-    end
-
-    local add = {}
-    for _, pair in pairs(want) do add[#add + 1] = pair end
-
-    for i = 1, #add, RECONCILE_CHUNK do
+    local added = 0
+    for i = 1, #pairs, MIGRATION_CHUNK do
         local groups, params = {}, {}
-        for j = i, math.min(i + RECONCILE_CHUNK - 1, #add) do
+        for j = i, math.min(i + MIGRATION_CHUNK - 1, #pairs) do
             groups[#groups + 1] = '(?,?)'
-            params[#params + 1] = add[j][1]
-            params[#params + 1] = add[j][2]
+            params[#params + 1] = pairs[j][1]
+            params[#params + 1] = pairs[j][2]
         end
-        MySQL.query.await(
-            'INSERT IGNORE INTO phone_mail_sessions (citizenid, email) VALUES ' .. table.concat(groups, ','), params)
+        added = added + (tonumber(MySQL.update.await(
+            'INSERT IGNORE INTO phone_mail_sessions (citizenid, email) VALUES ' .. table.concat(groups, ','),
+            params
+        )) or 0)
     end
-
-    for i = 1, #stale, RECONCILE_CHUNK do
-        local groups, params = {}, {}
-        for j = i, math.min(i + RECONCILE_CHUNK - 1, #stale) do
-            groups[#groups + 1] = '(?,?)'
-            params[#params + 1] = stale[j].citizenid
-            params[#params + 1] = stale[j].email
-        end
-        MySQL.query.await(
-            'DELETE FROM phone_mail_sessions WHERE (citizenid, email) IN (' .. table.concat(groups, ',') .. ')', params)
+    if #accounts > 0 then
+        MySQL.update.await([[
+            UPDATE phone_mail_accounts
+            SET logged_in_citizens = '[]'
+            WHERE logged_in_citizens IS NOT NULL AND JSON_LENGTH(logged_in_citizens) > 0
+        ]])
     end
-
-    return #add, #stale
+    return added, 0
 end
-
----Creates the single Mail table idempotently. Run once at boot. lb-phone's mail app uses the
----same table name with a different shape; such a table is moved aside first.
----@type fun(): integer, integer Public alias so the lb-phone importer can rebuild the index right
----after it writes logged_in_citizens, instead of leaving mail signed out until the next boot.
 store.reconcileSessions = reconcileSessions
 
+---Imports legacy messages JSON into row storage. Exposed for the live lb-phone importer, which
+---can write legacy account rows after the normal boot migration has already completed.
+---@return table stats
+local function reconcileMessages()
+    local accounts = MySQL.query.await([[
+        SELECT email, messages
+        FROM phone_mail_accounts
+        WHERE messages IS NOT NULL AND JSON_LENGTH(messages) > 0
+    ]]) or {}
+    local copied = 0
+    for i = 1, #accounts do
+        local messages = decodeJson(accounts[i].messages)
+        for j = 1, #messages do
+            local message = messages[j]
+            if type(message) == 'table' then
+                local from = type(message.from) == 'table' and message.from or {}
+                local id = tostring(message.id or newId()):sub(1, 64)
+                local affected = MySQL.update.await([[
+                    INSERT IGNORE INTO phone_mail_messages
+                        (account_email, id, folder, from_name, from_email, recipients, subject,
+                         body, sent_at, read_flag, flagged, attachments)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ]], {
+                    accounts[i].email,
+                    id,
+                    tostring(message.folder or 'inbox'):sub(1, 16),
+                    tostring(from.name or ''):sub(1, 64),
+                    tostring(from.email or ''):sub(1, 128),
+                    encodeJson(message.to),
+                    tostring(message.subject or ''):sub(1, 255),
+                    tostring(message.body or ''):sub(1, MAX_MESSAGE_BODY),
+                    tostring(message.sentAt or ''):sub(1, 32),
+                    message.read == true and 1 or 0,
+                    message.flagged == true and 1 or 0,
+                    encodeAttachments(message.attachments),
+                })
+                copied = copied + (tonumber(affected) or 0)
+            end
+        end
+        pruneAccount(accounts[i].email)
+        MySQL.update.await("UPDATE phone_mail_accounts SET messages = '[]' WHERE email = ?", { accounts[i].email })
+    end
+    return { accounts = #accounts, messages = copied }
+end
+store.reconcileMessages = reconcileMessages
+
+---Creates normalized Mail storage and migrates both legacy JSON arrays idempotently.
 function store.ensureSchema()
     util.rescueLegacyTable('phone_mail_accounts', 'password_hash')
+    -- lb-phone uses this exact table name with a recipient/sender/content shape. IF NOT EXISTS
+    -- cannot distinguish that table from ours, so move it aside before creating normalized rows.
+    -- Without this guard the first later query for account_email fails during bootstrap.
+    util.rescueLegacyTable('phone_mail_messages', 'account_email')
 
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_mail_accounts (
@@ -162,25 +313,19 @@ function store.ensureSchema()
             logged_in_citizens JSON         NOT NULL,
             created_by_cid     VARCHAR(64)  NULL,
             created_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (email)
+            PRIMARY KEY (email),
+            INDEX idx_phone_mail_accounts_creator (created_by_cid)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
-
-    -- Signing out only drops the session, so the concurrent-session cap cannot bound how many
-    -- accounts one character has minted. This column is what a lifetime cap counts.
     util.ensureColumns('phone_mail_accounts', {
-        display_name       = "display_name VARCHAR(64) NOT NULL DEFAULT ''",
-        messages           = 'messages JSON NULL',
+        display_name = "display_name VARCHAR(64) NOT NULL DEFAULT ''",
+        messages = 'messages JSON NULL',
         logged_in_citizens = 'logged_in_citizens JSON NULL',
-        created_by_cid     = 'created_by_cid VARCHAR(64) NULL',
-        created_at         = 'created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+        created_by_cid = 'created_by_cid VARCHAR(64) NULL',
+        created_at = 'created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
     })
+    util.ensureColumnWidth('phone_mail_accounts', 'password_hash', 'password_hash VARCHAR(255) NOT NULL', 255)
     util.ensureIndex('phone_mail_accounts', 'idx_phone_mail_accounts_creator', '(created_by_cid)')
-
-    -- Index over logged_in_citizens: JSON_SEARCH cannot use one, so every badge snapshot scanned
-    -- the whole accounts table and decoded each match's messages blob. The collation has to match
-    -- first: joining two IMPLICIT collations is a hard "illegal mix of collations" error, not a
-    -- slow query, on a database whose accounts table drifted to MariaDB's newer default.
     util.ensureCollation('phone_mail_accounts')
 
     util.ensureTable('phone_mail_sessions', 'citizenid', [[
@@ -188,7 +333,30 @@ function store.ensureSchema()
             citizenid VARCHAR(64) NOT NULL,
             email     VARCHAR(64) NOT NULL,
             PRIMARY KEY (citizenid, email),
-            KEY idx_phone_mail_sessions_email (email)
+            INDEX idx_phone_mail_sessions_email (email)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ]])
+
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS phone_mail_messages (
+            seq           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            account_email VARCHAR(64)      NOT NULL,
+            id            VARCHAR(64)      NOT NULL,
+            folder        VARCHAR(16)      NOT NULL,
+            from_name     VARCHAR(64)      NOT NULL,
+            from_email    VARCHAR(128)     NOT NULL,
+            recipients    JSON             NOT NULL,
+            subject       VARCHAR(255)     NOT NULL,
+            body          MEDIUMTEXT       NOT NULL,
+            sent_at       VARCHAR(32)      NOT NULL,
+            read_flag     TINYINT(1)       NOT NULL DEFAULT 0,
+            flagged       TINYINT(1)       NOT NULL DEFAULT 0,
+            attachments   JSON             NULL,
+            created_at    TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (seq),
+            UNIQUE KEY uq_mail_message_account_id (account_email, id),
+            INDEX idx_mail_messages_account_seq (account_email, seq),
+            INDEX idx_mail_messages_unread (account_email, folder, read_flag)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
 
@@ -201,297 +369,378 @@ function store.ensureSchema()
             PRIMARY KEY (citizenid, email)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
+    util.ensureColumns('phone_mail_saved_emails', {
+        declined = 'declined TINYINT(1) NOT NULL DEFAULT 0',
+    })
 
-    -- Backfills installs that created the table before the declined flag existed.
-    local declinedPresent = MySQL.scalar.await([[
-        SELECT COUNT(*) FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_mail_saved_emails' AND column_name = 'declined'
-    ]])
-    if (tonumber(declinedPresent) or 0) == 0 then
-        MySQL.query.await('ALTER TABLE phone_mail_saved_emails ADD COLUMN declined TINYINT(1) NOT NULL DEFAULT 0')
-    end
+    local added = reconcileSessions()
+    -- v1 could be stamped on a foreign-shaped phone_mail_messages table when every legacy account
+    -- happened to have an empty messages array. Use fresh markers after adding shape rescue so a
+    -- server that experienced that partial boot still performs the real migration and retention.
+    util.runOnce('mail_messages_normalized_v2', reconcileMessages)
+    util.runOnce('mail_messages_retention_v2', function()
+        local rows = MySQL.query.await('SELECT DISTINCT account_email AS email FROM phone_mail_messages') or {}
+        local removed = 0
+        for i = 1, #rows do removed = removed + pruneAccount(rows[i].email) end
+        return { accounts = #rows, removed = removed, cap = MESSAGE_RETENTION }
+    end)
 
-    -- Last, after every CREATE TABLE above: this is the only step here that reads player data, so
-    -- a throw inside it must not cost the tables below it.
-    local added, removed = reconcileSessions()
-    if added + removed > 0 then
-        print(('^3[sd-phone]^0 phone_mail_sessions reconciled: +%d, -%d'):format(added, removed))
+    util.ensureForeignKey('phone_mail_sessions', 'email', 'phone_mail_accounts', 'email', 'fk_mail_sessions_account')
+    util.ensureForeignKey('phone_mail_messages', 'account_email', 'phone_mail_accounts', 'email', 'fk_mail_messages_account')
+    if added > 0 then
+        print(('^3[sd-phone]^0 migrated %d Mail session(s) out of JSON'):format(added))
     end
 end
 
----Reads a single mail account (nil if no row matches); the email match is case-insensitive.
----Read-only.
+---@param email string
+---@return boolean
+function store.accountExists(email)
+    if type(email) ~= 'string' or email == '' then return false end
+    return MySQL.scalar.await('SELECT 1 FROM phone_mail_accounts WHERE email = ? LIMIT 1', { email }) ~= nil
+end
+
 ---@param email string
 ---@return table|nil
 function store.getAccount(email)
-    if not email or email == '' then return nil end
-    local row = MySQL.single.await(
-        'SELECT email, password_hash, display_name, messages, logged_in_citizens FROM phone_mail_accounts WHERE email = ?',
-        { email }
-    )
-    return hydrateRow(row)
+    if type(email) ~= 'string' or email == '' then return nil end
+    local row = MySQL.single.await([[
+        SELECT email, password_hash, display_name
+        FROM phone_mail_accounts WHERE email = ?
+    ]], { email })
+    if not row then return nil end
+    return hydrateAccounts({ row }, true)[1]
 end
 
----Inserts a brand-new account with empty messages + sessions. Returns false when the insert
----fails.
+---Loads account identity and sessions but not message bodies.
+---@param email string
+---@return table|nil
+function store.getAccountHeader(email)
+    if type(email) ~= 'string' or email == '' then return nil end
+    local row = MySQL.single.await([[
+        SELECT email, password_hash, display_name
+        FROM phone_mail_accounts WHERE email = ?
+    ]], { email })
+    if not row then return nil end
+    return hydrateAccounts({ row }, false)[1]
+end
+
+---Loads several account identities and their sessions in two indexed queries total.
+---@param emails string[]
+---@return table<string, table> accounts keyed by email
+function store.getAccountHeaders(emails)
+    local seen, marks, params = {}, {}, {}
+    for i = 1, #(emails or {}) do
+        local email = emails[i]
+        if type(email) == 'string' and email ~= '' and not seen[email] then
+            seen[email] = true
+            marks[#marks + 1] = '?'
+            params[#params + 1] = email
+        end
+    end
+    if #marks == 0 then return {} end
+    local rows = MySQL.query.await(([[
+        SELECT email, password_hash, display_name
+        FROM phone_mail_accounts
+        WHERE email IN (%s)
+    ]]):format(table.concat(marks, ',')), params) or {}
+    hydrateAccounts(rows, false)
+    local out = {}
+    for i = 1, #rows do out[rows[i].email] = rows[i] end
+    return out
+end
+
+---@param email string
+---@param messageId string
+---@return table|nil
+function store.getMessage(email, messageId)
+    local row = MySQL.single.await([[
+        SELECT account_email, id, folder, from_name, from_email, recipients, subject,
+               LEFT(body, 10000) AS body,
+               sent_at, read_flag, flagged, attachments, 1 AS loaded
+        FROM phone_mail_messages
+        WHERE account_email = ? AND id = ?
+        LIMIT 1
+    ]], { email, messageId })
+    return row and hydrateMessage(row) or nil
+end
+
 ---@param email string
 ---@param passwordHash string
 ---@param displayName string
----@param createdByCid string|nil creator citizenid, stamped so a lifetime cap can count them
+---@param createdByCid string|nil
 ---@return boolean
 function store.insertAccount(email, passwordHash, displayName, createdByCid)
-    local ok = pcall(function()
-        MySQL.insert.await([[
-            INSERT INTO phone_mail_accounts (email, password_hash, display_name, messages, logged_in_citizens, created_by_cid)
-            VALUES (?, ?, ?, '[]', '[]', ?)
-        ]], { email, passwordHash, displayName, createdByCid })
-    end)
-    return ok
+    local ok, result = pcall(MySQL.update.await, [[
+        INSERT INTO phone_mail_accounts
+            (email, password_hash, display_name, messages, logged_in_citizens, created_by_cid)
+        VALUES (?, ?, ?, '[]', '[]', ?)
+    ]], { email, passwordHash, displayName, createdByCid })
+    return ok and (tonumber(result) or 0) > 0
 end
 
----How many accounts a character has ever created, signed in or not. Read-only.
 ---@param citizenid string
 ---@return number
 function store.countAccountsCreatedBy(citizenid)
-    local n = MySQL.scalar.await(
-        'SELECT COUNT(*) FROM phone_mail_accounts WHERE created_by_cid = ?', { citizenid })
-    return tonumber(n) or 0
+    return tonumber(MySQL.scalar.await(
+        'SELECT COUNT(*) FROM phone_mail_accounts WHERE created_by_cid = ?', { citizenid })) or 0
 end
 
----Adds a citizenid to an account's logged-in list. Idempotent.
 ---@param email string
 ---@param citizenid string
 ---@return boolean
 function store.addSession(email, citizenid)
-    local acc = store.getAccount(email); if not acc then return false end
-    -- Mirrored on the idempotent path too, so a session that predates the index (or one an
-    -- external write added to the JSON) picks up its row here rather than waiting for a boot.
-    MySQL.insert.await(
-        'INSERT IGNORE INTO phone_mail_sessions (citizenid, email) VALUES (?, ?)', { citizenid, acc.email })
-    for i = 1, #acc.logged_in_citizens do
-        if acc.logged_in_citizens[i] == citizenid then return true end
-    end
-    acc.logged_in_citizens[#acc.logged_in_citizens + 1] = citizenid
-    local affected = MySQL.update.await(
-        'UPDATE phone_mail_accounts SET logged_in_citizens = ? WHERE email = ?',
-        { encodeJson(acc.logged_in_citizens), email }
-    )
-    return (affected or 0) > 0
+    local affected = MySQL.update.await([[
+        INSERT IGNORE INTO phone_mail_sessions (citizenid, email)
+        SELECT ?, email FROM phone_mail_accounts WHERE email = ?
+    ]], { citizenid, email })
+    return (tonumber(affected) or 0) > 0 or store.hasSession(email, citizenid)
 end
 
----Removes a citizenid from an account's logged-in list. No-op when the citizenid was never in
----the list.
+---@param email string
+---@param citizenid string
+---@return boolean
+function store.hasSession(email, citizenid)
+    return MySQL.scalar.await([[
+        SELECT 1 FROM phone_mail_sessions WHERE citizenid = ? AND email = ? LIMIT 1
+    ]], { citizenid, email }) ~= nil
+end
+
+---@param citizenid string
+---@return number
+function store.countSessionsForCitizen(citizenid)
+    return tonumber(MySQL.scalar.await(
+        'SELECT COUNT(*) FROM phone_mail_sessions WHERE citizenid = ?', { citizenid })) or 0
+end
+
 ---@param email string
 ---@param citizenid string
 ---@return boolean
 function store.removeSession(email, citizenid)
-    local acc = store.getAccount(email); if not acc then return false end
-    local filtered = {}
-    for i = 1, #acc.logged_in_citizens do
-        if acc.logged_in_citizens[i] ~= citizenid then
-            filtered[#filtered + 1] = acc.logged_in_citizens[i]
-        end
-    end
     local affected = MySQL.update.await(
-        'UPDATE phone_mail_accounts SET logged_in_citizens = ? WHERE email = ?',
-        { encodeJson(filtered), email }
-    )
-    MySQL.update.await(
-        'DELETE FROM phone_mail_sessions WHERE citizenid = ? AND email = ?', { citizenid, acc.email })
-    return (affected or 0) > 0
+        'DELETE FROM phone_mail_sessions WHERE citizenid = ? AND email = ?',
+        { citizenid, email })
+    return (tonumber(affected) or 0) > 0
 end
 
----Lists every account the given citizenid is currently logged into, as an indexed join over
----`phone_mail_sessions`. Read-only.
----
----`logged_in_citizens` stays the source of truth: the junction only narrows which rows are read,
----and each candidate is still confirmed against the JSON, so an index row the JSON disagrees with
----is ignored rather than trusted.
+---Returns only mailbox identity for lightweight ownership, picker and export paths. This must not
+---hydrate messages: every social-app auth screen calls it to offer recovery-email choices.
 ---@param citizenid string
----@return table[] hydrated accounts
+---@return { email: string, display_name: string }[]
 function store.listAccountsForCitizen(citizenid)
-    local rows = MySQL.query.await([[
-        SELECT a.email, a.password_hash, a.display_name, a.messages, a.logged_in_citizens
+    return MySQL.query.await(([[
+        SELECT a.email, a.display_name
         FROM phone_mail_sessions s
         JOIN phone_mail_accounts a ON a.email = s.email
         WHERE s.citizenid = ?
-          AND JSON_SEARCH(a.logged_in_citizens, 'one', ?) IS NOT NULL
         ORDER BY a.created_at ASC
-    ]], { citizenid, citizenid }) or {}
-
-    for i = 1, #rows do rows[i] = hydrateRow(rows[i]) end
-    return rows
+        LIMIT %d
+    ]]):format(ACCOUNT_LIST_CAP), { citizenid }) or {}
 end
 
----Appends a message to an account's messages array, pruning the oldest past `maxRetained`.
----Returns false if the account doesn't exist.
+---Returns mailbox identity plus bounded message previews for the Mail app's initial list. Full
+---bodies and attachments stay behind getMessage() and are fetched only when a row is opened.
+---@param citizenid string
+---@return table[]
+function store.listAccountsWithMessagesForCitizen(citizenid)
+    local rows = MySQL.query.await(([[
+        SELECT a.email, a.display_name
+        FROM phone_mail_sessions s
+        JOIN phone_mail_accounts a ON a.email = s.email
+        WHERE s.citizenid = ?
+        ORDER BY a.created_at ASC
+        LIMIT %d
+    ]]):format(ACCOUNT_LIST_CAP), { citizenid }) or {}
+    return hydrateAccounts(rows, 'summary')
+end
+
 ---@param email string
 ---@param message table
----@param maxRetained number cap on stored messages per account; oldest pruned first
+---@param maxRetained number
 ---@return boolean
 function store.appendMessage(email, message, maxRetained)
-    local acc = store.getAccount(email); if not acc then return false end
-    acc.messages[#acc.messages + 1] = message
+    local from = type(message.from) == 'table' and message.from or {}
+    local ok, affected = pcall(MySQL.update.await, [[
+        INSERT INTO phone_mail_messages
+            (account_email, id, folder, from_name, from_email, recipients, subject, body,
+             sent_at, read_flag, flagged, attachments)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        email,
+        tostring(message.id or newId()):sub(1, 64),
+        tostring(message.folder or 'inbox'):sub(1, 16),
+        tostring(from.name or ''):sub(1, 64),
+        tostring(from.email or ''):sub(1, 128),
+        encodeJson(message.to),
+        tostring(message.subject or ''):sub(1, 255),
+        tostring(message.body or ''):sub(1, MAX_MESSAGE_BODY),
+        tostring(message.sentAt or ''):sub(1, 32),
+        message.read == true and 1 or 0,
+        message.flagged == true and 1 or 0,
+        encodeAttachments(message.attachments),
+    })
+    if not ok or (tonumber(affected) or 0) == 0 then return false end
 
-    if maxRetained and #acc.messages > maxRetained then
-        local trimmed = {}
-        local offset = #acc.messages - maxRetained
-        for i = offset + 1, #acc.messages do
-            trimmed[#trimmed + 1] = acc.messages[i]
-        end
-        acc.messages = trimmed
-    end
-    acc.messages = fitBudget(acc.messages)
-
-    local affected = MySQL.update.await(
-        'UPDATE phone_mail_accounts SET messages = ? WHERE email = ?',
-        { encodeJson(acc.messages), email }
-    )
-    return (affected or 0) > 0
+    pruneAccount(email, maxRetained)
+    return true
 end
 
----Mutates a single message inside the account's JSON by id via `apply(message) -> message|nil`;
----apply returning nil deletes the message. Returns false when no message matched.
 ---@param email string
 ---@param messageId string
 ---@param apply fun(msg: table): table|nil
----@return boolean updated true if a message was found + persisted
+---@return boolean
 function store.mutateMessage(email, messageId, apply)
-    local acc = store.getAccount(email); if not acc then return false end
-    local rewritten = {}
-    local hit = false
-    for i = 1, #acc.messages do
-        local m = acc.messages[i]
-        if m.id == messageId then
-            hit = true
-            local replaced = apply(m)
-            if replaced ~= nil then
-                rewritten[#rewritten + 1] = replaced
-            end
-        else
-            rewritten[#rewritten + 1] = m
-        end
+    local row = MySQL.single.await([[
+        SELECT account_email, id, folder, from_name, from_email, recipients, subject,
+               LEFT(body, 10000) AS body,
+               sent_at, read_flag, flagged, attachments
+        FROM phone_mail_messages
+        WHERE account_email = ? AND id = ?
+    ]], { email, messageId })
+    if not row then return false end
+    local message = apply(hydrateMessage(row))
+    if message == nil then
+        return (tonumber(MySQL.update.await(
+            'DELETE FROM phone_mail_messages WHERE account_email = ? AND id = ?',
+            { email, messageId })) or 0) > 0
     end
-    if not hit then return false end
-    local affected = MySQL.update.await(
-        'UPDATE phone_mail_accounts SET messages = ? WHERE email = ?',
-        { encodeJson(rewritten), email }
-    )
-    return (affected or 0) > 0
+
+    local from = type(message.from) == 'table' and message.from or {}
+    local affected = MySQL.update.await([[
+        UPDATE phone_mail_messages
+        SET folder = ?, from_name = ?, from_email = ?, recipients = ?, subject = ?, body = ?,
+            sent_at = ?, read_flag = ?, flagged = ?, attachments = ?
+        WHERE account_email = ? AND id = ?
+    ]], {
+        tostring(message.folder or 'inbox'):sub(1, 16),
+        tostring(from.name or ''):sub(1, 64),
+        tostring(from.email or ''):sub(1, 128),
+        encodeJson(message.to),
+        tostring(message.subject or ''):sub(1, 255),
+        tostring(message.body or ''):sub(1, MAX_MESSAGE_BODY),
+        tostring(message.sentAt or ''):sub(1, 32),
+        message.read == true and 1 or 0,
+        message.flagged == true and 1 or 0,
+        encodeAttachments(message.attachments),
+        email,
+        messageId,
+    })
+    return (tonumber(affected) or 0) > 0
 end
 
----Marks every listed message id as read in a single read-modify-write, so a "mark all" cannot
----lose updates by racing N concurrent single-message writes. Ids not present are ignored.
 ---@param email string
 ---@param ids string[]
----@return number changed count of messages newly flagged read
+---@return number
 function store.markManyRead(email, ids)
-    local acc = store.getAccount(email); if not acc then return 0 end
-    local want = {}
-    for i = 1, #ids do want[ids[i]] = true end
-    local changed = 0
-    for i = 1, #acc.messages do
-        local m = acc.messages[i]
-        if want[m.id] and m.read ~= true then
-            m.read = true
-            changed = changed + 1
+    local marks, params, seen = {}, { email }, {}
+    for i = 1, #ids do
+        local id = ids[i]
+        if type(id) == 'string' and id ~= '' and not seen[id] then
+            seen[id] = true
+            marks[#marks + 1] = '?'
+            params[#params + 1] = id
         end
     end
-    if changed == 0 then return 0 end
-    MySQL.update.await(
-        'UPDATE phone_mail_accounts SET messages = ? WHERE email = ?',
-        { encodeJson(acc.messages), email }
-    )
-    return changed
+    if #marks == 0 then return 0 end
+    return tonumber(MySQL.update.await(([[
+        UPDATE phone_mail_messages
+        SET read_flag = 1
+        WHERE account_email = ? AND read_flag = 0 AND id IN (%s)
+    ]]):format(table.concat(marks, ',')), params)) or 0
 end
 
----Overwrites an account's stored password hash.
 ---@param email string
 ---@param passwordHash string
 function store.setPasswordHash(email, passwordHash)
-    MySQL.update.await('UPDATE phone_mail_accounts SET password_hash = ? WHERE email = ?', { passwordHash, email })
+    MySQL.update.await(
+        'UPDATE phone_mail_accounts SET password_hash = ? WHERE email = ?',
+        { passwordHash, email })
 end
 
----Permanently deletes an account and all its mail.
 ---@param email string
 function store.deleteAccount(email)
-    if not email or email == '' then return end
+    if type(email) ~= 'string' or email == '' then return end
     MySQL.update.await('DELETE FROM phone_mail_accounts WHERE email = ?', { email })
-    MySQL.update.await('DELETE FROM phone_mail_sessions WHERE email = ?', { email })
 end
 
----Counts unread inbox messages across every Mail account the citizen is signed into.
----Read-only.
 ---@param citizenid string
 ---@return number
 function store.unreadCount(citizenid)
-    local accounts = store.listAccountsForCitizen(citizenid)
-    local n = 0
-    for i = 1, #accounts do
-        local msgs = accounts[i].messages
-        for j = 1, #msgs do
-            local m = msgs[j]
-            if m.folder == 'inbox' and m.read ~= true then n = n + 1 end
-        end
-    end
-    return n
+    return tonumber(MySQL.scalar.await([[
+        SELECT COUNT(*)
+        FROM phone_mail_sessions s
+        JOIN phone_mail_messages m ON m.account_email = s.email
+        WHERE s.citizenid = ? AND m.folder = 'inbox' AND m.read_flag = 0
+    ]], { citizenid })) or 0
 end
 
----A citizenid's saved compose addresses, oldest-saved first. Read-only.
 ---@param citizenid string
 ---@return string[]
 function store.listSavedEmails(citizenid)
-    local rows = MySQL.query.await(
-        'SELECT email FROM phone_mail_saved_emails WHERE citizenid = ? AND declined = 0 ORDER BY created_at ASC, email ASC',
-        { citizenid }) or {}
+    local rows = MySQL.query.await([[
+        SELECT email FROM phone_mail_saved_emails
+        WHERE citizenid = ? AND declined = 0
+        ORDER BY created_at ASC, email ASC
+        LIMIT 200
+    ]], { citizenid }) or {}
     local out = {}
     for i = 1, #rows do out[#out + 1] = rows[i].email end
     return out
 end
 
----Addresses the citizenid declined the save prompt for; each suppresses future prompts.
----Read-only.
 ---@param citizenid string
 ---@return string[]
 function store.listDeclinedEmails(citizenid)
-    local rows = MySQL.query.await(
-        'SELECT email FROM phone_mail_saved_emails WHERE citizenid = ? AND declined = 1 ORDER BY created_at ASC, email ASC',
-        { citizenid }) or {}
+    local rows = MySQL.query.await([[
+        SELECT email FROM phone_mail_saved_emails
+        WHERE citizenid = ? AND declined = 1
+        ORDER BY created_at ASC, email ASC
+        LIMIT 200
+    ]], { citizenid }) or {}
     local out = {}
     for i = 1, #rows do out[#out + 1] = rows[i].email end
     return out
 end
 
----Saves an address for a citizenid; a previously declined row is revived to saved. Returns
----false only when the per-character cap of saved rows is already reached.
 ---@param citizenid string
 ---@param email string
 ---@param maxSaved integer
 ---@return boolean
 function store.addSavedEmail(citizenid, email, maxSaved)
     local count = tonumber(MySQL.scalar.await(
-        'SELECT COUNT(*) FROM phone_mail_saved_emails WHERE citizenid = ? AND declined = 0', { citizenid })) or 0
+        'SELECT COUNT(*) FROM phone_mail_saved_emails WHERE citizenid = ? AND declined = 0',
+        { citizenid })) or 0
     if count >= maxSaved then return false end
-    MySQL.insert.await([[
+    MySQL.update.await([[
         INSERT INTO phone_mail_saved_emails (citizenid, email, declined) VALUES (?, ?, 0)
         ON DUPLICATE KEY UPDATE declined = 0
     ]], { citizenid, email })
     return true
 end
 
----Records a declined save prompt so the address is never offered again. A no-op when the
----address is already saved (INSERT IGNORE keeps the saved row).
 ---@param citizenid string
 ---@param email string
 function store.declineSavedEmail(citizenid, email)
-    MySQL.insert.await('INSERT IGNORE INTO phone_mail_saved_emails (citizenid, email, declined) VALUES (?, ?, 1)', { citizenid, email })
+    local exists = MySQL.scalar.await([[
+        SELECT 1 FROM phone_mail_saved_emails
+        WHERE citizenid = ? AND email = ? LIMIT 1
+    ]], { citizenid, email }) ~= nil
+    if not exists then
+        local count = tonumber(MySQL.scalar.await(
+            'SELECT COUNT(*) FROM phone_mail_saved_emails WHERE citizenid = ?', { citizenid })) or 0
+        if count >= SAVED_EMAIL_LIST_CAP then return false end
+    end
+    local affected = MySQL.update.await([[
+        INSERT IGNORE INTO phone_mail_saved_emails (citizenid, email, declined) VALUES (?, ?, 1)
+    ]], { citizenid, email })
+    return exists or (tonumber(affected) or 0) > 0
 end
 
----Removes a saved address. Idempotent.
 ---@param citizenid string
 ---@param email string
 function store.removeSavedEmail(citizenid, email)
-    MySQL.update.await('DELETE FROM phone_mail_saved_emails WHERE citizenid = ? AND email = ?', { citizenid, email })
+    MySQL.update.await(
+        'DELETE FROM phone_mail_saved_emails WHERE citizenid = ? AND email = ?',
+        { citizenid, email })
 end
 
 return store

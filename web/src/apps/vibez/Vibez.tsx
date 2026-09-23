@@ -246,8 +246,8 @@ export function Vibez({ onClose: _onClose }: { onClose: () => void }) {
                     { key: 'username', label: t('vibez.username', 'Username') },
                     { key: 'name',     label: t('vibez.name', 'Name') },
                     { key: 'password', label: t('vibez.password', 'Password'), type: 'password' },
-                    { key: 'email',    label: t('vibez.email', 'Email'), suffix: `@${MAIL_DOMAIN}`, createOnly: true },
-                    { key: 'phone',    label: t('vibez.phone', 'Phone'), type: 'tel',   createOnly: true },
+                    { key: 'email',    label: t('vibez.email', 'Email'), suffix: `@${MAIL_DOMAIN}`, createOnly: true, optional: true },
+                    { key: 'phone',    label: t('vibez.phone', 'Phone'), type: 'tel',   createOnly: true, optional: true },
                 ]}
                 onSubmit={(mode, vals) => (mode === 'create' ? accountsRegister('vibez', vals) : accountsLogin('vibez', vals))}
                 onAuthed={() => {

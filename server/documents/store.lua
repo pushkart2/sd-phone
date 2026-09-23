@@ -104,11 +104,29 @@ function store.ensureSchema()
     util.ensureIndex('phone_documents', 'idx_phone_documents_updated', '(citizenid, updated_at)')
     util.ensureIndex('phone_document_folders', 'idx_phone_document_folders_cid', '(citizenid)')
     util.ensureIndex('phone_document_signatures', 'idx_phone_document_signatures_doc', '(doc_id)')
+    util.runOnce('document_signature_dedupe_v1', function()
+        local removed = MySQL.update.await([[
+            DELETE duplicate FROM phone_document_signatures duplicate
+            JOIN phone_document_signatures keep
+              ON keep.doc_id = duplicate.doc_id AND keep.citizenid = duplicate.citizenid
+             AND (keep.created_at < duplicate.created_at
+                  OR (keep.created_at = duplicate.created_at AND keep.id < duplicate.id))
+        ]])
+        return { removed = tonumber(removed) or 0 }
+    end)
+    util.ensureUniqueIndex(
+        'phone_document_signatures', 'uq_document_signature_signer', '(doc_id, citizenid)')
 
     -- Referential integrity, added on boot so existing installs migrate with no manual SQL.
     -- Each is a no-op once present; orphaned children are cleared first (they point at a
     -- parent that is already gone) and a type or collation mismatch is skipped, never fatal.
-    util.ensureForeignKey('phone_documents', 'folder_id', 'phone_document_folders', 'id', 'fk_documents_folder')
+    util.ensureForeignKey('phone_documents', 'folder_id', 'phone_document_folders', 'id', 'fk_documents_folder', {
+        onDelete = 'SET NULL', cleanup = 'null', replace = true,
+    })
+    util.ensureForeignKey('phone_document_folders', 'parent_id', 'phone_document_folders', 'id', 'fk_document_folders_parent', {
+        onDelete = 'SET NULL', cleanup = 'null', replace = true,
+    })
+    util.ensureForeignKey('phone_document_signatures', 'doc_id', 'phone_documents', 'id', 'fk_document_signatures_doc')
 end
 
 ---All of a player's folders. Read-only.
@@ -352,13 +370,15 @@ function store.hasSignatures(docId)
         'SELECT 1 FROM `phone_document_signatures` WHERE doc_id = ? LIMIT 1', { docId }) ~= nil
 end
 
----Inserts a signature row.
+---Inserts a signature row. The unique (document, citizen) key arbitrates concurrent requests.
 ---@param sig { id: string, docId: string, citizenid: string, signer: string, image: string|nil, ts: number }
+---@return boolean inserted
 function store.addSignature(sig)
-    MySQL.insert.await([[
-        INSERT INTO `phone_document_signatures` (id, doc_id, citizenid, signer, image, created_at)
+    local affected = MySQL.update.await([[
+        INSERT IGNORE INTO `phone_document_signatures` (id, doc_id, citizenid, signer, image, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
     ]], { sig.id, sig.docId, sig.citizenid, sig.signer, sig.image, sig.ts })
+    return (tonumber(affected) or 0) > 0
 end
 
 ---Removes every signature on a set of documents, in one parameterized IN statement. A no-op on

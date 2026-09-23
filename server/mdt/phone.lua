@@ -287,18 +287,22 @@ phone.media = access.gated('phone.view', function(_, payload)
     return util.ok(out)
 end)
 
----Decodes one of the notes JSON array columns, dropping anything that is not a string.
+---Decodes one of the notes JSON array columns, dropping invalid and oversized entries.
 ---@param raw any
 ---@param limit integer most entries to keep
+---@param maxBytes integer maximum bytes in one entry
+---@param totalBytes? integer maximum bytes across returned entries
 ---@return string[]
-local function decodeArr(raw, limit)
+local function decodeArr(raw, limit, maxBytes, totalBytes)
     if type(raw) ~= 'string' or #raw < 3 then return {} end
     local ok, list = pcall(json.decode, raw)
     if not ok or type(list) ~= 'table' then return {} end
-    local out = {}
+    local out, used = {}, 0
     for i = 1, #list do
-        if type(list[i]) == 'string' and list[i] ~= '' then
+        if type(list[i]) == 'string' and list[i] ~= '' and #list[i] <= maxBytes
+            and used + #list[i] <= (totalBytes or math.huge) then
             out[#out + 1] = list[i]
+            used = used + #list[i]
             if #out >= limit then break end
         end
     end
@@ -316,31 +320,55 @@ phone.notes = access.gated('phone.view', function(_, payload)
 
     local total = MySQL.scalar.await('SELECT COUNT(*) FROM phone_notes WHERE citizenid = ?', { citizenid })
     local rows = MySQL.query.await([[
-        SELECT id, body, sketches, images, created_at, updated_at
+        SELECT id, LEFT(body, 500) AS body,
+               CASE WHEN JSON_VALID(sketches) THEN JSON_LENGTH(sketches) ELSE 0 END AS sketch_count,
+               CASE WHEN JSON_VALID(images) THEN JSON_LENGTH(images) ELSE 0 END AS image_count,
+               created_at, updated_at
         FROM phone_notes WHERE citizenid = ?
         ORDER BY updated_at DESC LIMIT ? OFFSET ?
     ]], { citizenid, PAGE_SIZE, (page - 1) * PAGE_SIZE }) or {}
 
     for i = 1, #rows do
-        local sketches = decodeArr(rows[i].sketches, 24)
-        rows[i].images     = decodeArr(rows[i].images, 24)
-        rows[i].sketches   = nil
-        rows[i].sketchCount = #sketches
-        rows[i].hasImage   = #rows[i].images > 0
-        rows[i].hasSketch  = #sketches > 0
+        rows[i].images      = {}
+        rows[i].sketchCount = tonumber(rows[i].sketch_count) or 0
+        rows[i].hasImage    = (tonumber(rows[i].image_count) or 0) > 0
+        rows[i].hasSketch   = rows[i].sketchCount > 0
+        rows[i].loaded      = false
+        rows[i].sketch_count = nil
+        rows[i].image_count = nil
     end
     return util.ok(paged(rows, total, page))
 end)
 
----The sketches on one note, fetched only when that note is opened.
-phone.note = access.gated('phone.view', function(_, payload)
+---One full note, fetched only when that note is opened. Even legacy media blobs are clamped before
+---they cross the server/client boundary.
+phone.note = access.gated('phone.view', function(_, payload, me)
     local citizenid = subjectOf(payload)
     local id = util.limitedString(payload.id, 64)
-    if not citizenid or not id then return util.ok({ sketches = {} }) end
+    if not citizenid or not id then return util.fail('Note not found') end
+    if not util.rateLimit(me.citizenid, 'mdt:phone:note', 60000, 60) then
+        return util.fail('Please wait a moment')
+    end
 
     local row = MySQL.single.await(
-        'SELECT sketches FROM phone_notes WHERE citizenid = ? AND id = ?', { citizenid, id })
-    return util.ok({ sketches = row and decodeArr(row.sketches, 8) or {} })
+        [[SELECT id, body, sketches, images, created_at, updated_at
+          FROM phone_notes WHERE citizenid = ? AND id = ? LIMIT 1]], { citizenid, id })
+    if not row then return util.fail('Note not found') end
+
+    local sketches = decodeArr(row.sketches, 12, 1024 * 1024, 6 * 1024 * 1024)
+    local images = decodeArr(row.images, 20, 512, 20 * 512)
+    return util.ok({ note = {
+        id = row.id,
+        body = row.body or '',
+        images = images,
+        sketches = sketches,
+        sketchCount = #sketches,
+        hasSketch = #sketches > 0,
+        hasImage = #images > 0,
+        loaded = true,
+        created_at = row.created_at,
+        updated_at = row.updated_at,
+    } })
 end)
 
 ---Accounts the handset is signed in to: the mailbox, and every app account it holds.

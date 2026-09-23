@@ -1,5 +1,6 @@
 ---@type table Store module; the table returned at end of file.
 local store = {}
+local util = require 'server.util'
 
 ---Creates the phone_friends table if it doesn't exist and back-fills the `pending` column. Each
 ---row is one directed edge: `owner` added `friend`; `share` = owner broadcasts to friend.
@@ -16,25 +17,10 @@ function store.ensureSchema()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]])
 
-    local pcol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name = 'phone_friends'
-          AND column_name = 'pending'
-    ]])
-    if not pcol or tonumber(pcol.n) == 0 then
-        MySQL.query.await('ALTER TABLE `phone_friends` ADD COLUMN pending TINYINT(1) NOT NULL DEFAULT 0')
-    end
-
-    local fidx = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.statistics
-        WHERE table_schema = DATABASE()
-          AND table_name = 'phone_friends'
-          AND index_name = 'idx_phone_friends_friend'
-    ]])
-    if not fidx or tonumber(fidx.n) == 0 then
-        MySQL.query.await('ALTER TABLE `phone_friends` ADD INDEX idx_phone_friends_friend (`friend`, `share`, `pending`)')
-    end
+    util.ensureColumns('phone_friends', {
+        pending = 'pending TINYINT(1) NOT NULL DEFAULT 0',
+    })
+    util.ensureIndex('phone_friends', 'idx_phone_friends_friend', '(friend, share, pending)')
 end
 
 ---Edges the owner has added: `{ { friend = cid, share = 0|1, pending = 0|1 }, ... }`.

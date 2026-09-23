@@ -142,6 +142,14 @@ local SYSTEM  = ACTIVE and (CANONICAL[ACTIVE] or ACTIVE) or nil
 ---@type table Column profile for the active system; missing keys inherit DEFAULT_PROFILE.
 local PROFILE = setmetatable(PROFILES[SYSTEM or ''] or {}, { __index = DEFAULT_PROFILE })
 
+---Portable prefix check; bridge parsing must not depend on optional ox_lib string extensions.
+---@param value any
+---@param prefix string
+---@return boolean
+local function startsWith(value, prefix)
+    return type(value) == 'string' and value:sub(1, #prefix) == prefix
+end
+
 ---First non-nil value among the named columns of a row, in preference order.
 ---@param row table DB row
 ---@param names string[] candidate column names
@@ -197,7 +205,7 @@ end
 local function decodeProps(row)
     for _, col in ipairs({ 'mods', 'vehicle', 'properties', 'modifications' }) do
         local raw = row[col]
-        if type(raw) == 'string' and (lib.string.startsWith(raw, '{') or lib.string.startsWith(raw, '[')) then
+        if startsWith(raw, '{') or startsWith(raw, '[') then
             local ok, decoded = pcall(json.decode, raw)
             if ok and type(decoded) == 'table' then return decoded end
         elseif type(raw) == 'table' then
@@ -214,7 +222,7 @@ end
 ---@return string|number|nil model spawn name or hash
 local function modelOf(row, props)
     local raw = row.vehicle
-    if type(raw) == 'string' and not lib.string.startsWith(raw, '{') then return raw end
+    if type(raw) == 'string' and not startsWith(raw, '{') then return raw end
     return (props and (props.model or props.modelName)) or row.hash or nil
 end
 

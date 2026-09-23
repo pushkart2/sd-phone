@@ -38,13 +38,9 @@ function store.ensureSchema()
     -- already ordered and stops at the cap.
     util.ensureIndex('phone_contacts', 'idx_phone_contacts_cid_name', '(citizenid, name)')
 
-    local col = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_contacts' AND column_name = 'avatar'
-    ]])
-    if not col or tonumber(col.n) == 0 then
-        MySQL.query.await('ALTER TABLE phone_contacts ADD COLUMN avatar VARCHAR(512) NULL AFTER color')
-    end
+    util.ensureColumns('phone_contacts', {
+        avatar = 'avatar VARCHAR(512) NULL AFTER color',
+    })
 
     -- Deliberately NOT ensureTable. Every column below is back-filled a few lines further down,
     -- which means sd-phone's own early call logs lacked them too: no column here is old enough to
@@ -65,62 +61,25 @@ function store.ensureSchema()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
 
-    local citizenidCol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'citizenid'
-    ]])
-    if not citizenidCol or tonumber(citizenidCol.n) == 0 then
-        MySQL.query.await("ALTER TABLE phone_calls ADD COLUMN citizenid VARCHAR(64) NOT NULL DEFAULT ''")
-    end
-
-    local numberCol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'number'
-    ]])
-    if not numberCol or tonumber(numberCol.n) == 0 then
-        MySQL.query.await("ALTER TABLE phone_calls ADD COLUMN `number` VARCHAR(32) NOT NULL DEFAULT ''")
-    end
-
-    local nameCol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'name'
-    ]])
-    if not nameCol or tonumber(nameCol.n) == 0 then
-        MySQL.query.await('ALTER TABLE phone_calls ADD COLUMN name VARCHAR(64) NULL')
-    end
-
-    local calledAtCol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'called_at'
-    ]])
-    if not calledAtCol or tonumber(calledAtCol.n) == 0 then
-        MySQL.query.await('ALTER TABLE phone_calls ADD COLUMN called_at BIGINT NOT NULL DEFAULT 0')
-    end
-
-    local directionCol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'direction'
-    ]])
-    if not directionCol or tonumber(directionCol.n) == 0 then
-        MySQL.query.await("ALTER TABLE phone_calls ADD COLUMN direction VARCHAR(16) NOT NULL DEFAULT ''")
-    end
-
-    local durationCol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'duration'
-    ]])
-    if not durationCol or tonumber(durationCol.n) == 0 then
-        MySQL.query.await('ALTER TABLE phone_calls ADD COLUMN duration INT NOT NULL DEFAULT 0')
-    end
-
-    local seenCol = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'seen'
-    ]])
-    if not seenCol or tonumber(seenCol.n) == 0 then
-        MySQL.query.await('ALTER TABLE phone_calls ADD COLUMN seen TINYINT(1) NOT NULL DEFAULT 1')
-        MySQL.query.await('ALTER TABLE phone_calls ALTER COLUMN seen SET DEFAULT 0')
-    end
+    util.ensureColumns('phone_calls', {
+        citizenid = "citizenid VARCHAR(64) NOT NULL DEFAULT ''",
+        number    = "`number` VARCHAR(32) NOT NULL DEFAULT ''",
+        name      = 'name VARCHAR(64) NULL',
+        called_at = 'called_at BIGINT NOT NULL DEFAULT 0',
+        direction = "direction VARCHAR(16) NOT NULL DEFAULT ''",
+        duration  = 'duration INT NOT NULL DEFAULT 0',
+    })
+    util.registerSchemaTask('calls-seen-column', 10, function()
+        local seenCol = MySQL.single.await([[
+            SELECT COUNT(*) AS n FROM information_schema.columns
+            WHERE table_schema = DATABASE() AND table_name = 'phone_calls' AND column_name = 'seen'
+        ]])
+        if not seenCol or tonumber(seenCol.n) == 0 then
+            -- Historical calls are already seen; only calls inserted after the upgrade default unread.
+            MySQL.query.await('ALTER TABLE phone_calls ADD COLUMN seen TINYINT(1) NOT NULL DEFAULT 1')
+            MySQL.query.await('ALTER TABLE phone_calls ALTER COLUMN seen SET DEFAULT 0')
+        end
+    end)
 
     util.ensureTable('phone_blocked', 'citizenid', [[
         CREATE TABLE IF NOT EXISTS phone_blocked (
@@ -130,6 +89,10 @@ function store.ensureSchema()
             PRIMARY KEY (citizenid, number)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
+
+    util.ensureIndex('phone_calls', 'idx_phone_calls_cid_at', '(citizenid, called_at)')
+    util.ensureIndex('phone_calls', 'idx_phone_calls_missed', '(citizenid, direction, seen)')
+    util.ensureIndex('phone_blocked', 'idx_phone_blocked_created', '(citizenid, created_at)')
 end
 
 ---Normalise any value to its bare digits ('' when nil or digit-free), matching how blocked

@@ -3,8 +3,8 @@ local boot = require 'server.boot'
 
 ---@type table Player bridge (bridge.server.player): identity + display names from a server-trusted src.
 local player  = require 'bridge.server.player'
----@type table Money bridge (bridge.server.money): framework-agnostic bank account read/credit/debit.
-local money   = require 'bridge.server.money'
+---@type table Banking bridge: authoritative active-provider balance movements.
+local ledger  = require 'bridge.server.banking'
 ---@type table Banking actions (server.banking.actions): Wallet transaction log (log-only, moves no money).
 local banking = require 'server.banking.actions'
 ---@type table Unified per-character game stats (server.games.stats): W/L/D + chip totals + boards.
@@ -111,20 +111,18 @@ end
 ---@return number balance
 local function wagerGet(src, game)
     if currencyOf(game) == 'chips' then return chips.get(cidOf(src)) end
-    return money.get(src, 'bank')
+    return ledger.getBalance(src)
 end
 
----Debits a wager stake in the game's currency. The chips path is all-or-nothing; the bank path
----always reports success.
+---Debits a wager stake in the game's currency. Both paths are all-or-nothing.
 ---@param src integer player server id
 ---@param game string game id
 ---@param amount integer stake to take
 ---@param reason string framework money-log reason
----@return boolean taken false when the chips debit could not cover the full stake
+---@return boolean taken false when the debit could not cover the full stake
 local function wagerTake(src, game, amount, reason)
     if currencyOf(game) == 'chips' then return chips.remove(cidOf(src), amount) ~= nil end
-    money.remove(src, 'bank', amount, reason)
-    return true
+    return ledger.removeMoney(src, amount, reason)
 end
 
 ---Credit a wager payout / refund in the game's currency.
@@ -134,7 +132,7 @@ end
 ---@param reason string framework money-log reason
 local function wagerGive(src, game, amount, reason)
     if currencyOf(game) == 'chips' then chips.add(cidOf(src), amount)
-    else money.add(src, 'bank', amount, reason) end
+    else ledger.addMoney(src, amount, reason) end
 end
 
 ---@return boolean true when src is already in a lobby or a game (one at a time)

@@ -44,6 +44,7 @@ export interface MailMessage {
     read:      boolean;
     flagged:   boolean;
     attachments?: MailAttachment[];
+    loaded?:   boolean;
 }
 
 const FOLDER_IDS: Folder[] = ['inbox', 'flagged', 'drafts', 'sent', 'spam', 'bin'];
@@ -243,6 +244,16 @@ const MOCK: { accounts: MailAccount[]; messages: MailMessage[]; savedEmails: str
 export async function listMail(): Promise<{ accounts: MailAccount[]; messages: MailMessage[] }> {
     if (!isFiveM) return { accounts: [...MOCK.accounts], messages: [...MOCK.messages] };
     return (await apiData<{ accounts: MailAccount[]; messages: MailMessage[] }>('sd-phone:mail:list')) ?? { accounts: [], messages: [] };
+}
+
+export async function getMailMessage(accountEmail: string, messageId: string): Promise<MailMessage | string> {
+    if (!isFiveM) {
+        return MOCK.messages.find(m => m.accountId === accountEmail && m.id === messageId)
+            ?? t('mail.errMessageNotFound', 'Message not found');
+    }
+    const res = await apiCall<{ message: MailMessage }>('sd-phone:mail:getMessage', { accountEmail, messageId });
+    if (res.success && res.data) return res.data.message;
+    return res.message ?? t('mail.errMessageNotFound', 'Message not found');
 }
 
 export async function signUp(input: { email: string; password: string; displayName: string; phone?: string }): Promise<MailAccount | string> {

@@ -40,7 +40,7 @@ function normalizePosts(posts: BirdyPost[]): BirdyPost[] {
 let devLoggedIn = useMocks;
 
 export interface AuthState { loggedIn: boolean; me: BirdyAuthor | null }
-export interface AuthResult { ok: boolean; me?: BirdyAuthor; message?: string }
+export interface AuthResult { ok: boolean; me?: BirdyAuthor; message?: string; field?: string }
 
 export async function apiMe(): Promise<AuthState> {
     if (!isFiveM) return { loggedIn: devLoggedIn, me: devLoggedIn ? CURRENT_USER : null };
@@ -51,7 +51,7 @@ export async function apiMe(): Promise<AuthState> {
 export async function apiRegister(input: { name: string; username: string; password: string; bio: string; email: string; phone?: string }): Promise<AuthResult> {
     if (!isFiveM) { devLoggedIn = true; return { ok: true, me: CURRENT_USER }; }
     const res = await apiCall<{ me: BirdyAuthor }>('sd-phone:birdy:register', input);
-    return res.success ? { ok: true, me: res.data?.me } : { ok: false, message: res.message };
+    return res.success ? { ok: true, me: res.data?.me } : { ok: false, message: res.message, field: res.field };
 }
 
 export async function apiLogin(input: { username: string; password: string }): Promise<AuthResult> {

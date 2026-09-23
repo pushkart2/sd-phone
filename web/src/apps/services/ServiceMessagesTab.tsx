@@ -23,7 +23,7 @@ import { apiSavePhotoFromUrl } from '@/core/photosApi';
 import { ServiceAvatar } from './ServiceAvatar';
 import { ServiceComposer } from './ServiceComposer';
 import {
-    messageCompany, replyCompany,
+    fetchInboxThread, messageCompany, replyCompany,
     type Inbox, type InboxMessage, type InboxThread, type ServiceDraft,
 } from './servicesApi';
 import { StatusBarSpacer } from '@/ui/StatusBarSpacer';
@@ -51,6 +51,26 @@ export function ServiceMessagesTab({ inbox, loaded, onInboxChange, onMarkRead }:
 
     const scopeRef = useReanimateOnChange<HTMLDivElement>('animate-swipe-in-left', scope);
     const openThread = openKey ? threads.find(t => t.key === openKey) ?? null : null;
+
+    const open = useCallback(async (thread: InboxThread) => {
+        if (thread.loaded === false) {
+            const messages = await fetchInboxThread(scope, thread.key);
+            if (!messages) return;
+            const patch = (list: InboxThread[]) => list.map(item => item.key === thread.key
+                ? { ...item, messages, loaded: true }
+                : item);
+            onInboxChange(scope === 'job'
+                ? { ...inbox, job: patch(inbox.job) }
+                : { ...inbox, personal: patch(inbox.personal) });
+        }
+        setOpenKey(thread.key);
+    }, [inbox, onInboxChange, scope]);
+
+    // A push refresh replaces hydrated rows with fresh summaries. Rehydrate an already-open
+    // thread so the conversation stays current without restoring bulk inbox payloads.
+    useEffect(() => {
+        if (openThread?.loaded === false) void open(openThread);
+    }, [open, openThread]);
 
     const openLen = openThread?.messages.length ?? 0;
     useEffect(() => {
@@ -83,7 +103,7 @@ export function ServiceMessagesTab({ inbox, loaded, onInboxChange, onMarkRead }:
                         <div className="overflow-hidden rounded-[12px] bg-surface">
                             {threads.map((t, i) => (
                                 <div key={t.key}>
-                                    <ThreadRow thread={t} scope={scope} onOpen={() => setOpenKey(t.key)} />
+                                    <ThreadRow thread={t} scope={scope} onOpen={() => { void open(t); }} />
                                     {i < threads.length - 1 && (
                                         <div className="pointer-events-none bg-hairline/10" style={{ height: '0.5px' }} />
                                     )}

@@ -1537,16 +1537,18 @@ export async function mdtPhoneMedia(citizenid: string, page = 1): Promise<Page<H
 export async function mdtPhoneNotes(citizenid: string, page = 1): Promise<Page<HandsetNote>> {
     if (!isFiveM) {
         return paginate([
-            { id: 'n1', body: 'Meet at the lockup, 2am.\nBring the van and the bolt cutters.', images: [], sketchCount: 0, hasSketch: false, hasImage: false, created_at: '2026-07-12', updated_at: '2026-07-12' },
-            { id: 'n2', body: 'Plate to check: 47XKD902', images: ['dev://handset/note-1.jpg', 'dev://handset/note-2.jpg'], sketchCount: 1, hasSketch: true, hasImage: true, created_at: '2026-06-30', updated_at: '2026-07-02' },
+            { id: 'n1', body: 'Meet at the lockup, 2am.\nBring the van and the bolt cutters.', images: [], sketchCount: 0, hasSketch: false, hasImage: false, loaded: false, created_at: '2026-07-12', updated_at: '2026-07-12' },
+            { id: 'n2', body: 'Plate to check: 47XKD902', images: [], sketchCount: 1, hasSketch: true, hasImage: true, loaded: false, created_at: '2026-06-30', updated_at: '2026-07-02' },
         ], page);
     }
     return (await apiData<Page<HandsetNote>>('sd-phone:mdt:phone:notes', { citizenid, page })) ?? emptyPage<HandsetNote>();
 }
 
-export async function mdtPhoneNote(citizenid: string, id: string): Promise<string[]> {
-    if (!isFiveM) return id === 'n2' ? ['dev://handset/sketch-1.png'] : [];
-    return (await apiData<{ sketches: string[] }>('sd-phone:mdt:phone:note', { citizenid, id }))?.sketches ?? [];
+export async function mdtPhoneNote(citizenid: string, id: string): Promise<HandsetNote | null> {
+    if (!isFiveM) return id === 'n2'
+        ? { id, body: 'Plate to check: 47XKD902', images: ['dev://handset/note-1.jpg', 'dev://handset/note-2.jpg'], sketches: ['dev://handset/sketch-1.png'], sketchCount: 1, hasSketch: true, hasImage: true, loaded: true, created_at: '2026-06-30', updated_at: '2026-07-02' }
+        : { id, body: 'Meet at the lockup, 2am.\nBring the van and the bolt cutters.', images: [], sketches: [], sketchCount: 0, hasSketch: false, hasImage: false, loaded: true, created_at: '2026-07-12', updated_at: '2026-07-12' };
+    return (await apiData<{ note: HandsetNote }>('sd-phone:mdt:phone:note', { citizenid, id }))?.note ?? null;
 }
 
 export async function mdtPhoneAccounts(citizenid: string): Promise<HandsetAccounts> {

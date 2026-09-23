@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AtSign, ChevronLeft, ChevronRight, Eye, EyeOff, Info, KeyRound, Loader2, Phone, ShieldCheck, X } from 'lucide-react';
 
 import { t } from '@/i18n';
@@ -581,6 +581,17 @@ function AuthForm({ mode, appName, icon, theme, fields, notice, myNumber, myEmai
             if (u.length > 30) return t('common.use30OrFewer', 'Use 30 characters or fewer');
             if (!/^[a-zA-Z0-9_.]+$/.test(u)) return t('common.usernameCharset', 'Letters, numbers, _ and . only');
         }
+        // Recovery addresses are not arbitrary text: reset codes are delivered through the Mail
+        // app, so only a mailbox already signed in on this phone can be selected. `undefined` is
+        // used by the Mail app's own address field; `null` means the list is still loading.
+        if (f.suffix && myEmails !== undefined && myEmails !== null && raw.trim()) {
+            const full = `${raw.trim()}${f.suffix}`.toLowerCase();
+            if (!emails.some(email => email.toLowerCase() === full)) {
+                return emails.length > 0
+                    ? t('common.chooseSignedInMail', 'Choose a Mail account signed in on this phone')
+                    : t('common.signInMailOrLeaveBlank', 'Sign in to Mail first, or leave this blank');
+            }
+        }
         return null;
     }
 
@@ -1105,6 +1116,7 @@ function Field({ label, value, onChange, type, last, suffix, onFocus, onBlur, re
 }) {
     const isPassword = type === 'password';
     const [revealed, setRevealed] = useState(false);
+    const errorId = useId();
 
     // 'number' renders as text+numeric so e/E/+/-/. can't be typed like in a native number input.
     const isNumber = type === 'number';
@@ -1138,6 +1150,7 @@ function Field({ label, value, onChange, type, last, suffix, onFocus, onBlur, re
                     onBlur={onBlur}
                     aria-required={required || undefined}
                     aria-invalid={bad ? true : undefined}
+                    aria-describedby={bad ? errorId : undefined}
                     className="min-w-0 flex-1 bg-transparent pt-1 text-[17px] text-black outline-none"
                 />
                 {suffix && <span className="shrink-0 ps-0.5 text-[16px] font-medium text-black/40">{suffix}</span>}
@@ -1155,6 +1168,11 @@ function Field({ label, value, onChange, type, last, suffix, onFocus, onBlur, re
                     </button>
                 )}
             </div>
+            {error && (
+                <p id={errorId} role="alert" className="pt-1 text-[13px] font-semibold leading-tight text-[#e0245e]">
+                    {error}
+                </p>
+            )}
         </div>
     );
 }

@@ -28,7 +28,7 @@ local KNOWN = {
 
 ---@type table<string, boolean> Resources that store the personal balance in their own tables.
 local OWN_TABLE = {
-    wasabi_banking = true, okokBanking = true, ['tgg-banking'] = true,
+    wasabi_banking = true, omes_banking = true, okokBanking = true, ['tgg-banking'] = true,
     prism_banking  = true, fd_banking  = true,
 }
 
@@ -68,7 +68,7 @@ local function try(fn)
 end
 
 ---The player's current bank balance. Read-only. Own-table providers are read through their
----exports; any miss, type surprise, or error falls through to the framework bank account.
+---exports; a failed own-ledger read returns zero rather than silently switching ledgers.
 ---@param src number
 ---@return number
 function banking.getBalance(src)
@@ -93,6 +93,9 @@ function banking.getBalance(src)
             end
         end
     end
+    -- Never read a different ledger after an own-table adapter failed. Returning the framework
+    -- balance here made the UI display spendable money that the active provider did not own.
+    if name and OWN_TABLE[name] then return 0 end
     return money.get(src, 'bank')
 end
 
@@ -146,6 +149,77 @@ function banking.consumeExpected(src, amount, minus)
     return false
 end
 
+---@type table<number, boolean> Serializes balance-check + debit per live player.
+local accountLocks = {}
+
+---@param src number
+---@param fn fun(): boolean
+---@return boolean
+local function withAccountLock(src, fn)
+    if accountLocks[src] then return false end
+    accountLocks[src] = true
+    local ok, result = xpcall(fn, debug.traceback)
+    accountLocks[src] = nil
+    if not ok then
+        print(('^1[sd-phone:banking]^0 account operation failed: %s'):format(result))
+        return false
+    end
+    return result == true
+end
+
+AddEventHandler('playerDropped', function()
+    accountLocks[source] = nil
+    expected[source] = nil
+end)
+
+---@param src number
+---@param amount number
+---@param reason string
+---@return boolean attempted, boolean succeeded
+local function providerAdd(src, amount, reason)
+    local name = banking.name
+    if name == 'wasabi_banking' then
+        local id = player.getIdentifier(src)
+        return true, id ~= nil and try(function()
+            return exports.wasabi_banking:AddMoney(id, amount, reason)
+        end)
+    elseif name == 'omes_banking' then
+        return true, try(function()
+            return exports['omes_banking']:AddBankMoney(src, amount, reason)
+        end)
+    elseif name == 'prism_banking' then
+        return true, try(function()
+            return exports['prism_banking']:AddBankingTransaction(
+                src, 'deposit', amount, 'phone', false, reason, reason)
+        end)
+    end
+    return name ~= nil and OWN_TABLE[name] == true, false
+end
+
+---@param src number
+---@param amount number
+---@param reason string
+---@return boolean attempted, boolean succeeded
+local function providerRemove(src, amount, reason)
+    local name = banking.name
+    if name == 'wasabi_banking' then
+        local id = player.getRealIdentifier(src)
+        return true, id ~= nil and try(function()
+            return exports.wasabi_banking:RemoveMoney(id, amount, reason)
+        end)
+    elseif name == 'omes_banking' then
+        return true, try(function()
+            return exports['omes_banking']:RemoveBankMoney(src, amount, reason)
+        end)
+    elseif name == 'prism_banking' then
+        return true, try(function()
+            return exports['prism_banking']:AddBankingTransaction(
+                src, 'withdraw', amount, 'phone', false, reason, reason)
+        end)
+    end
+    return name ~= nil and OWN_TABLE[name] == true, false
+end
+
 ---Credit the player's bank account, falling back to the framework account when no provider path
 ---handles it. True when a path was taken without error.
 ---@param src number
@@ -153,21 +227,23 @@ end
 ---@param reason? string
 ---@return boolean added
 function banking.addMoney(src, amount, reason)
-    amount = math.floor(tonumber(amount) or 0)
-    if amount <= 0 then return false end
+    amount = tonumber(amount)
+    if not amount or amount ~= amount or amount == math.huge or amount == -math.huge then return false end
+    amount = math.floor(amount)
+    if amount <= 0 or amount > 2147483647 then return false end
+    reason = reason or 'Phone transfer'
 
-    expect(src, amount, false)
-    local name = banking.name
-    if name == 'wasabi_banking' then
-        local id = player.getRealIdentifier(src)
-        if id and try(function() exports.wasabi_banking:AddMoney(id, amount, reason or 'Phone transfer') end) then return true end
-    elseif name == 'omes_banking' then
-        if try(function() exports['omes_banking']:AddBankMoney(src, amount, reason or 'Phone transfer') end) then return true end
-    elseif name == 'prism_banking' then
-        if try(function() exports['prism_banking']:AddBankingTransaction(src, 'deposit', amount, 'phone', false, reason or 'Phone transfer', reason or '') end) then return true end
-    end
-    money.add(src, 'bank', amount, reason)
-    return true
+    return withAccountLock(src, function()
+        expect(src, amount, false)
+        local attempted, succeeded = providerAdd(src, amount, reason)
+        if attempted then
+            if not succeeded then unexpect(src, amount, false) end
+            return succeeded
+        end
+        local added = money.add(src, 'bank', amount, reason)
+        if not added then unexpect(src, amount, false) end
+        return added
+    end)
 end
 
 ---Debit the player's bank account, re-reading the balance to confirm the money moved. True only
@@ -177,36 +253,30 @@ end
 ---@param reason? string
 ---@return boolean removed
 function banking.removeMoney(src, amount, reason)
-    amount = math.floor(tonumber(amount) or 0)
-    if amount <= 0 then return false end
+    amount = tonumber(amount)
+    if not amount or amount ~= amount or amount == math.huge or amount == -math.huge then return false end
+    amount = math.floor(amount)
+    if amount <= 0 or amount > 2147483647 then return false end
+    reason = reason or 'Phone transfer'
 
-    local before = banking.getBalance(src) or 0
-    if before < amount then return false end
+    return withAccountLock(src, function()
+        local before = banking.getBalance(src) or 0
+        if before < amount then return false end
 
-    expect(src, amount, true)
+        expect(src, amount, true)
+        local attempted, succeeded = providerRemove(src, amount, reason)
+        if attempted then
+            if not succeeded or (banking.getBalance(src) or 0) > before - amount then
+                unexpect(src, amount, true)
+                return false
+            end
+            return true
+        end
 
-    local name = banking.name
-    local viaProvider = false
-    if name == 'wasabi_banking' then
-        local id = player.getRealIdentifier(src)
-        viaProvider = id ~= nil and try(function() exports.wasabi_banking:RemoveMoney(id, amount, reason or 'Phone transfer') end)
-    elseif name == 'omes_banking' then
-        viaProvider = try(function() exports['omes_banking']:RemoveBankMoney(src, amount, reason or 'Phone transfer') end)
-    elseif name == 'prism_banking' then
-        viaProvider = try(function() exports['prism_banking']:AddBankingTransaction(src, 'withdraw', amount, 'phone', false, reason or 'Phone transfer', reason or '') end)
-    end
-
-    if not viaProvider then
         if money.remove(src, 'bank', amount, reason) then return true end
         unexpect(src, amount, true)
         return false
-    end
-
-    if (banking.getBalance(src) or 0) >= before then
-        unexpect(src, amount, true)
-        return false
-    end
-    return true
+    end)
 end
 
 ---Best-effort credit to an offline character's framework bank account via a parameterized DB
@@ -215,6 +285,11 @@ end
 ---@param amount number
 ---@return boolean ok
 function banking.addOffline(citizenid, amount)
+    amount = tonumber(amount)
+    if type(citizenid) ~= 'string' or citizenid == '' or not amount or amount ~= amount
+        or amount == math.huge or amount == -math.huge then return false end
+    amount = math.floor(amount)
+    if amount <= 0 or amount > 2147483647 then return false end
     if framework.qb then
         local ok, affected = pcall(function()
             return MySQL.update.await(

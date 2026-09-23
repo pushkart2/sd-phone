@@ -519,7 +519,7 @@ function actions.create(src, payload)
     store.insertPost(id, acc.username, images, caption, location, os.time())
 
     local mentions  = mentionsIn(caption, acc.username)
-    local followers = store.followerUsernames(acc.username)
+    local followers = store.followerUsernames(acc.username, 500)
 
     -- Fan-out context resolved once, and only when there is someone to notify: the actor profile
     -- and post thumb are the same for every recipient, and the source map replaces a
@@ -884,9 +884,9 @@ function actions.followList(src, payload)
     if row and not canView(acc.username, row) then return ok({ users = {} }) end
 
     local out = {}
-    for _, r in ipairs(store.followList(target, kind)) do
+    for _, r in ipairs(store.followList(target, kind, acc.username, 100)) do
         local card = userCard(r)
-        card.followStatus = (r.username == acc.username) and 'self' or (store.followStatus(acc.username, r.username) or 'none')
+        card.followStatus = (r.username == acc.username) and 'self' or (r.viewer_status or 'none')
         out[#out + 1] = card
     end
     return ok({ users = out })

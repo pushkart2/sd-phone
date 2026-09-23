@@ -264,7 +264,9 @@ function actions.setNumber(source, payload)
     else
         local owner = settings.getCitizenByNumber(digits)
         if owner and owner ~= cid then return fail('admin.numberAlreadyTaken', 'That number is already taken') end
-        settings.setPhoneNumber(cid, digits)
+        if not settings.setPhoneNumber(cid, digits) then
+            return fail('admin.numberClaimRace', 'That number was claimed while the request was being processed')
+        end
     end
 
     local aCid, aName = adminIdent(source)

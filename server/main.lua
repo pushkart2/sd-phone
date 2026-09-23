@@ -110,6 +110,9 @@ require 'server.battleship.init'
 require 'server.wordle.init'
 require 'server.admin.wipe'
 require 'server.admin.init'
+-- Registers the manual database-maintenance command. Store boot threads populate its queue as they
+-- create missing tables; the operator runs it after the ready message, never during normal boot.
+require 'server.schema'
 -- lb-phone -> sd-phone one-time data import (no-op unless lb-phone's tables are present).
 require 'server.migrate.init'
 -- Loaded for side effects: publishes the phone's live per-player state onto player state bags.

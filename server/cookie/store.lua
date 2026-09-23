@@ -1,5 +1,6 @@
 ---@type table Store module; the table returned at end of file.
 local store = {}
+local util = require 'server.util'
 
 ---Creates the save table if it doesn't exist and back-fills the nickname column. One row per
 ---character holds the whole save; counts are DOUBLE. Runs once at boot.
@@ -19,13 +20,9 @@ function store.ensureSchema()
             KEY `earned` (`earned`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]])
-    local col = MySQL.scalar.await([[
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'phone_cookie' AND column_name = 'nickname' AND table_schema = DATABASE()
-    ]])
-    if not col then
-        MySQL.query.await('ALTER TABLE `phone_cookie` ADD COLUMN `nickname` VARCHAR(40) NULL AFTER `name`')
-    end
+    util.ensureColumns('phone_cookie', {
+        nickname = '`nickname` VARCHAR(40) NULL AFTER `name`',
+    })
 end
 
 ---A character's full save row, or nil when they've never played. Caller decodes the JSON

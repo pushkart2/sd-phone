@@ -2,6 +2,8 @@
 local store = {}
 
 local util = require 'server.util'
+---@type table Crypto helper (server.crypto): salted scrypt through the resource's Node runtime.
+local crypto = require 'server.crypto'
 ---@type table Column back-fills for tables that predate a column (server.migrations).
 local migrations = require 'server.migrations'
 local isTruthy = util.truthy
@@ -13,11 +15,10 @@ store.newId = newId
 ---@type string Static hash pepper; changing it invalidates every stored Birdy-side hash.
 local PEPPER = 'sd-phone-v1::birdy::do-not-leak-this-string'
 
----Hashes a password into a stable 24-char hex digest. Also registered with the accounts engine
----as Birdy's legacy hasher.
+---Birdy's pre-accounts password digest. Verification/migration only; new writes use scrypt.
 ---@param password string
 ---@return string
-function store.hashPassword(password)
+function store.legacyHashPassword(password)
     local input = password .. PEPPER
     local h1, h2, h3 = 0x12345678, 0x87654321, 0xABCDEF01
     for i = 1, #input do
@@ -27,6 +28,20 @@ function store.hashPassword(password)
         h3 = (((h3 << 5) | (h3 >> 27)) + b * (h1 + 1)) & 0xFFFFFFFF
     end
     return ('%08x%08x%08x'):format(h1, h2, h3)
+end
+
+---Hashes a password for the compatibility profile row. The account engine is authoritative, but
+---keeping this mirror current makes legacy imports safe without retaining a deterministic hash.
+---@param password string
+---@return string
+function store.hashPassword(password)
+    return crypto.hashPassword(password) or store.legacyHashPassword(password)
+end
+
+---@param stored any
+---@return boolean
+function store.needsPasswordRehash(stored)
+    return type(stored) == 'string' and stored ~= '' and stored:sub(1, 7) ~= 'scrypt$'
 end
 
 ---True when a column is present on a table.
@@ -204,7 +219,7 @@ function store.ensureSchema()
             handle       VARCHAR(32)  NOT NULL,
             citizenid    VARCHAR(64)  NOT NULL DEFAULT '',
             display_name VARCHAR(64)  NOT NULL,
-            password     VARCHAR(64)  NOT NULL DEFAULT '',
+            password     VARCHAR(255) NOT NULL DEFAULT '',
             bio          VARCHAR(200) NOT NULL DEFAULT '',
             verified     TINYINT(1)   NOT NULL DEFAULT 0,
             verified_type VARCHAR(8)   NULL,
@@ -304,36 +319,48 @@ function store.ensureSchema()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
 
-    ---@return boolean added true when the column was missing and has just been created
-    local function ensureColumn(tbl, name, ddl)
-        local present = MySQL.scalar.await([[
-            SELECT COUNT(*) FROM information_schema.columns
-            WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?
-        ]], { tbl, name })
-        if (tonumber(present) or 0) == 0 then
-            MySQL.query.await(('ALTER TABLE %s ADD COLUMN %s'):format(tbl, ddl))
-            return true
-        end
-        return false
-    end
-    ensureColumn('phone_birdy_profiles', 'password',   "password VARCHAR(64) NOT NULL DEFAULT ''")
-    ensureColumn('phone_birdy_profiles', 'bio',        "bio VARCHAR(200) NOT NULL DEFAULT ''")
-    ensureColumn('phone_birdy_profiles', 'logged_in',  'logged_in TINYINT(1) NOT NULL DEFAULT 0')
-    ensureColumn('phone_birdy_profiles', 'join_label', "join_label VARCHAR(32) NOT NULL DEFAULT ''")
-    ensureColumn('phone_birdy_profiles', 'protected',  'protected TINYINT(1) NOT NULL DEFAULT 0')
-    ensureColumn('phone_birdy_posts',    'images',     'images TEXT NULL')
-    ensureColumn('phone_birdy_dms',      'kind',       "kind VARCHAR(16) NOT NULL DEFAULT 'text'")
-    ensureColumn('phone_birdy_dms',      'meta',       'meta TEXT NULL')
-    ensureColumn('phone_birdy_dms',      'reactions',  'reactions TEXT NULL')
-    ensureColumn('phone_birdy_profiles', 'avatar',     'avatar VARCHAR(512) NULL')
-    ensureColumn('phone_birdy_profiles', 'banner',     'banner VARCHAR(512) NULL')
+    util.ensureColumns('phone_birdy_profiles', {
+        password  = "password VARCHAR(255) NOT NULL DEFAULT ''",
+        bio       = "bio VARCHAR(200) NOT NULL DEFAULT ''",
+        logged_in = 'logged_in TINYINT(1) NOT NULL DEFAULT 0',
+        join_label = "join_label VARCHAR(32) NOT NULL DEFAULT ''",
+        protected = 'protected TINYINT(1) NOT NULL DEFAULT 0',
+        avatar    = 'avatar VARCHAR(512) NULL',
+        banner    = 'banner VARCHAR(512) NULL',
+    })
+    util.ensureColumnWidth('phone_birdy_profiles', 'password',
+        "password VARCHAR(255) NOT NULL DEFAULT ''", 255)
+    util.ensureColumns('phone_birdy_posts', { images = 'images TEXT NULL' })
+    util.ensureColumns('phone_birdy_dms', {
+        kind      = "kind VARCHAR(16) NOT NULL DEFAULT 'text'",
+        meta      = 'meta TEXT NULL',
+        reactions = 'reactions TEXT NULL',
+    })
 
     -- Backfill history as already-seen, or every existing row would count as unread.
-    if ensureColumn('phone_birdy_notifications', 'seen', 'seen TINYINT(1) NOT NULL DEFAULT 0') then
-        MySQL.update.await('UPDATE phone_birdy_notifications SET seen = 1')
-    end
+    util.registerSchemaTask('birdy-notifications-seen', 10, function()
+        local present = MySQL.scalar.await([[
+            SELECT COUNT(*) FROM information_schema.columns
+            WHERE table_schema = DATABASE() AND table_name = 'phone_birdy_notifications'
+              AND column_name = 'seen'
+        ]])
+        if (tonumber(present) or 0) == 0 then
+            MySQL.query.await('ALTER TABLE phone_birdy_notifications ADD COLUMN seen TINYINT(1) NOT NULL DEFAULT 0')
+            MySQL.update.await('UPDATE phone_birdy_notifications SET seen = 1')
+        end
+    end)
     util.ensureIndex('phone_birdy_notifications', 'idx_birdy_notifs_unseen', '(recipient, seen)')
     util.ensureIndex('phone_birdy_notifications', 'idx_birdy_notifs_dedupe', '(recipient, kind, actor, post_id)')
+    util.ensureIndex('phone_birdy_dms', 'idx_birdy_dms_from_thread', '(from_handle, to_handle, created_at)')
+    util.ensureIndex('phone_birdy_dms', 'idx_birdy_dms_to_thread', '(to_handle, from_handle, created_at)')
+    util.ensureIndex('phone_birdy_posts', 'idx_birdy_posts_parent_created', '(parent_id, created_at, id)')
+    util.ensureIndex('phone_birdy_follows', 'idx_birdy_follows_target_created', '(target, created_at, follower)')
+    util.ensureIndex('phone_birdy_follows', 'idx_birdy_follows_follower_created', '(follower, created_at, target)')
+
+    -- The wider indexes above cover these prefixes and their sort order; keeping the original
+    -- single-column keys would charge every post/follow write for redundant B-trees.
+    util.dropIndex('phone_birdy_posts', 'idx_birdy_posts_parent')
+    util.dropIndex('phone_birdy_follows', 'idx_birdy_follows_target')
 
     -- New posts stopped being alerts: the tab answers "what happened to me", so follows, likes,
     -- reposts and replies belong there and a post does not. Rows written by older versions are
@@ -386,6 +413,18 @@ function store.ensureSchema()
     util.ensureForeignKey('phone_birdy_polls', 'post_id', 'phone_birdy_posts', 'id', 'fk_birdy_polls_post')
     util.ensureForeignKey('phone_birdy_poll_options', 'post_id', 'phone_birdy_posts', 'id', 'fk_birdy_poll_options_post')
     util.ensureForeignKey('phone_birdy_poll_votes', 'post_id', 'phone_birdy_posts', 'id', 'fk_birdy_poll_votes_post')
+    util.ensureForeignKey('phone_birdy_posts', 'author', 'phone_birdy_profiles', 'handle', 'fk_birdy_posts_author')
+    util.ensureForeignKey('phone_birdy_posts', 'parent_id', 'phone_birdy_posts', 'id', 'fk_birdy_posts_parent', {
+        cleanup = 'null', onDelete = 'SET NULL', replace = true,
+    })
+    util.ensureForeignKey('phone_birdy_dms', 'from_handle', 'phone_birdy_profiles', 'handle', 'fk_birdy_dms_from')
+    util.ensureForeignKey('phone_birdy_dms', 'to_handle', 'phone_birdy_profiles', 'handle', 'fk_birdy_dms_to')
+    util.ensureForeignKey('phone_birdy_likes', 'handle', 'phone_birdy_profiles', 'handle', 'fk_birdy_likes_handle')
+    util.ensureForeignKey('phone_birdy_reposts', 'handle', 'phone_birdy_profiles', 'handle', 'fk_birdy_reposts_handle')
+    util.ensureForeignKey('phone_birdy_follows', 'follower', 'phone_birdy_profiles', 'handle', 'fk_birdy_follows_follower')
+    util.ensureForeignKey('phone_birdy_follows', 'target', 'phone_birdy_profiles', 'handle', 'fk_birdy_follows_target')
+    util.ensureForeignKey('phone_birdy_notifications', 'recipient', 'phone_birdy_profiles', 'handle', 'fk_birdy_notifications_recipient')
+    util.ensureForeignKey('phone_birdy_notifications', 'actor', 'phone_birdy_profiles', 'handle', 'fk_birdy_notifications_actor')
 end
 
 ---Decodes a JSON column into a Lua table, tolerating nil / empty / corrupt values (always
@@ -896,12 +935,19 @@ end
 
 ---@param parentId string
 ---@param viewerHandle string
----@return table[] replies oldest-first
-function store.listReplies(parentId, viewerHandle)
-    local rows = MySQL.query.await(
-        POST_SELECT .. ' WHERE p.parent_id = ? ORDER BY p.created_at ASC LIMIT 500',
-        { viewerHandle, viewerHandle, parentId }
-    ) or {}
+---@param limit? number maximum replies returned (default 200)
+---@return table[] newest bounded window, rendered oldest-first
+function store.listReplies(parentId, viewerHandle, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 200), 200))
+    local rows = MySQL.query.await(POST_SELECT .. [[
+        INNER JOIN (
+            SELECT id FROM phone_birdy_posts
+            WHERE parent_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+        ) recent_replies ON recent_replies.id = p.id
+        ORDER BY p.created_at ASC, p.id ASC
+    ]], { viewerHandle, viewerHandle, parentId, limit }) or {}
     for i = 1, #rows do rows[i] = hydratePost(rows[i]) end
     return attachPolls(rows, viewerHandle)
 end
@@ -1139,22 +1185,30 @@ function store.isLiked(postId, handle)
     ) ~= nil
 end
 
----Every registered handle except one, for a server-wide post notification fan-out. Read-only.
+---Handles selected for a bounded notification fan-out. Read-only.
 ---@param except string|nil handle to leave out, normally the posting author
+---@param limit? number row cap (default 500, hard max 1000)
 ---@return string[] handles
-function store.allHandles(except)
-    local rows = MySQL.query.await(
-        'SELECT handle FROM phone_birdy_profiles WHERE handle <> ?', { except or '' }) or {}
+function store.allHandles(except, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 500), 1000))
+    local rows = MySQL.query.await([[
+        SELECT handle FROM phone_birdy_profiles WHERE handle <> ? ORDER BY handle LIMIT ?
+    ]], { except or '', limit }) or {}
     local out = {}
     for i = 1, #rows do out[#out + 1] = rows[i].handle end
     return out
 end
 
----Every handle following a given account. Read-only.
+---Most recent handles following `target`, for bounded notification fan-out. Read-only.
 ---@param target string
+---@param limit? number row cap (default 500, hard max 1000)
 ---@return string[] handles
-function store.followerHandles(target)
-    local rows = MySQL.query.await('SELECT follower FROM phone_birdy_follows WHERE target = ?', { target }) or {}
+function store.followerHandles(target, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 500), 1000))
+    local rows = MySQL.query.await([[
+        SELECT follower FROM phone_birdy_follows
+        WHERE target = ? ORDER BY created_at DESC, follower ASC LIMIT ?
+    ]], { target, limit }) or {}
     local out = {}
     for i = 1, #rows do out[#out + 1] = rows[i].follower end
     return out
@@ -1178,8 +1232,10 @@ end
 ---@param viewerHandle string the signed-in account, for the reciprocal flags
 ---@param target string whose list is being read
 ---@param kind 'followers'|'following'
+---@param limit? number row cap (default 100)
 ---@return table[] rows
-function store.followList(viewerHandle, target, kind)
+function store.followList(viewerHandle, target, kind, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 100), 100))
     local joinOn, whereCol = 'pr.handle = f.follower', 'f.target'
     if kind == 'following' then
         joinOn, whereCol = 'pr.handle = f.target', 'f.follower'
@@ -1195,7 +1251,10 @@ function store.followList(viewerHandle, target, kind)
         JOIN phone_birdy_profiles pr ON %s
         WHERE %s = ?
         ORDER BY f.created_at DESC
-    ]]):format(joinOn, whereCol), { viewerHandle, viewerHandle, target }) or {}
+        LIMIT ?
+    ]]):format(joinOn, whereCol), {
+        viewerHandle, viewerHandle, target, limit,
+    }) or {}
 end
 
 ---@param follower string
@@ -1228,21 +1287,27 @@ end
 ---@param handle string
 ---@return table[]
 function store.listMessagesFor(handle)
-    -- The two halves stay parenthesised so each keeps its own ORDER BY + LIMIT and rides its own
-    -- covering index (idx_birdy_dms_from_created / _to_created) with no filesort. What is NOT here
-    -- is a `SELECT * FROM ( ... ) recent` wrapper around them: a derived table whose first UNION
-    -- operand is parenthesised is a syntax error before MariaDB 10.4 / MySQL 8, which is a version
-    -- plenty of live servers are still on. The ascending order the caller wants is applied below
-    -- instead, over at most 5000 rows.
+    -- Return only the newest message per thread, plus its unread count; full history is loaded on
+    -- demand from the thread view.
     local rows = MySQL.query.await([[
-        (SELECT id, from_handle, to_handle, body, kind, meta, reactions, read_flag,
-                created_at, UNIX_TIMESTAMP(created_at) AS created_s
-         FROM phone_birdy_dms WHERE from_handle = ? ORDER BY created_at DESC LIMIT 2500)
-        UNION ALL
-        (SELECT id, from_handle, to_handle, body, kind, meta, reactions, read_flag,
-                created_at, UNIX_TIMESTAMP(created_at) AS created_s
-         FROM phone_birdy_dms WHERE to_handle = ? ORDER BY created_at DESC LIMIT 2500)
-    ]], { handle, handle }) or {}
+        SELECT id, from_handle, to_handle, body, kind, meta, reactions, read_flag,
+               created_at, created_s, unread_count
+        FROM (
+            SELECT d.*, UNIX_TIMESTAMP(d.created_at) AS created_s,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY CASE WHEN d.from_handle = ? THEN d.to_handle ELSE d.from_handle END
+                       ORDER BY d.created_at DESC, d.id DESC
+                   ) AS row_num,
+                   SUM(CASE WHEN d.to_handle = ? AND d.read_flag = 0 THEN 1 ELSE 0 END) OVER (
+                       PARTITION BY CASE WHEN d.from_handle = ? THEN d.to_handle ELSE d.from_handle END
+                   ) AS unread_count
+            FROM phone_birdy_dms d
+            WHERE d.from_handle = ? OR d.to_handle = ?
+        ) ranked
+        WHERE row_num = 1
+        ORDER BY created_at DESC
+        LIMIT 100
+    ]], { handle, handle, handle, handle, handle }) or {}
     for i = 1, #rows do rows[i].created_ms = (tonumber(rows[i].created_s) or 0) * 1000 end
     -- Oldest first, id breaking ties so two messages sharing a second keep a stable order.
     table.sort(rows, function(a, b)
@@ -1262,21 +1327,23 @@ function store.markThreadRead(viewerHandle, other)
         { viewerHandle, other })
 end
 
----The newest 500 messages between two accounts (both directions), oldest-first, with `created_ms`
+---A bounded newest window between two accounts (both directions), oldest-first, with `created_ms`
 ---added.
 ---@param a string
 ---@param b string
+---@param limit? number row cap (default 200, hard max 500)
 ---@return table[]
-function store.listThread(a, b)
+function store.listThread(a, b, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 200), 500))
     local rows = MySQL.query.await([[
         SELECT * FROM (
             SELECT id, from_handle, to_handle, body, kind, meta, reactions,
                    created_at, UNIX_TIMESTAMP(created_at) AS created_s
             FROM phone_birdy_dms
             WHERE (from_handle = ? AND to_handle = ?) OR (from_handle = ? AND to_handle = ?)
-            ORDER BY created_at DESC LIMIT 500
+            ORDER BY created_at DESC LIMIT ?
         ) recent ORDER BY created_at ASC
-    ]], { a, b, b, a }) or {}
+    ]], { a, b, b, a, limit }) or {}
     for i = 1, #rows do rows[i].created_ms = (tonumber(rows[i].created_s) or 0) * 1000 end
     return rows
 end

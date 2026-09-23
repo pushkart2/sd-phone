@@ -1,22 +1,12 @@
 ---@type table Store module; the table returned at end of file.
 local store = {}
+local util = require 'server.util'
 
 ---@type table Shared server helpers (server.util): ensureTable.
 local util = require 'server.util'
 
 ---@type integer How many recent timer durations recentsFor returns (newest first).
 local RECENTS_LIMIT = 8
-
----True if a column already exists.
----@param tbl string table name
----@param col string column name
----@return boolean exists
-local function columnExists(tbl, col)
-    return MySQL.scalar.await([[
-        SELECT 1 FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ? LIMIT 1
-    ]], { tbl, col }) ~= nil
-end
 
 ---Creates the clock tables if they don't exist and back-fills later alarm columns. `phone_alarms`
 ---is keyed (citizenid, id); `phone_timer_recents` holds one row per distinct duration. Runs once at boot.
@@ -48,15 +38,11 @@ function store.ensureSchema()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]])
 
-    for _, c in ipairs({
-        { 'sound',       'TINYINT(1) NOT NULL DEFAULT 1' },
-        { 'snooze',      'TINYINT(1) NOT NULL DEFAULT 0' },
-        { 'snooze_secs', 'INT NOT NULL DEFAULT 60' },
-    }) do
-        if not columnExists('phone_alarms', c[1]) then
-            MySQL.query.await(('ALTER TABLE `phone_alarms` ADD COLUMN `%s` %s'):format(c[1], c[2]))
-        end
-    end
+    util.ensureColumns('phone_alarms', {
+        sound       = '`sound` TINYINT(1) NOT NULL DEFAULT 1',
+        snooze      = '`snooze` TINYINT(1) NOT NULL DEFAULT 0',
+        snooze_secs = '`snooze_secs` INT NOT NULL DEFAULT 60',
+    })
 end
 
 ---A character's alarms, ordered by time of day. Read-only; the caller normalises the TINYINT

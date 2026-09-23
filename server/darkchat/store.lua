@@ -34,10 +34,9 @@ function store.ensureSchema()
             KEY `citizenid` (`citizenid`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]])
-    MySQL.query.await([[
-        ALTER TABLE `darkchat_members`
-            ADD COLUMN IF NOT EXISTS `notifications` TINYINT(1) NOT NULL DEFAULT 0
-    ]])
+    util.ensureColumns('darkchat_members', {
+        notifications = '`notifications` TINYINT(1) NOT NULL DEFAULT 0',
+    })
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS `darkchat_messages` (
             `id`         INT AUTO_INCREMENT PRIMARY KEY,
@@ -49,11 +48,10 @@ function store.ensureSchema()
             KEY `room_id` (`room_id`, `id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]])
-    MySQL.query.await([[
-        ALTER TABLE `darkchat_messages`
-            ADD COLUMN IF NOT EXISTS `kind` VARCHAR(16) NOT NULL DEFAULT 'text',
-            ADD COLUMN IF NOT EXISTS `meta` TEXT NULL
-    ]])
+    util.ensureColumns('darkchat_messages', {
+        kind = "`kind` VARCHAR(16) NOT NULL DEFAULT 'text'",
+        meta = '`meta` TEXT NULL',
+    })
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS `darkchat_reactions` (
             `message_id` INT         NOT NULL,
@@ -79,17 +77,19 @@ function store.ensureSchema()
             PRIMARY KEY (`room_id`, `citizenid`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]])
-    MySQL.query.await([[
-        ALTER TABLE `darkchat_rooms`
-            ADD COLUMN IF NOT EXISTS `code_changed_at` BIGINT NULL
-    ]])
+    util.ensureColumns('darkchat_rooms', {
+        code_changed_at = '`code_changed_at` BIGINT NULL',
+    })
 
     -- Referential integrity, added on boot so existing installs migrate with no manual SQL.
     -- Each is a no-op once present; orphaned children are cleared first (they point at a
     -- parent that is already gone) and a type or collation mismatch is skipped, never fatal.
     util.ensureForeignKey('darkchat_members', 'room_id', 'darkchat_rooms', 'id', 'fk_darkchat_members_room')
     util.ensureForeignKey('darkchat_bans', 'room_id', 'darkchat_rooms', 'id', 'fk_darkchat_bans_room')
-    util.ensureForeignKey('darkchat_messages', 'room_id', 'darkchat_rooms', 'id', 'fk_darkchat_messages_room')
+    -- Public rooms are configuration-backed and intentionally have no darkchat_rooms row.
+    -- A room FK on messages therefore deletes valid public history as "orphaned" and rejects
+    -- every future public message. Remove the bad constraint from installs that already got it.
+    util.dropForeignKey('darkchat_messages', 'fk_darkchat_messages_room')
     util.ensureForeignKey('darkchat_reactions', 'message_id', 'darkchat_messages', 'id', 'fk_darkchat_reactions_message')
 end
 

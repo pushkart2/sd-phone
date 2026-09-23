@@ -25,7 +25,7 @@ local BIRDY_HANDLES_FOR_CID = [[
     WHERE a.app = 'birdy' AND s.citizenid = ?
 ]]
 
----Creates the audit table and the phone-number search index idempotently.
+---Creates the audit table idempotently. The settings module owns the unique phone-number index.
 function store.ensureSchema()
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_admin_audit (
@@ -40,7 +40,6 @@ function store.ensureSchema()
             INDEX idx_admin_audit_target (target_cid)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
-    util.ensureIndex('phone_settings', 'idx_phone_settings_number', '(phone_number)')
 end
 
 ---Appends one audit row. Never throws; a failed insert only prints.

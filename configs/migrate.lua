@@ -27,7 +27,8 @@ return {
     -- what lb-phone actually holds, lets you pick the domains, and streams the run with a live log
     -- and an ETA. Turn it on if you would rather it happen by itself on the next boot and never
     -- think about it again; it is idempotent, so once there is nothing left to import it is a
-    -- cheap no-op. `sdphone:migrate` from the server console works either way.
+    -- cheap no-op. `sdphone:migrate dry` previews from the console and `sdphone:migrate` performs
+    -- the import; both commands work while automatic startup migration is disabled.
     enabled = false,
 
     -- lb-phone's table prefix. Its tables are all phone_* (phone_phones, phone_phone_contacts,

@@ -4,6 +4,7 @@ local store = {}
 
 local util = require 'server.util'
 local function newId() return util.newId(7) end
+local GROUP_LIST_CAP = 100
 
 store.newId = newId
 
@@ -21,16 +22,12 @@ local function decodeJson(value)
     return {}
 end
 
----JSON-encode a table for a NOT NULL JSON column (nil becomes an empty container).
----@param tbl table|nil
----@return string
-local function encodeJson(tbl) return json.encode(tbl or {}) end
-
----Reshape a raw row from `phone_groups` into the canonical group shape with `members`
----and `invites` already JSON-decoded.
+---Reshape a raw row from `phone_groups` into the canonical group shape. Membership is attached
+---from phone_group_members; the legacy JSON columns remain only so old imports keep working.
 ---@param row table|nil
+---@param members? table[]
 ---@return table|nil
-local function hydrateRow(row)
+local function hydrateRow(row, members)
     if not row then return nil end
     return {
         id         = row.id,
@@ -38,9 +35,40 @@ local function hydrateRow(row)
         leader_cid = row.leader_cid,
         color      = row.color,
         avatar     = row.avatar,
-        members    = decodeJson(row.members),
+        members    = members or {},
         invites    = decodeJson(row.invites),
     }
+end
+
+---Hydrates membership for an arbitrary group result set in one indexed query (not N queries).
+---@param rows table[]
+---@return table[]
+local function hydrateRows(rows)
+    if #rows == 0 then return rows end
+    local placeholders, params = {}, {}
+    for i = 1, #rows do
+        placeholders[i] = '?'
+        params[i] = rows[i].id
+    end
+    local memberRows = MySQL.query.await(([[
+        SELECT group_id, citizenid, name, joined_at
+        FROM phone_group_members
+        WHERE group_id IN (%s)
+        ORDER BY joined_at ASC, citizenid ASC
+    ]]):format(table.concat(placeholders, ',')), params) or {}
+    local byGroup = {}
+    for i = 1, #memberRows do
+        local m = memberRows[i]
+        local list = byGroup[m.group_id]
+        if not list then list = {}; byGroup[m.group_id] = list end
+        list[#list + 1] = {
+            citizenid = m.citizenid,
+            name = m.name,
+            joined_at = tonumber(m.joined_at) or 0,
+        }
+    end
+    for i = 1, #rows do rows[i] = hydrateRow(rows[i], byGroup[rows[i].id] or {}) end
+    return rows
 end
 
 ---Creates the phone_groups and phone_group_invites tables idempotently, back-filling the
@@ -61,13 +89,20 @@ function store.ensureSchema()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
 
-    local col = MySQL.single.await([[
-        SELECT COUNT(*) AS n FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_groups' AND column_name = 'avatar'
+    util.ensureColumns('phone_groups', {
+        avatar = 'avatar VARCHAR(512) NULL AFTER color',
+    })
+
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS phone_group_members (
+            group_id   VARCHAR(16) NOT NULL,
+            citizenid  VARCHAR(64) NOT NULL,
+            name       VARCHAR(64) NOT NULL,
+            joined_at  BIGINT      NOT NULL,
+            PRIMARY KEY (group_id, citizenid),
+            INDEX idx_group_members_citizen (citizenid, joined_at, group_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
-    if not col or tonumber(col.n) == 0 then
-        MySQL.query.await('ALTER TABLE phone_groups ADD COLUMN avatar VARCHAR(512) NULL AFTER color')
-    end
 
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_group_invites (
@@ -85,13 +120,15 @@ function store.ensureSchema()
 
     -- Older installs created sent_at as DATETIME, but the code stamps it with os.time() (a Unix
     -- integer), so a mismatched column rejects every invite. Bring an existing column up to BIGINT.
-    local sentAt = MySQL.single.await([[
-        SELECT DATA_TYPE AS t FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_group_invites' AND column_name = 'sent_at'
-    ]])
-    if sentAt and sentAt.t and sentAt.t ~= 'bigint' then
-        MySQL.query.await('ALTER TABLE phone_group_invites MODIFY COLUMN sent_at BIGINT NOT NULL')
-    end
+    util.registerSchemaTask('groups-invite-sent-at-type', 10, function()
+        local sentAt = MySQL.single.await([[
+            SELECT DATA_TYPE AS t FROM information_schema.columns
+            WHERE table_schema = DATABASE() AND table_name = 'phone_group_invites' AND column_name = 'sent_at'
+        ]])
+        if sentAt and sentAt.t and sentAt.t ~= 'bigint' then
+            MySQL.query.await('ALTER TABLE phone_group_invites MODIFY COLUMN sent_at BIGINT NOT NULL')
+        end
+    end)
 
     -- One-time migration of pending invites from the legacy invites JSON column into phone_group_invites.
     local legacy = MySQL.query.await("SELECT id, invites FROM phone_groups WHERE JSON_LENGTH(invites) > 0") or {}
@@ -107,10 +144,53 @@ function store.ensureSchema()
         MySQL.update.await("UPDATE phone_groups SET invites = '[]' WHERE id = ?", { row.id })
     end
 
+    -- Move membership out of an unindexable, last-write-wins JSON array. INSERT IGNORE makes
+    -- this restart-safe if the resource stops halfway through the one-time backfill.
+    util.runOnce('groups_members_normalized_v1', function()
+        local groups = MySQL.query.await("SELECT id, members FROM phone_groups WHERE JSON_LENGTH(members) > 0") or {}
+        local copied = 0
+        for i = 1, #groups do
+            local members = decodeJson(groups[i].members)
+            for j = 1, #members do
+                local member = members[j]
+                if type(member) == 'table' and type(member.citizenid) == 'string' and member.citizenid ~= '' then
+                    local affected = MySQL.update.await([[
+                        INSERT IGNORE INTO phone_group_members (group_id, citizenid, name, joined_at)
+                        VALUES (?, ?, ?, ?)
+                    ]], {
+                        groups[i].id, member.citizenid,
+                        tostring(member.name or member.citizenid):sub(1, 64),
+                        tonumber(member.joined_at) or os.time(),
+                    })
+                    copied = copied + (tonumber(affected) or 0)
+                end
+            end
+            MySQL.update.await("UPDATE phone_groups SET members = '[]' WHERE id = ?", { groups[i].id })
+        end
+        return { groups = #groups, members = copied }
+    end)
+
+    -- Historical invite rows can contain duplicate group/target pairs. Keep the newest one,
+    -- then let the database make duplicate invitations impossible under concurrent requests.
+    util.runOnce('groups_invite_dedupe_v1', function()
+        local removed = MySQL.update.await([[
+            DELETE older FROM phone_group_invites older
+            JOIN phone_group_invites newer
+              ON newer.group_id = older.group_id AND newer.target_cid = older.target_cid
+             AND (newer.sent_at > older.sent_at OR (newer.sent_at = older.sent_at AND newer.id < older.id))
+        ]])
+        return { removed = tonumber(removed) or 0 }
+    end)
+    util.ensureUniqueIndex('phone_group_invites', 'uq_group_invites_target', '(group_id, target_cid)')
+
     -- Referential integrity, added on boot so existing installs migrate with no manual SQL.
     -- Each is a no-op once present; orphaned children are cleared first (they point at a
     -- parent that is already gone) and a type or collation mismatch is skipped, never fatal.
     util.ensureForeignKey('phone_group_invites', 'group_id', 'phone_groups', 'id', 'fk_group_invites_group')
+    util.ensureForeignKey('phone_group_members', 'group_id', 'phone_groups', 'id', 'fk_group_members_group')
+    util.ensureForeignKey('phone_settings', 'active_group_id', 'phone_groups', 'id', 'fk_settings_active_group', {
+        onDelete = 'SET NULL', cleanup = 'null', replace = true,
+    })
 end
 
 ---Reads a single group by id, hydrated; nil if missing. Non-string / empty ids return nil.
@@ -122,7 +202,8 @@ function store.getGroup(id)
         'SELECT id, name, leader_cid, color, avatar, members, invites FROM phone_groups WHERE id = ?',
         { id }
     )
-    return hydrateRow(row)
+    if not row then return nil end
+    return hydrateRows({ row })[1]
 end
 
 ---Counts how many groups a player currently leads.
@@ -140,28 +221,40 @@ end
 ---@param citizenid string
 ---@return table[] hydrated groups
 function store.listForMember(citizenid)
-    local rows = MySQL.query.await([[
-        SELECT id, name, leader_cid, color, avatar, members, invites
-        FROM phone_groups
-        WHERE JSON_SEARCH(members, 'one', ?, NULL, '$[*].citizenid') IS NOT NULL
-        ORDER BY created_at DESC
-    ]], { citizenid }) or {}
-
-    for i = 1, #rows do rows[i] = hydrateRow(rows[i]) end
-    return rows
+    local rows = MySQL.query.await(([[
+        SELECT g.id, g.name, g.leader_cid, g.color, g.avatar, g.members, g.invites
+        FROM phone_group_members gm
+        JOIN phone_groups g ON g.id = gm.group_id
+        WHERE gm.citizenid = ?
+        ORDER BY g.created_at DESC
+        LIMIT %d
+    ]]):format(GROUP_LIST_CAP), { citizenid }) or {}
+    return hydrateRows(rows)
 end
 
 ---Returns every pending invite for a citizenid paired with the parent group.
 ---@param citizenid string
 ---@return { invite: table, group: table }[]
 function store.listInvitesFor(citizenid)
-    local rows = MySQL.query.await([[
+    local rows = MySQL.query.await(([[
         SELECT i.id, i.group_id, i.target_cid, i.invited_by, i.invited_name, i.sent_at,
                g.id AS g_id, g.name, g.leader_cid, g.color, g.avatar, g.members, g.invites
         FROM phone_group_invites i
         JOIN phone_groups g ON g.id = i.group_id
         WHERE i.target_cid = ?
-    ]], { citizenid }) or {}
+        ORDER BY i.sent_at DESC
+        LIMIT %d
+    ]]):format(GROUP_LIST_CAP), { citizenid }) or {}
+
+    local groups = {}
+    for k = 1, #rows do
+        local r = rows[k]
+        groups[k] = {
+            id = r.g_id, name = r.name, leader_cid = r.leader_cid, color = r.color,
+            avatar = r.avatar, members = r.members, invites = r.invites,
+        }
+    end
+    hydrateRows(groups)
 
     local results = {}
     for k = 1, #rows do
@@ -171,10 +264,7 @@ function store.listInvitesFor(citizenid)
                 id = r.id, group_id = r.group_id, target_cid = r.target_cid,
                 invited_by = r.invited_by, invited_name = r.invited_name, sent_at = r.sent_at,
             },
-            group = hydrateRow({
-                id = r.g_id, name = r.name, leader_cid = r.leader_cid, color = r.color,
-                avatar = r.avatar, members = r.members, invites = r.invites,
-            }),
+            group = groups[k],
         }
     end
     return results
@@ -204,11 +294,28 @@ end
 ---@param members table[]
 ---@return boolean
 function store.insertGroup(id, name, leaderCid, color, members)
-    local affected = MySQL.insert.await([[
-        INSERT INTO phone_groups (id, name, leader_cid, color, members, invites)
-        VALUES (?, ?, ?, ?, ?, '[]')
-    ]], { id, name, leaderCid, color, encodeJson(members or {}) })
-    return affected ~= nil
+    local queries = {
+        {
+            query = [[
+                INSERT INTO phone_groups (id, name, leader_cid, color, members, invites)
+                VALUES (?, ?, ?, ?, '[]', '[]')
+            ]],
+            values = { id, name, leaderCid, color },
+        },
+    }
+    local seen = {}
+    for i = 1, #(members or {}) do
+        local member = members[i]
+        if type(member) == 'table' and type(member.citizenid) == 'string' and not seen[member.citizenid] then
+            seen[member.citizenid] = true
+            queries[#queries + 1] = {
+                query = 'INSERT INTO phone_group_members (group_id, citizenid, name, joined_at) VALUES (?, ?, ?, ?)',
+                values = { id, member.citizenid, tostring(member.name or member.citizenid):sub(1, 64), tonumber(member.joined_at) or os.time() },
+            }
+        end
+    end
+    local ok, committed = pcall(MySQL.transaction.await, queries)
+    return ok and committed ~= false
 end
 
 ---Sets (or clears) a group's custom picture URL.
@@ -227,22 +334,16 @@ end
 ---@param id string
 ---@return boolean
 function store.deleteGroup(id)
-    MySQL.update.await('DELETE FROM phone_group_invites WHERE group_id = ?', { id })
     local affected = MySQL.update.await('DELETE FROM phone_groups WHERE id = ?', { id })
     return (affected or 0) > 0
 end
 
----Persists a hydrated group's member list back to MySQL; whole-column last-write-wins on the
----members JSON.
----@param id string
----@param members table[]
----@return boolean
-local function saveMembers(id, members)
-    local affected = MySQL.update.await(
-        'UPDATE phone_groups SET members = ? WHERE id = ?',
-        { encodeJson(members), id }
-    )
-    return (affected or 0) > 0
+---Counts a character's group memberships through the citizen-leading index.
+---@param citizenid string
+---@return integer
+function store.countMemberships(citizenid)
+    return tonumber(MySQL.scalar.await(
+        'SELECT COUNT(*) FROM phone_group_members WHERE citizenid = ?', { citizenid })) or 0
 end
 
 ---Adds a player to a group's member list; returns false if they're already a member.
@@ -251,12 +352,64 @@ end
 ---@param name string
 ---@return boolean inserted true if a row was actually added
 function store.addMember(groupId, citizenid, name)
-    local g = store.getGroup(groupId); if not g then return false end
-    for i = 1, #g.members do
-        if g.members[i].citizenid == citizenid then return false end
+    local affected = MySQL.update.await([[
+        INSERT IGNORE INTO phone_group_members (group_id, citizenid, name, joined_at)
+        SELECT id, ?, ?, ? FROM phone_groups WHERE id = ?
+    ]], { citizenid, tostring(name or citizenid):sub(1, 64), os.time(), groupId })
+    return (tonumber(affected) or 0) > 0
+end
+
+---Consumes an invite and adds its target without a JSON read/overwrite race. The conditional
+---INSERT enforces the member cap at write time; the invite is deleted only when the target is
+---now a member, so a failed/full acceptance remains retryable.
+---@param inviteId string
+---@param groupId string
+---@param citizenid string
+---@param name string
+---@param maxMembers integer
+---@param maxGroups integer
+---@return boolean accepted
+local acceptLocks = {}
+function store.acceptInvite(inviteId, groupId, citizenid, name, maxMembers, maxGroups)
+    -- One character can fire callbacks concurrently. Serialize their accept attempts in-process;
+    -- the parent-row UPDATE below separately serializes different characters joining one group.
+    if acceptLocks[citizenid] then return false end
+    acceptLocks[citizenid] = true
+    local ok, committed = xpcall(function()
+        return MySQL.transaction.await({
+        {
+            query = 'UPDATE phone_groups SET id = id WHERE id = ?',
+            values = { groupId },
+        },
+        {
+            query = [[
+                INSERT IGNORE INTO phone_group_members (group_id, citizenid, name, joined_at)
+                SELECT i.group_id, i.target_cid, ?, ?
+                FROM phone_group_invites i
+                WHERE i.id = ? AND i.group_id = ? AND i.target_cid = ?
+                  AND (SELECT COUNT(*) FROM phone_group_members gm WHERE gm.group_id = i.group_id) < ?
+                  AND (SELECT COUNT(*) FROM phone_group_members own WHERE own.citizenid = i.target_cid) < ?
+            ]],
+            values = { tostring(name or citizenid):sub(1, 64), os.time(), inviteId, groupId, citizenid, maxMembers, maxGroups },
+        },
+        {
+            query = [[
+                DELETE i FROM phone_group_invites i
+                JOIN phone_group_members gm
+                  ON gm.group_id = i.group_id AND gm.citizenid = i.target_cid
+                WHERE i.id = ? AND i.group_id = ? AND i.target_cid = ?
+            ]],
+            values = { inviteId, groupId, citizenid },
+        },
+        })
+    end, debug.traceback)
+    acceptLocks[citizenid] = nil
+    if not ok then
+        print(('^1[sd-phone:groups]^0 invite acceptance failed: %s'):format(committed))
+        return false
     end
-    g.members[#g.members + 1] = { citizenid = citizenid, name = name, joined_at = os.time() }
-    return saveMembers(groupId, g.members)
+    if not ok or committed == false then return false end
+    return store.isMember(groupId, citizenid)
 end
 
 ---Removes a player from a group. Returns true if they were a member.
@@ -264,18 +417,10 @@ end
 ---@param citizenid string
 ---@return boolean
 function store.removeMember(groupId, citizenid)
-    local g = store.getGroup(groupId); if not g then return false end
-    local filtered = {}
-    local removed = false
-    for i = 1, #g.members do
-        if g.members[i].citizenid ~= citizenid then
-            filtered[#filtered + 1] = g.members[i]
-        else
-            removed = true
-        end
-    end
-    if not removed then return false end
-    return saveMembers(groupId, filtered)
+    local affected = MySQL.update.await(
+        'DELETE FROM phone_group_members WHERE group_id = ? AND citizenid = ?',
+        { groupId, citizenid })
+    return (tonumber(affected) or 0) > 0
 end
 
 ---Returns true iff the citizenid is currently in the group's members array.
@@ -283,19 +428,17 @@ end
 ---@param citizenid string
 ---@return boolean
 function store.isMember(groupId, citizenid)
-    local g = store.getGroup(groupId); if not g then return false end
-    for i = 1, #g.members do
-        if g.members[i].citizenid == citizenid then return true end
-    end
-    return false
+    return MySQL.scalar.await(
+        'SELECT 1 FROM phone_group_members WHERE group_id = ? AND citizenid = ? LIMIT 1',
+        { groupId, citizenid }) ~= nil
 end
 
 ---Member count for a group (0 if the group doesn't exist).
 ---@param groupId string
 ---@return number
 function store.countMembers(groupId)
-    local g = store.getGroup(groupId); if not g then return 0 end
-    return #g.members
+    return tonumber(MySQL.scalar.await(
+        'SELECT COUNT(*) FROM phone_group_members WHERE group_id = ?', { groupId })) or 0
 end
 
 ---Adds a pending invite as its own junction row, stamping sent_at server-side.
@@ -304,11 +447,11 @@ end
 ---@return boolean
 function store.addInvite(groupId, invite)
     invite.sent_at = os.time()
-    local affected = MySQL.insert.await([[
-        INSERT INTO phone_group_invites (id, group_id, target_cid, invited_by, invited_name, sent_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ]], { invite.id, groupId, invite.target_cid, invite.invited_by, invite.invited_name, invite.sent_at })
-    return affected ~= nil
+    local affected = MySQL.update.await([[
+        INSERT IGNORE INTO phone_group_invites (id, group_id, target_cid, invited_by, invited_name, sent_at)
+        SELECT ?, id, ?, ?, ?, ? FROM phone_groups WHERE id = ?
+    ]], { invite.id, invite.target_cid, invite.invited_by, invite.invited_name, invite.sent_at, groupId })
+    return (tonumber(affected) or 0) > 0
 end
 
 ---Drops a single invite by its id (PK); idempotent. Non-string / empty ids return false.

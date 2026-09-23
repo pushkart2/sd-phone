@@ -840,11 +840,13 @@ export interface HandsetNote {
     id:          string;
     body:        string | null;
     images:      string[];
+    sketches?:   string[];
     sketchCount: number;
     hasSketch:   boolean;
     hasImage:    boolean;
     created_at:  string;
     updated_at:  string;
+    loaded?:     boolean;
 }
 
 export interface HandsetAccounts {

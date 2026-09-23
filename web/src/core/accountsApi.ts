@@ -10,7 +10,7 @@ export function setMailDomain(domain: string): void {
 }
 
 export interface AccountMe { username: string; name: string; email?: string; phone?: string }
-export interface ApiResult { ok: boolean; message?: string }
+export interface ApiResult { ok: boolean; message?: string; field?: string }
 
 const devSessions: Record<string, AccountMe | null> = {};
 
@@ -26,13 +26,13 @@ export async function accountsMe(app: string): Promise<{ loggedIn: boolean; me: 
 export async function accountsRegister(app: string, values: Record<string, string>): Promise<ApiResult> {
     if (!isFiveM) { devSessions[app] = { username: values.username ?? 'dev', name: values.name ?? 'Dev User' }; return { ok: true }; }
     const res = await apiCall<unknown>('sd-phone:accounts:register', { app, ...values });
-    return res.success ? { ok: true } : { ok: false, message: res.message };
+    return res.success ? { ok: true } : { ok: false, message: res.message, field: res.field };
 }
 
 export async function accountsLogin(app: string, values: Record<string, string>): Promise<ApiResult> {
     if (!isFiveM) { devSessions[app] = { username: values.username ?? 'dev', name: 'Dev User' }; return { ok: true }; }
     const res = await apiCall<unknown>('sd-phone:accounts:login', { app, ...values });
-    return res.success ? { ok: true } : { ok: false, message: res.message };
+    return res.success ? { ok: true } : { ok: false, message: res.message, field: res.field };
 }
 
 export async function accountsLogout(app: string): Promise<{ switchedTo: string | null }> {

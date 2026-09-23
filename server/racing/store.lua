@@ -161,6 +161,8 @@ function store.ensureSchema()
     util.ensureIndex('phone_racing_results', 'idx_racing_results_racer', '(citizenid, finished_at)')
     util.ensureIndex('phone_racing_notifications', 'idx_racing_notifications_creator', '(citizenid)')
     util.ensureIndex('phone_racing_notifications', 'idx_racing_notifications_delivered', '(citizenid, delivered)')
+    util.ensureForeignKey('phone_racing_results', 'track_id', 'phone_racing_tracks', 'id',
+        'fk_racing_results_track')
 end
 
 ---A whole page number, at least 1.

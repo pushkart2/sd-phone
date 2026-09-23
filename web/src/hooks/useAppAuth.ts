@@ -9,7 +9,7 @@ export interface AppAuthState {
     justAuthed:    boolean;
     setJustAuthed: (v: boolean) => void;
     myNumber:      string | null;
-    myEmails:      string[];
+    myEmails:      string[] | null;
     savedLogin:    { username: string; password: string } | null;
     /** Saved logins for this app, minus whichever one is in use. */
     savedAccounts: SwitchableAccount[];
@@ -21,7 +21,9 @@ export function useAppAuth(appId: string, checkSession: () => Promise<boolean>):
     const [authChecked, setAuthChecked] = useState(false);
     const [justAuthed,  setJustAuthed]  = useState(false);
     const [myNumber,    setMyNumber]    = useState<string | null>(null);
-    const [myEmails,    setMyEmails]    = useState<string[]>([]);
+    // null means the ownership list is still loading. An empty array means it loaded and this
+    // character is not signed into Mail, which matters for recovery-email validation.
+    const [myEmails,    setMyEmails]    = useState<string[] | null>(null);
     const [savedLogin,  setSavedLogin]  = useState<{ username: string; password: string } | null>(null);
     const [savedAccounts, setSavedAccounts] = useState<SwitchableAccount[]>([]);
     const [accountsNonce, setAccountsNonce] = useState(0);

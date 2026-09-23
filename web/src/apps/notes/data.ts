@@ -12,6 +12,9 @@ export interface Note {
     body:      string;
     sketches:  string[];
     images?:   string[];
+    sketchCount?: number;
+    imageCount?:  number;
+    loaded?:      boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -37,7 +40,7 @@ export { newId } from '@/lib/format';
 export function noteTitle(n: Note): string {
     const firstLine = n.body.split('\n').find(l => l.trim().length > 0);
     if (firstLine) return firstLine.trim();
-    if (n.sketches.length > 0) return t('notes.sketchTitle', 'Sketch');
+    if ((n.sketchCount ?? n.sketches.length) > 0) return t('notes.sketchTitle', 'Sketch');
     return t('notes.newNote', 'New Note');
 }
 
@@ -45,8 +48,8 @@ export function notePreview(n: Note): string {
     const lines = n.body.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     const rest  = lines.slice(1).join(' ').trim();
     if (rest) return rest;
-    const imgs = n.images?.length ?? 0;
-    const sk   = n.sketches.length;
+    const imgs = n.imageCount ?? n.images?.length ?? 0;
+    const sk   = n.sketchCount ?? n.sketches.length;
     const bits: string[] = [];
     if (imgs) bits.push(imgs === 1 ? t('notes.imageOne', '{n} image', { n: imgs }) : t('notes.imageMany', '{n} images', { n: imgs }));
     if (sk)   bits.push(sk === 1 ? t('notes.drawingOne', '{n} drawing', { n: sk }) : t('notes.drawingMany', '{n} drawings', { n: sk }));

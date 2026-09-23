@@ -35,8 +35,8 @@ local ALL_APPS       = { photogram = true, cherry = true, vibez = true, birdy = 
 
 ---@type table<string, fun(password: string): string> Legacy per-app password hashers for migrated rows.
 local LEGACY_HASHERS = {
-    birdy = birdyStore.hashPassword,
-    mail  = mailStore.hashPassword,
+    birdy = birdyStore.legacyHashPassword,
+    mail  = mailStore.legacyHashPassword,
 }
 
 -- Password-guessing budget, keyed on the caller rather than the account being guessed: a
@@ -56,12 +56,7 @@ local CHANGE_MAX     = 10
 ---@return boolean owns
 local function ownsAccount(app, cid, acc)
     if app == 'mail' then
-        local want  = tostring(acc.username or ''):lower()
-        local boxes = mailStore.listAccountsForCitizen(cid) or {}
-        for i = 1, #boxes do
-            if tostring(boxes[i].email or ''):lower() == want then return true end
-        end
-        return false
+        return mailStore.hasSession(tostring(acc.username or ''):lower(), cid)
     end
     local held = store.listSessionAccounts(app, cid) or {}
     for i = 1, #held do
@@ -132,16 +127,22 @@ local function validPassword(raw)
     return raw, nil
 end
 
----Validates an optional recovery email: nil when blank, otherwise it must resolve to an existing
----Mail-app account (a bare username gets the mail domain appended).
+---Validates an optional recovery email: nil when blank, otherwise it must be a Mail account the
+---caller is signed into (a bare username gets the mail domain appended). Checking the session,
+---rather than global account existence, prevents mailbox enumeration and attaching somebody
+---else's address as the recovery channel.
 ---@param raw any client-supplied email
 ---@return string|nil email
 ---@return table? refusal keyed refusal envelope when the address was given but is unknown
-local function validEmail(raw)
+local function validEmail(raw, cid)
     local e = trim(raw):lower()
     if e == '' then return nil, nil end
     if not e:find('@', 1, true) then e = e .. '@' .. MAIL_DOMAIN end
-    if not mailStore.getAccount(e) then
+    if cid then
+        if not mailStore.hasSession(e, cid) then
+            return nil, fail('accounts.chooseMailAccountSignedIn', 'Choose a Mail account signed in on this phone')
+        end
+    elseif not mailStore.getAccount(e) then
         return nil, fail('accounts.noMailAccountAddressExists', 'No Mail account with that address exists')
     end
     return e, nil
@@ -189,25 +190,25 @@ local function validPhone(raw)
 end
 
 ---Creates an account for an already-whitelisted app: validates username/password, optional
----recovery contacts (at least one required, each unique per app), and display name. Pass the
----caller's citizenid so a recovery number they do not own is refused; every client-reachable
----path has one, and the guard lives here rather than in a caller so no route can skip it.
+---recovery contacts (at least one required), and display name. Pass the caller's citizenid so
+---foreign recovery channels are refused; every client-reachable path has one, and the guard
+---lives here rather than in a caller so no route can skip it.
 ---@param app string account app key (already validated)
 ---@param payload table|nil client-supplied { username, password, name?, email?, phone? }
----@param cid string|nil caller citizenid; when given, the recovery phone must be theirs
+---@param cid string|nil caller citizenid; when given, both recovery channels must be theirs
 ---@return table envelope on success data = { account }
 function actions.createAccount(app, payload, cid)
     payload = payload or {}
     local username, ur = validUsername(app, payload.username); if not username then return ur end
     local password, pr = validPassword(payload.password); if not password then return pr end
-    local email, er = validEmail(payload.email); if er then return er end
+    local email, er = validEmail(payload.email, cid); if er then return er end
     local phone, hr = validPhone(payload.phone); if hr then return hr end
 
     -- Recovery codes go to this number, so one the caller does not own is useless to them and
     -- lets a character sidestep the per-app contact-uniqueness cap below.
     if phone and cid then
         local mine = digits(settings.getPhoneNumber(cid))
-        if mine ~= '' and phone ~= mine then
+        if mine == '' or phone ~= mine then
             return fail('accounts.useOwnPhoneNumberSo', 'Use your own phone number so you can recover the account')
         end
     end
@@ -627,13 +628,8 @@ function actions.suggestCode(source, payload)
             return ok({ code = entry.code, source = 'messages' })
         end
     else
-        local mailAcc = acc.email and mailStore.getAccount(acc.email)
-        if mailAcc then
-            for i = 1, #mailAcc.logged_in_citizens do
-                if mailAcc.logged_in_citizens[i] == cid then
-                    return ok({ code = entry.code, source = 'mail' })
-                end
-            end
+        if acc.email and mailStore.hasSession(acc.email, cid) then
+            return ok({ code = entry.code, source = 'mail' })
         end
     end
     return ok({})

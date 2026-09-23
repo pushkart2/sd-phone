@@ -111,6 +111,7 @@ export interface InboxThread {
     ts:       number;
     unread:   number;
     messages: InboxMessage[];
+    loaded?:  boolean;
 }
 export interface Inbox { personal: InboxThread[]; job: InboxThread[]; hasJob: boolean }
 
@@ -138,6 +139,14 @@ const DEV_INBOX: Inbox = {
 export async function fetchInbox(): Promise<Inbox> {
     if (!isFiveM) return DEV_INBOX;
     return (await apiData<Inbox>('sd-phone:services:inbox')) ?? { personal: [], job: [], hasJob: false };
+}
+
+export async function fetchInboxThread(scope: 'personal' | 'job', key: string): Promise<InboxMessage[] | null> {
+    if (!isFiveM) {
+        const thread = (scope === 'job' ? DEV_INBOX.job : DEV_INBOX.personal).find(item => item.key === key);
+        return thread?.messages ?? null;
+    }
+    return (await apiData<{ messages: InboxMessage[] }>('sd-phone:services:thread', { scope, key }))?.messages ?? null;
 }
 
 export async function messageCompany(job: string, draft: ServiceDraft): Promise<Inbox | null> {

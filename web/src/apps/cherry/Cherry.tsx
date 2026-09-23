@@ -293,8 +293,8 @@ export function Cherry({ onClose: _onClose }: { onClose: () => void }) {
                     { key: 'name',     label: t('cherry.name', 'Name') },
                     { key: 'age',      label: t('cherry.age', 'Age'), type: 'number' },
                     { key: 'password', label: t('cherry.password', 'Password'), type: 'password' },
-                    { key: 'email',    label: t('cherry.email', 'Email'), suffix: `@${MAIL_DOMAIN}`, createOnly: true },
-                    { key: 'phone',    label: t('cherry.phone', 'Phone'), type: 'tel',   createOnly: true },
+                    { key: 'email',    label: t('cherry.email', 'Email'), suffix: `@${MAIL_DOMAIN}`, createOnly: true, optional: true },
+                    { key: 'phone',    label: t('cherry.phone', 'Phone'), type: 'tel',   createOnly: true, optional: true },
                 ]}
                 onSubmit={async (mode, vals) => {
                     const res = mode === 'create' ? await accountsRegister('cherry', vals) : await accountsLogin('cherry', vals);

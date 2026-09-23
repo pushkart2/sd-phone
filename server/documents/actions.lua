@@ -666,10 +666,10 @@ function actions.sign(src, payload)
     local image = store.getPersonalSignature(cid)
     if not image then return fail('documents.drawSignatureFirst', 'Draw your signature first') end
 
-    store.addSignature({
+    if not store.addSignature({
         id = newId(), docId = id, citizenid = cid,
         signer = player.getName(src) or 'Unknown', image = image, ts = os.time(),
-    })
+    }) then return fail('You have already signed this document') end
     return ok({ doc = attachSignatures(serializeDoc(row), id, cid) })
 end
 
@@ -780,10 +780,10 @@ function actions.respondSignRequest(src, payload)
     local image = store.getPersonalSignature(cid)
     if not image then return fail('documents.drawSignatureFirst', 'Draw your signature first') end
 
-    store.addSignature({
+    if not store.addSignature({
         id = newId(), docId = req.docId, citizenid = cid,
         signer = player.getName(src) or 'Unknown', image = image, ts = os.time(),
-    })
+    }) then return fail('You have already signed this document') end
 
     -- The responder's completed copy carries every signature, theirs included.
     local sigs = {}

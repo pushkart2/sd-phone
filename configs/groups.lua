@@ -11,6 +11,10 @@ return {
     -- groups at 32; we go a touch tighter.
     MaxMembersPerGroup = 16,
 
+    -- Bounds the Groups bootstrap payload and prevents a character accumulating an unlimited
+    -- membership graph through old invitations.
+    MaxGroupsPerPlayer = 50,
+
     -- Outgoing-invite cap, per group. Resets as invites are accepted/declined.
     MaxPendingInvitesPerGroup = 20,
 

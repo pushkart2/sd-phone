@@ -377,7 +377,7 @@ function actions.create(src, payload)
     store.insertPost(id, acc.username, video, thumb, caption, sound, os.time(), ttsUrl, ttsVoice)
 
     local mentions  = mentionsIn(caption, acc.username)
-    local followers = store.followerUsernames(acc.username)
+    local followers = store.followerUsernames(acc.username, 500)
 
     -- Fan-out context resolved once, and only when there is someone to notify: the actor profile
     -- and post thumb are the same for every recipient, and the source map replaces a
@@ -717,10 +717,10 @@ function actions.followList(src, payload)
     local kind = payload.kind == 'following' and 'following' or 'followers'
 
     local out = {}
-    for _, r in ipairs(store.followList(target, kind)) do
+    for _, r in ipairs(store.followList(target, kind, acc.username, 100)) do
         local card = userCard(r)
         card.isMe      = r.username == acc.username
-        card.following = (not card.isMe) and store.isFollowing(acc.username, r.username) or false
+        card.following = (not card.isMe) and tonumber(r.viewer_following) == 1 or false
         out[#out + 1] = card
     end
     return ok({ users = out })
@@ -738,10 +738,10 @@ function actions.search(src, payload)
     local query = trim(payload.query):sub(1, 64):lower()
     if query == '' then return ok({ users = {}, posts = {} }) end
     local out = {}
-    for _, r in ipairs(store.searchProfiles(query, 20)) do
+    for _, r in ipairs(store.searchProfiles(query, acc.username, 20)) do
         if r.username ~= acc.username then
             local card = userCard(r)
-            card.following = store.isFollowing(acc.username, r.username)
+            card.following = tonumber(r.viewer_following) == 1
             out[#out + 1] = card
         end
     end

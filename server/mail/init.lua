@@ -43,6 +43,10 @@ lib.callback.register('sd-phone:server:mail:list', function(src)
     return actions.list(src)
 end)
 
+lib.callback.register('sd-phone:server:mail:getMessage', function(src, payload)
+    return actions.getMessage(src, payload)
+end)
+
 lib.callback.register('sd-phone:server:mail:signUp', function(src, payload)
     return actions.signUp(src, payload)
 end)
@@ -200,7 +204,7 @@ end)
 exports('mailAddressExists', function(email)
     local addr = trim(email):lower()
     if addr == '' then return false end
-    return store.getAccount(addr) ~= nil
+    return store.accountExists(addr)
 end)
 
 ---Reads a mailbox's messages in the serialized MailMessage shape; nil when the account doesn't

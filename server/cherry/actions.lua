@@ -249,7 +249,15 @@ end
 ---@param username string viewing side
 ---@return table match { id, createdAt, partner, lastMessage? }
 local function serializeMatch(matchRow, username, profiles)
-    local last = store.lastMessage(matchRow.id)
+    local last = matchRow.last_message_id and {
+        id = matchRow.last_message_id,
+        sender = matchRow.last_sender,
+        kind = matchRow.last_kind,
+        body = matchRow.last_body,
+        meta = matchRow.last_meta,
+        reactions = matchRow.last_reactions,
+        created_at = matchRow.last_at,
+    } or nil
     local partner = partnerOf(matchRow, username)
     return {
         id          = matchRow.id,
@@ -280,7 +288,7 @@ function actions.state(src)
         end
     end
 
-    local matchRows   = store.matchesFor(acc.username)
+    local matchRows   = store.matchesFor(acc.username, 100)
     local partnerNames = {}
     for i = 1, #matchRows do partnerNames[i] = partnerOf(matchRows[i], acc.username) end
     local matchProfiles = store.profilesByUsernames(partnerNames)
@@ -333,7 +341,7 @@ function actions.saveProfile(src, payload)
 
     -- Push the fresh card to matched partners so their app doesn't keep the old photo.
     local card = partnerCard(acc.username, store.getProfile(acc.username))
-    for _, m in ipairs(store.matchesFor(acc.username)) do
+    for _, m in ipairs(store.matchesFor(acc.username, 100)) do
         util.pushMany('sd-phone:client:cherry:partner', sourcesFor(partnerOf(m, acc.username)),
             { username = acc.username, partner = card })
     end

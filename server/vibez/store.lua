@@ -110,6 +110,9 @@ function store.ensureSchema()
     ]])
     util.ensureIndex('phone_vibez_notifications', 'idx_vibez_notifs_unseen', '(recipient, seen)')
     util.ensureIndex('phone_vibez_notifications', 'idx_vibez_notifs_dedupe', '(recipient, kind, actor, post_id)')
+    util.ensureIndex('phone_vibez_follows', 'idx_vibez_follows_target_created', '(target, created_at, follower)')
+    util.ensureIndex('phone_vibez_follows', 'idx_vibez_follows_follower_created', '(follower, created_at, target)')
+    util.dropIndex('phone_vibez_follows', 'idx_vibez_follows_target')
 
     -- Referential integrity, added on boot so existing installs migrate with no manual SQL.
     -- Each is a no-op once present; orphaned children are cleared first (they point at a
@@ -127,6 +130,15 @@ function store.ensureSchema()
     util.ensureForeignKey('phone_vibez_saves', 'post_id', 'phone_vibez_posts', 'id', 'fk_vibez_saves_post')
     util.ensureForeignKey('phone_vibez_notifications', 'post_id', 'phone_vibez_posts', 'id', 'fk_vibez_notifications_post')
     util.ensureForeignKey('phone_vibez_comment_likes', 'comment_id', 'phone_vibez_comments', 'id', 'fk_vibez_comment_likes_comment')
+    util.ensureForeignKey('phone_vibez_posts', 'author', 'phone_vibez_profiles', 'username', 'fk_vibez_posts_author')
+    util.ensureForeignKey('phone_vibez_likes', 'username', 'phone_vibez_profiles', 'username', 'fk_vibez_likes_user')
+    util.ensureForeignKey('phone_vibez_saves', 'username', 'phone_vibez_profiles', 'username', 'fk_vibez_saves_user')
+    util.ensureForeignKey('phone_vibez_comments', 'author', 'phone_vibez_profiles', 'username', 'fk_vibez_comments_author')
+    util.ensureForeignKey('phone_vibez_comment_likes', 'username', 'phone_vibez_profiles', 'username', 'fk_vibez_comment_likes_user')
+    util.ensureForeignKey('phone_vibez_follows', 'follower', 'phone_vibez_profiles', 'username', 'fk_vibez_follows_follower')
+    util.ensureForeignKey('phone_vibez_follows', 'target', 'phone_vibez_profiles', 'username', 'fk_vibez_follows_target')
+    util.ensureForeignKey('phone_vibez_notifications', 'recipient', 'phone_vibez_profiles', 'username', 'fk_vibez_notifications_recipient')
+    util.ensureForeignKey('phone_vibez_notifications', 'actor', 'phone_vibez_profiles', 'username', 'fk_vibez_notifications_actor')
 end
 
 ---A profile row by exact username, nil when the handle doesn't exist. Read-only.
@@ -154,17 +166,21 @@ end
 ---Matches accounts by handle or display name. Wildcards in the client's text are escaped, so a
 ---bare '%' searches for a literal percent instead of scanning the whole table.
 ---@param query string search text
+---@param viewer string viewer handle used to resolve relationship state
 ---@param limit? integer max rows (default 20)
 ---@return table[] rows
-function store.searchProfiles(query, limit)
-    local n = math.floor(tonumber(limit) or 20)
+function store.searchProfiles(query, viewer, limit)
+    local n = math.max(1, math.min(math.floor(tonumber(limit) or 20), 100))
     local like = '%' .. query:gsub('[%%_\\]', '\\%0') .. '%'
     return MySQL.query.await(([[
-        SELECT * FROM phone_vibez_profiles
-        WHERE username LIKE ? ESCAPE '\\' OR display_name LIKE ? ESCAPE '\\'
-        ORDER BY username ASC
+        SELECT pr.*,
+               EXISTS(SELECT 1 FROM phone_vibez_follows f
+                      WHERE f.follower = ? AND f.target = pr.username) AS viewer_following
+        FROM phone_vibez_profiles pr
+        WHERE pr.username LIKE ? ESCAPE '\\' OR pr.display_name LIKE ? ESCAPE '\\'
+        ORDER BY pr.username ASC
         LIMIT %d
-    ]]):format(n), { like, like }) or {}
+    ]]):format(n), { viewer, like, like }) or {}
 end
 
 ---How many posts an author has (profile header stat). Read-only.
@@ -234,29 +250,45 @@ end
 ---(kind='following'), each row a full profile card. Read-only.
 ---@param username string account handle
 ---@param kind string 'following' for the following list; anything else means followers
+---@param viewer string viewer handle used to resolve relationship state
+---@param limit? number row cap (default 100)
 ---@return table[] profile rows
-function store.followList(username, kind)
+function store.followList(username, kind, viewer, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 100), 100))
     if kind == 'following' then
         return MySQL.query.await([[
-            SELECT pr.* FROM phone_vibez_follows f
+            SELECT pr.*,
+                   EXISTS(SELECT 1 FROM phone_vibez_follows mine
+                          WHERE mine.follower = ? AND mine.target = pr.username) AS viewer_following
+            FROM phone_vibez_follows f
             JOIN phone_vibez_profiles pr ON pr.username = f.target
             WHERE f.follower = ?
             ORDER BY f.created_at DESC
-        ]], { username }) or {}
+            LIMIT ?
+        ]], { viewer, username, limit }) or {}
     end
     return MySQL.query.await([[
-        SELECT pr.* FROM phone_vibez_follows f
+        SELECT pr.*,
+               EXISTS(SELECT 1 FROM phone_vibez_follows mine
+                      WHERE mine.follower = ? AND mine.target = pr.username) AS viewer_following
+        FROM phone_vibez_follows f
         JOIN phone_vibez_profiles pr ON pr.username = f.follower
         WHERE f.target = ?
         ORDER BY f.created_at DESC
-    ]], { username }) or {}
+        LIMIT ?
+    ]], { viewer, username, limit }) or {}
 end
 
----Usernames of everyone who follows `username`.
+---Most recent usernames following `username`, bounded for post-notification fan-out.
 ---@param username string account handle
+---@param limit? number row cap (default 500, hard max 1000)
 ---@return string[] follower usernames
-function store.followerUsernames(username)
-    local rows = MySQL.query.await('SELECT follower FROM phone_vibez_follows WHERE target = ?', { username }) or {}
+function store.followerUsernames(username, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 500), 1000))
+    local rows = MySQL.query.await([[
+        SELECT follower FROM phone_vibez_follows
+        WHERE target = ? ORDER BY created_at DESC, follower ASC LIMIT ?
+    ]], { username, limit }) or {}
     local out = {}
     for _, r in ipairs(rows) do out[#out + 1] = r.follower end
     return out

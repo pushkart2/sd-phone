@@ -24,7 +24,9 @@ function store.ensureSchema()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
 
-    pcall(MySQL.query.await, 'ALTER TABLE phone_wifi ADD COLUMN IF NOT EXISTS declined LONGTEXT NULL AFTER known')
+    util.ensureColumns('phone_wifi', {
+        declined = 'declined LONGTEXT NULL AFTER known',
+    })
 end
 
 ---Clamps a network id to a storable string; nil for empty / non-string input.

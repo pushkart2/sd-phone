@@ -13,7 +13,7 @@ import { signOutAllForApp } from '@/shared/signOutAll';
 import { Compose } from './Compose';
 import { AlertDialog } from '@/ui/AlertDialog';
 import {
-    getFolderLabels, declineEmail, deleteAccount, discardDraft, inFolder, listMail, listSavedEmails, loadActiveAccountId, loadFolderOrder, markRead,
+    getFolderLabels, declineEmail, deleteAccount, discardDraft, getMailMessage, inFolder, listMail, listSavedEmails, loadActiveAccountId, loadFolderOrder, markRead,
     markManyRead, moveToBin, moveTo, removeSavedEmail, saveActiveAccountId, saveDraft, saveEmail, saveFolderOrder, sendMail, signIn as mailSignIn,
     signOut, signUp as mailSignUp, toggleFlag, type SavedEmailState,
 } from './data';
@@ -295,16 +295,50 @@ export function Mail({ onClose }: { onClose: () => void }) {
 
     const currentMsg = nav.stage === 'detail' ? messages.find(m => m.id === nav.msgId) : null;
 
+    const loadFullMessage = useCallback(async (message: MailMessage) => {
+        if (message.loaded !== false) return message;
+        const result = await getMailMessage(message.accountId, message.id);
+        if (typeof result === 'string') return null;
+        setMessages(prev => prev.map(m => (
+            m.id === result.id && m.accountId === result.accountId ? result : m
+        )));
+        return result;
+    }, []);
+
+    useEffect(() => {
+        if (currentMsg?.loaded === false) void loadFullMessage(currentMsg);
+    }, [currentMsg, loadFullMessage]);
+
     // Prev/next within the open folder, same newest-first order the list shows.
     const detailSiblings = nav.stage === 'detail'
         ? [...inFolder(messages, nav.folder, nav.accountId)].sort((a, b) => b.sentAt.localeCompare(a.sentAt))
         : [];
     const detailIdx = nav.stage === 'detail' ? detailSiblings.findIndex(m => m.id === nav.msgId) : -1;
 
-    function openSibling(id: string) {
+    async function openMessage(id: string) {
         const target = messages.find(m => m.id === id);
-        if (target) void handleMarkRead(target);
-        if (nav.stage === 'detail') setNav({ ...nav, msgId: id });
+        if (!target) return;
+        const full = await loadFullMessage(target);
+        if (!full) return;
+        void handleMarkRead(full);
+        if (full.folder === 'drafts') {
+            setComposeFor({
+                accountId: full.accountId,
+                to: full.to.join(', '),
+                subject: full.subject,
+                body: full.body,
+                draftId: full.id,
+                attachments: full.attachments,
+            });
+            return;
+        }
+        setNav({
+            stage: 'detail',
+            folder: nav.stage === 'mailboxes' ? full.folder : nav.folder,
+            msgId: id,
+            accountId: full.accountId,
+            accountName: nav.stage === 'mailboxes' ? undefined : nav.accountName,
+        });
     }
 
     const defaultComposeAccount = composeFor?.accountId
@@ -336,7 +370,7 @@ export function Mail({ onClose }: { onClose: () => void }) {
                     { key: 'email',    label: t('mail.fieldEmail', 'Email'), suffix: `@${MAIL_DOMAIN}` },
                     { key: 'name',     label: t('mail.fieldName', 'Name'), createOnly: true },
                     { key: 'password', label: t('mail.password', 'Password'), type: 'password' },
-                    { key: 'phone',    label: t('mail.fieldPhone', 'Phone'), type: 'tel', createOnly: true },
+                    { key: 'phone',    label: t('mail.fieldPhone', 'Phone'), type: 'tel', createOnly: true, optional: true },
                 ]}
                 onSubmit={async (mode, vals) => {
                     const r = mode === 'create'
@@ -402,16 +436,7 @@ export function Mail({ onClose }: { onClose: () => void }) {
                     accountName={nav.accountName}
                     messages={messages}
                     onBack={() => setNav({ stage: 'mailboxes' })}
-                    onOpen={id => {
-                        const target = messages.find(m => m.id === id);
-                        if (target) void handleMarkRead(target);
-                        // Drafts reopen in the composer for editing instead of the read-only viewer.
-                        if (target?.folder === 'drafts') {
-                            setComposeFor({ accountId: target.accountId, to: target.to.join(', '), subject: target.subject, body: target.body, draftId: target.id, attachments: target.attachments });
-                            return;
-                        }
-                        setNav({ stage: 'detail', folder: nav.folder, msgId: id, accountId: nav.accountId, accountName: nav.accountName });
-                    }}
+                    onOpen={id => { void openMessage(id); }}
                     onCompose={() => setComposeFor({ accountId: nav.accountId })}
                     onDeleteMany={handleDeleteMany}
                     onMarkReadMany={handleMarkReadMany}
@@ -424,7 +449,7 @@ export function Mail({ onClose }: { onClose: () => void }) {
                     backLabel={nav.accountName ?? getFolderLabels()[nav.folder] ?? t('mail.back', 'Back')}
                     prevId={detailIdx > 0 ? detailSiblings[detailIdx - 1].id : null}
                     nextId={detailIdx >= 0 && detailIdx < detailSiblings.length - 1 ? detailSiblings[detailIdx + 1].id : null}
-                    onOpenSibling={openSibling}
+                    onOpenSibling={id => { void openMessage(id); }}
                     onBack={() => setNav({ stage: 'list', folder: nav.folder, accountId: nav.accountId, accountName: nav.accountName })}
                     onToggleFlag={(id) => void handleToggleFlag(id)}
                     onDelete={(id) => void handleMoveToBin(id)}

@@ -95,7 +95,7 @@ function M.run(ctx)
 
     if ctx.report then ctx.report(2, 3) end
 
-    if store.lbSource('mail_messages') then
+    if store.lbSource('mail_messages', 'recipient') then
         for _, m in ipairs(store.lbMailMessages()) do
             local to = addressOf[m.recipient]
             local box = to and inbox[to]
@@ -178,6 +178,7 @@ function M.run(ctx)
         -- which has already happened by the time the import runs. Rebuild it now so migrated
         -- players are signed into mail immediately rather than after the next restart.
         if out.sessions > 0 then pcall(mailStore.reconcileSessions) end
+        if out.messages > 0 then pcall(mailStore.reconcileMessages) end
         out.logins = store.grantMigratedLogins(grants)
     end
     return out

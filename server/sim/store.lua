@@ -24,19 +24,15 @@ function store.ensureSchema()
             INDEX idx_phone_sim_identity (identity)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
-    local hasAdoptedBy = MySQL.scalar.await([[
-        SELECT COUNT(*) FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_sim_cards' AND column_name = 'adopted_by'
-    ]])
-    if (tonumber(hasAdoptedBy) or 0) == 0 then
-        MySQL.query.await('ALTER TABLE phone_sim_cards ADD COLUMN adopted_by VARCHAR(64) NULL')
-    end
+    util.ensureColumns('phone_sim_cards', {
+        adopted_by = 'adopted_by VARCHAR(64) NULL',
+    })
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_cloud_backups (
             citizenid  VARCHAR(64) NOT NULL,
             identity   VARCHAR(64) NOT NULL,
             enabled    TINYINT(1)  NOT NULL DEFAULT 1,
-            password   VARCHAR(64) NULL,
+            password   VARCHAR(255) NULL,
             device_identity VARCHAR(64) NULL,
             auto_sync  TINYINT(1)  NOT NULL DEFAULT 1,
             synced_at  BIGINT      NULL,
@@ -45,22 +41,12 @@ function store.ensureSchema()
             PRIMARY KEY (citizenid)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]])
-    local hasPassword = MySQL.scalar.await([[
-        SELECT COUNT(*) FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_cloud_backups' AND column_name = 'password'
-    ]])
-    if (tonumber(hasPassword) or 0) == 0 then
-        MySQL.query.await('ALTER TABLE phone_cloud_backups ADD COLUMN password VARCHAR(64) NULL')
-    end
-    local hasDevice = MySQL.scalar.await([[
-        SELECT COUNT(*) FROM information_schema.columns
-        WHERE table_schema = DATABASE() AND table_name = 'phone_cloud_backups' AND column_name = 'device_identity'
-    ]])
-    if (tonumber(hasDevice) or 0) == 0 then
-        MySQL.query.await('ALTER TABLE phone_cloud_backups ADD COLUMN device_identity VARCHAR(64) NULL')
-        MySQL.query.await('ALTER TABLE phone_cloud_backups ADD COLUMN auto_sync TINYINT(1) NOT NULL DEFAULT 1')
-        MySQL.query.await('ALTER TABLE phone_cloud_backups ADD COLUMN synced_at BIGINT NULL')
-    end
+    util.ensureColumns('phone_cloud_backups', {
+        password        = 'password VARCHAR(255) NULL',
+        device_identity = 'device_identity VARCHAR(64) NULL',
+        auto_sync       = 'auto_sync TINYINT(1) NOT NULL DEFAULT 1',
+        synced_at       = 'synced_at BIGINT NULL',
+    })
 
     -- Multi-profile backups: one row per (character, phone). The single-slot table above stays
     -- as the migration source and is otherwise unused.
@@ -91,6 +77,7 @@ function store.ensureSchema()
     -- The column was sized for the 24-char legacy digest. A scrypt hash is 86 characters, so a
     -- server created before scrypt rejects the write outright ("Data too long for column
     -- 'password'") the first time a character turns Cloud Backup on.
+    util.ensureColumnWidth('phone_cloud_backups', 'password', 'password VARCHAR(255) NULL', 255)
     util.ensureColumnWidth('phone_cloud_accounts', 'password', 'password VARCHAR(255) NULL', 255)
     -- One-shot migration of single-slot rows (a legacy pointer row's device IS its identity).
     -- Only when the profiles table has never been populated, so deleted profiles stay deleted.

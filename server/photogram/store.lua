@@ -165,7 +165,6 @@ function store.ensureSchema()
     ]])
     util.ensureIndex('phone_photogram_notifications', 'idx_photogram_notifs_unseen', '(recipient, seen)')
     util.ensureIndex('phone_photogram_notifications', 'idx_photogram_notifs_dedupe', '(recipient, kind, actor, post_id)')
-
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_photogram_dms (
             id          VARCHAR(16) NOT NULL,
@@ -184,18 +183,18 @@ function store.ensureSchema()
     ]])
     util.ensureIndex('phone_photogram_dms', 'idx_photogram_dms_unread', '(to_user, read_flag)')
 
-    local function ensureColumn(tbl, name, ddl)
-        local present = MySQL.scalar.await([[
-            SELECT COUNT(*) FROM information_schema.columns
-            WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?
-        ]], { tbl, name })
-        if (tonumber(present) or 0) == 0 then
-            MySQL.query.await(('ALTER TABLE %s ADD COLUMN %s'):format(tbl, ddl))
-        end
-    end
-    ensureColumn('phone_photogram_profiles', 'is_private', 'is_private TINYINT(1) NOT NULL DEFAULT 0')
-    ensureColumn('phone_photogram_profiles', 'verified',   'verified TINYINT(1) NOT NULL DEFAULT 0')
-    ensureColumn('phone_photogram_follows',  'status',     "status VARCHAR(12) NOT NULL DEFAULT 'accepted'")
+    util.ensureColumns('phone_photogram_profiles', {
+        is_private = 'is_private TINYINT(1) NOT NULL DEFAULT 0',
+        verified   = 'verified TINYINT(1) NOT NULL DEFAULT 0',
+    })
+    util.ensureColumns('phone_photogram_follows', {
+        status = "status VARCHAR(12) NOT NULL DEFAULT 'accepted'",
+    })
+    util.ensureIndex('phone_photogram_follows', 'idx_photogram_follows_target_created',
+        '(target, status, created_at, follower)')
+    util.ensureIndex('phone_photogram_follows', 'idx_photogram_follows_follower_created',
+        '(follower, status, created_at, target)')
+    util.dropIndex('phone_photogram_follows', 'idx_photogram_follows_target')
 
     -- Referential integrity, added on boot so existing installs migrate with no manual SQL.
     -- Each is a no-op once present; orphaned children are cleared first (they point at a
@@ -205,6 +204,20 @@ function store.ensureSchema()
     util.ensureForeignKey('phone_photogram_saves', 'post_id', 'phone_photogram_posts', 'id', 'fk_photogram_saves_post')
     util.ensureForeignKey('phone_photogram_notifications', 'post_id', 'phone_photogram_posts', 'id', 'fk_photogram_notifications_post')
     util.ensureForeignKey('phone_photogram_comment_likes', 'comment_id', 'phone_photogram_comments', 'id', 'fk_photogram_comment_likes_comment')
+    util.ensureForeignKey('phone_photogram_posts', 'author', 'phone_photogram_profiles', 'username', 'fk_photogram_posts_author')
+    util.ensureForeignKey('phone_photogram_likes', 'username', 'phone_photogram_profiles', 'username', 'fk_photogram_likes_user')
+    util.ensureForeignKey('phone_photogram_saves', 'username', 'phone_photogram_profiles', 'username', 'fk_photogram_saves_user')
+    util.ensureForeignKey('phone_photogram_comments', 'author', 'phone_photogram_profiles', 'username', 'fk_photogram_comments_author')
+    util.ensureForeignKey('phone_photogram_comment_likes', 'username', 'phone_photogram_profiles', 'username', 'fk_photogram_comment_likes_user')
+    util.ensureForeignKey('phone_photogram_follows', 'follower', 'phone_photogram_profiles', 'username', 'fk_photogram_follows_follower')
+    util.ensureForeignKey('phone_photogram_follows', 'target', 'phone_photogram_profiles', 'username', 'fk_photogram_follows_target')
+    util.ensureForeignKey('phone_photogram_stories', 'author', 'phone_photogram_profiles', 'username', 'fk_photogram_stories_author')
+    util.ensureForeignKey('phone_photogram_story_views', 'story_id', 'phone_photogram_stories', 'id', 'fk_photogram_story_views_story')
+    util.ensureForeignKey('phone_photogram_story_views', 'username', 'phone_photogram_profiles', 'username', 'fk_photogram_story_views_user')
+    util.ensureForeignKey('phone_photogram_notifications', 'recipient', 'phone_photogram_profiles', 'username', 'fk_photogram_notifications_recipient')
+    util.ensureForeignKey('phone_photogram_notifications', 'actor', 'phone_photogram_profiles', 'username', 'fk_photogram_notifications_actor')
+    util.ensureForeignKey('phone_photogram_dms', 'from_user', 'phone_photogram_profiles', 'username', 'fk_photogram_dms_from')
+    util.ensureForeignKey('phone_photogram_dms', 'to_user', 'phone_photogram_profiles', 'username', 'fk_photogram_dms_to')
 end
 
 ---A profile row by exact username, nil when the handle doesn't exist. Read-only.
@@ -351,22 +364,33 @@ end
 ---(kind='following'), each row a full profile card. Accepted edges only.
 ---@param username string account handle
 ---@param kind string 'following' for the following list; anything else means followers
+---@param viewer string viewer handle used to resolve relationship state
+---@param limit? number row cap (default 100)
 ---@return table[] profile rows
-function store.followList(username, kind)
+function store.followList(username, kind, viewer, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 100), 100))
     if kind == 'following' then
         return MySQL.query.await([[
-            SELECT pr.* FROM phone_photogram_follows f
+            SELECT pr.*,
+                   (SELECT mine.status FROM phone_photogram_follows mine
+                    WHERE mine.follower = ? AND mine.target = pr.username) AS viewer_status
+            FROM phone_photogram_follows f
             JOIN phone_photogram_profiles pr ON pr.username = f.target
             WHERE f.follower = ? AND f.status = 'accepted'
             ORDER BY f.created_at DESC
-        ]], { username }) or {}
+            LIMIT ?
+        ]], { viewer, username, limit }) or {}
     end
     return MySQL.query.await([[
-        SELECT pr.* FROM phone_photogram_follows f
+        SELECT pr.*,
+               (SELECT mine.status FROM phone_photogram_follows mine
+                WHERE mine.follower = ? AND mine.target = pr.username) AS viewer_status
+        FROM phone_photogram_follows f
         JOIN phone_photogram_profiles pr ON pr.username = f.follower
         WHERE f.target = ? AND f.status = 'accepted'
         ORDER BY f.created_at DESC
-    ]], { username }) or {}
+        LIMIT ?
+    ]], { viewer, username, limit }) or {}
 end
 
 ---Pending follow requests waiting on `username` to accept, newest first, each with the
@@ -379,16 +403,20 @@ function store.pendingRequests(username)
         JOIN phone_photogram_profiles pr ON pr.username = f.follower
         WHERE f.target = ? AND f.status = 'pending'
         ORDER BY f.created_at DESC
+        LIMIT 100
     ]], { username }) or {}
 end
 
----Usernames of everyone who accepted-follows `username`.
+---Most recent accepted followers, bounded for post-notification fan-out.
 ---@param username string account handle
+---@param limit? number row cap (default 500, hard max 1000)
 ---@return string[] follower usernames
-function store.followerUsernames(username)
+function store.followerUsernames(username, limit)
+    limit = math.max(1, math.min(math.floor(tonumber(limit) or 500), 1000))
     local rows = MySQL.query.await(
-        "SELECT follower FROM phone_photogram_follows WHERE target = ? AND status = 'accepted'",
-        { username }
+        "SELECT follower FROM phone_photogram_follows WHERE target = ? AND status = 'accepted' " ..
+        'ORDER BY created_at DESC, follower ASC LIMIT ?',
+        { username, limit }
     ) or {}
     local out = {}
     for _, r in ipairs(rows) do out[#out + 1] = r.follower end

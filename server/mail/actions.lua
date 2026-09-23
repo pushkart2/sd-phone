@@ -37,6 +37,10 @@ local MAX_ATTACHMENT_URL_LEN = 512
 local MAX_ATTACHMENT_NAME_LEN = 80
 ---@type integer Attached note body cap (chars).
 local MAX_ATTACHMENT_NOTE_LEN = 5000
+---@type integer Largest encoded attachment snapshot allowed on one message sent to or from NUI.
+local MAX_ATTACHMENT_PAYLOAD_BYTES = 2 * 1024 * 1024
+---@type integer Signature images retained in one attached document snapshot.
+local MAX_DOCUMENT_SIGNATURES = 10
 
 ---@type integer Minimum gap between accepted sends, per character. A send rewrites the whole
 ---messages blob once per recipient, so this is the only thing bounding that cost per second.
@@ -46,6 +50,10 @@ local SEND_GAP_MS = 2000
 local DRAFT_GAP_MS = 1000
 ---@type integer Minimum gap between accepted sign-ups, per character.
 local SIGNUP_GAP_MS = 30000
+---@type integer Rolling anti-abuse budgets for compose and password verification.
+local SEND_WINDOW_MS, SEND_MAX = 60000, 20
+local SIGNIN_WINDOW_MS, SIGNIN_MAX = 300000, 12
+local SIGNIN_TARGET_MAX = 20
 
 
 ---@type integer Rolling window over the per-message mailbox writes, and the calls allowed inside
@@ -164,8 +172,14 @@ end
 ---@return table[]|nil attachments nil when nothing valid remains
 local function sanitizeAttachments(raw, cid)
     if type(raw) ~= 'table' then return nil end
-    local out = {}
-    for i = 1, #raw do
+    local out, used = {}, 0
+    local function add(candidate)
+        local encoded = json.encode(candidate)
+        if used + #encoded > MAX_ATTACHMENT_PAYLOAD_BYTES then return end
+        used = used + #encoded
+        out[#out + 1] = candidate
+    end
+    for i = 1, math.min(#raw, MAX_ATTACHMENTS * 4) do
         if #out >= MAX_ATTACHMENTS then break end
         local a = raw[i]
         if type(a) == 'table' then
@@ -178,11 +192,13 @@ local function sanitizeAttachments(raw, cid)
                 audioUrl = mediaGuard.https(a.url)
             end
             if a.kind == 'photo' and photoUrl and #photoUrl <= MAX_ATTACHMENT_URL_LEN then
-                out[#out + 1] = { kind = 'photo', url = photoUrl }
+                add({ kind = 'photo', url = photoUrl })
             elseif a.kind == 'audio' and audioUrl and #audioUrl <= MAX_ATTACHMENT_URL_LEN then
                 local name = type(a.name) == 'string' and a.name or ''
                 if #name > MAX_ATTACHMENT_NAME_LEN then name = name:sub(1, MAX_ATTACHMENT_NAME_LEN) end
-                out[#out + 1] = { kind = 'audio', url = audioUrl, name = name, duration = tonumber(a.duration) or 0 }
+                local duration = tonumber(a.duration) or 0
+                if not util.finite(duration) or duration < 0 then duration = 0 end
+                add({ kind = 'audio', url = audioUrl, name = name, duration = math.min(duration, 86400) })
             elseif a.kind == 'document' and cid and type(a.docId) == 'string' and a.docId ~= '' then
                 local docsStore = require 'server.documents.store'
                 local row = docsStore.getDoc(cid, a.docId)
@@ -194,19 +210,19 @@ local function sanitizeAttachments(raw, cid)
                         local list = docsStore.listSignatures(a.docId)
                         if #list > 0 then
                             sigs = {}
-                            for j = 1, #list do
+                            for j = 1, math.min(#list, MAX_DOCUMENT_SIGNATURES) do
                                 local s = list[j]
                                 sigs[j] = { citizenid = s.citizenid, signer = s.signer, image = s.image, created_at = s.created_at }
                             end
                         end
                     end
-                    out[#out + 1] = {
+                    add({
                         kind = 'document', docId = a.docId, name = row.name, docKind = row.kind,
                         content = row.content, url = shareableImage or row.url, size = tonumber(row.size) or 0,
                         source = row.source,
                         signable = not (row.signable == false or row.signable == 0),
                         signatures = sigs,
-                    }
+                    })
                 end
             elseif a.kind == 'note' then
                 local title = type(a.title) == 'string' and a.title or ''
@@ -214,7 +230,7 @@ local function sanitizeAttachments(raw, cid)
                 if #title > MAX_ATTACHMENT_NAME_LEN then title = title:sub(1, MAX_ATTACHMENT_NAME_LEN) end
                 if #body  > MAX_ATTACHMENT_NOTE_LEN then body  = body:sub(1, MAX_ATTACHMENT_NOTE_LEN) end
                 if title ~= '' or body ~= '' then
-                    out[#out + 1] = { kind = 'note', title = title, body = body }
+                    add({ kind = 'note', title = title, body = body })
                 end
             end
         end
@@ -229,32 +245,39 @@ end
 ---@return table[]|nil
 local function clientAttachments(atts)
     if type(atts) ~= 'table' then return atts end
-    local out = {}
-    for i = 1, #atts do
+    local out, used = {}, 0
+    for i = 1, math.min(#atts, MAX_ATTACHMENTS * 4) do
         local a = atts[i]
+        local candidate
         if a.kind == 'document' and type(a.signatures) == 'table' then
             local copy = {}
             for k, v in pairs(a) do copy[k] = v end
             local sigs = {}
-            for j = 1, #a.signatures do
+            for j = 1, math.min(#a.signatures, MAX_DOCUMENT_SIGNATURES) do
                 local s = a.signatures[j]
                 sigs[j] = { signer = s.signer, image = s.image, signedAt = s.created_at }
             end
             copy.signatures = sigs
-            out[i] = copy
+            candidate = copy
         else
-            out[i] = a
+            candidate = a
+        end
+        local encoded = json.encode(candidate)
+        if used + #encoded <= MAX_ATTACHMENT_PAYLOAD_BYTES then
+            used = used + #encoded
+            out[#out + 1] = candidate
         end
     end
-    return out
+    return #out > 0 and out or nil
 end
 
 ---Reshapes a hydrated message into the React `MailMessage` shape, injecting `accountId` and
 ---filling fallbacks for rows written by older builds.
 ---@param accountEmail string
 ---@param msg table
+---@param summary? boolean omit large bodies and attachments
 ---@return table
-local function serializeMessage(accountEmail, msg)
+local function serializeMessage(accountEmail, msg, summary)
     return {
         id        = msg.id,
         accountId = accountEmail,
@@ -262,11 +285,12 @@ local function serializeMessage(accountEmail, msg)
         from      = msg.from      or { name = '', email = '' },
         to        = msg.to        or {},
         subject   = msg.subject   or '',
-        body      = msg.body      or '',
+        body      = summary and tostring(msg.body or ''):sub(1, 240) or (msg.body or ''),
         sentAt    = msg.sentAt    or '',
         read      = msg.read      == true,
         flagged   = msg.flagged   == true,
-        attachments = clientAttachments(msg.attachments),
+        attachments = summary and nil or clientAttachments(msg.attachments),
+        loaded    = summary and false or msg.loaded ~= false,
     }
 end
 
@@ -306,13 +330,14 @@ function actions.deliver(pushes)
     end
 end
 
----Loads the full Mail snapshot for the calling player: every account their citizenid is signed
----into and every message inside those accounts. Read-only.
+---Loads the bounded Mail listing for the calling player: mailbox identity and message previews.
+---Full bodies and attachments are lazy-loaded by getMessage when a row is opened. Read-only.
 ---@param source number
 ---@return table
 function actions.list(source)
     local me = whois(source); if not me then return fail('mail.playerNotFound', 'Player not found') end
-    local accounts = store.listAccountsForCitizen(me.cid)
+    if not util.rateLimit(me.cid, 'mail:list', 60000, 30) then return fail('Slow down') end
+    local accounts = store.listAccountsWithMessagesForCitizen(me.cid)
 
     local outAccounts = {}
     local outMessages = {}
@@ -379,12 +404,11 @@ function actions.signUp(source, payload)
     end
     -- The number is deliberately NOT unique: one person runs several mailboxes off one phone.
     -- Recovery stays possible because a reset is identified by the address, not by the number.
-    if store.getAccount(email) then
+    if store.accountExists(email) then
         return fail('mail.emailAlreadyRegistered', 'That email is already registered')
     end
 
-    local sessions = store.listAccountsForCitizen(me.cid)
-    if #sessions >= mailCfg.MaxAccountsPerPlayer then
+    if store.countSessionsForCitizen(me.cid) >= mailCfg.MaxAccountsPerPlayer then
         return fail('mail.mostAccountsSignedIn', 'You can have at most {n} accounts signed in', { n = mailCfg.MaxAccountsPerPlayer })
     end
 
@@ -420,6 +444,11 @@ function actions.signIn(source, payload)
     local me = whois(source); if not me then return fail('mail.playerNotFound', 'Player not found') end
 
     local email, ee = validateEmail(payload.email); if not email then return ee end
+    if not util.cooldown(me.cid, 'mail:signIn', 750)
+        or not util.rateLimit(me.cid, 'mail:signIn', SIGNIN_WINDOW_MS, SIGNIN_MAX)
+        or not util.rateLimit('mail-account:' .. email, 'password', SIGNIN_WINDOW_MS, SIGNIN_TARGET_MAX) then
+        return fail('Too many sign-in attempts. Try again shortly')
+    end
     if type(payload.password) ~= 'string' or payload.password == '' then
         return fail('mail.passwordRequired', 'Password is required')
     end
@@ -427,24 +456,37 @@ function actions.signIn(source, payload)
         return fail('mail.emailPasswordIncorrect', 'Email or password is incorrect')
     end
 
-    local acc = store.getAccount(email)
+    local acc = store.getAccountHeader(email)
     local valid = false
     if acc then
         local engineAcc = acctStore.getAccount('mail', email)
-        if engineAcc then valid = acctActions.verifyPassword(engineAcc, payload.password) end
-        if not valid then valid = acc.password_hash == store.hashPassword(payload.password) end
+        local engineValid = engineAcc and acctActions.verifyPassword(engineAcc, payload.password) or false
+        valid = engineValid
+        if engineValid and store.needsPasswordRehash(acc.password_hash) then
+            store.setPasswordHash(email, store.hashPassword(payload.password))
+        end
+        if not valid then
+            valid = store.verifyPassword(payload.password, acc.password_hash)
+            if valid then
+                if store.needsPasswordRehash(acc.password_hash) then
+                    store.setPasswordHash(email, store.hashPassword(payload.password))
+                end
+                -- Early accounts-engine backfills copied Mail's different legacy digest verbatim,
+                -- which the engine cannot verify. Repair that mirror after Mail verifies it.
+                if engineAcc and not engineValid then
+                    acctStore.setPassword(engineAcc.id, acctStore.hashPassword(payload.password))
+                end
+            end
+        end
     end
     if not valid then
         return fail('mail.emailPasswordIncorrect', 'Email or password is incorrect')
     end
 
-    local sessions = store.listAccountsForCitizen(me.cid)
-    for i = 1, #sessions do
-        if sessions[i].email == email then
-            return ok({ account = serializeAccount(acc) })
-        end
+    if store.hasSession(email, me.cid) then
+        return ok({ account = serializeAccount(acc) })
     end
-    if #sessions >= mailCfg.MaxAccountsPerPlayer then
+    if store.countSessionsForCitizen(me.cid) >= mailCfg.MaxAccountsPerPlayer then
         return fail('mail.mostAccountsSignedIn', 'You can have at most {n} accounts signed in', { n = mailCfg.MaxAccountsPerPlayer })
     end
 
@@ -477,12 +519,13 @@ function actions.send(source, payload)
     payload = payload or {}
     local me = whois(source); if not me then return fail('mail.playerNotFound', 'Player not found') end
 
-    if not util.cooldown(me.cid, 'mail:send', SEND_GAP_MS) then return fail('mail.slowDown', 'Slow down') end
+    if not util.cooldown(me.cid, 'mail:send', SEND_GAP_MS)
+        or not util.rateLimit(me.cid, 'mail:send', SEND_WINDOW_MS, SEND_MAX) then return fail('Slow down') end
 
     local fromEmail = trim(payload.fromEmail):lower()
     if fromEmail == '' then return fail('mail.senderAccountRequired', 'Sender account is required') end
 
-    local sender = store.getAccount(fromEmail)
+    local sender = store.getAccountHeader(fromEmail)
     if not sender then return fail('mail.senderAccountNotFound', 'Sender account not found') end
 
     if not lib.table.contains(sender.logged_in_citizens, me.cid) then
@@ -523,12 +566,15 @@ function actions.send(source, payload)
         flagged = false,
         attachments = attachments,
     }
-    store.appendMessage(sender.email, sentMessage, mailCfg.MaxMessagesPerAccount)
+    if not store.appendMessage(sender.email, sentMessage, mailCfg.MaxMessagesPerAccount) then
+        return fail('Could not save the sent message')
+    end
 
     local pushes = {}
+    local recipientAccounts = store.getAccountHeaders(recipients)
     for i = 1, #recipients do
         local addr = recipients[i]
-        local recipient = store.getAccount(addr)
+        local recipient = recipientAccounts[addr]
         if recipient then
             local inboxMessage = {
                 id      = store.newId(),
@@ -542,13 +588,13 @@ function actions.send(source, payload)
                 flagged = false,
                 attachments = attachments,
             }
-            store.appendMessage(addr, inboxMessage, mailCfg.MaxMessagesPerAccount)
-
-            for j = 1, #recipient.logged_in_citizens do
-                pushes[#pushes + 1] = {
-                    citizenid = recipient.logged_in_citizens[j],
-                    message   = serializeMessage(addr, inboxMessage),
-                }
+            if store.appendMessage(addr, inboxMessage, mailCfg.MaxMessagesPerAccount) then
+                for j = 1, #recipient.logged_in_citizens do
+                    pushes[#pushes + 1] = {
+                        citizenid = recipient.logged_in_citizens[j],
+                        message   = serializeMessage(addr, inboxMessage, true),
+                    }
+                end
             end
         end
     end
@@ -566,7 +612,7 @@ function actions.send(source, payload)
     })
 
     return ok({
-        sent   = serializeMessage(sender.email, sentMessage),
+        sent   = serializeMessage(sender.email, sentMessage, true),
         pushes = pushes,
     })
 end
@@ -624,9 +670,10 @@ function actions.systemSend(mail)
     local delivered = 0
     local sentId
     local pushes = {}
+    local recipientAccounts = store.getAccountHeaders(recipients)
     for i = 1, #recipients do
         local addr = recipients[i]
-        local recipient = store.getAccount(addr)
+        local recipient = recipientAccounts[addr]
         if recipient then
             local inboxMessage = {
                 id      = store.newId(),
@@ -640,15 +687,16 @@ function actions.systemSend(mail)
                 flagged = false,
                 attachments = attachments,
             }
-            store.appendMessage(addr, inboxMessage, mailCfg.MaxMessagesPerAccount)
-            delivered = delivered + 1
-            sentId = sentId or inboxMessage.id
+            if store.appendMessage(addr, inboxMessage, mailCfg.MaxMessagesPerAccount) then
+                delivered = delivered + 1
+                sentId = sentId or inboxMessage.id
 
-            for j = 1, #recipient.logged_in_citizens do
-                pushes[#pushes + 1] = {
-                    citizenid = recipient.logged_in_citizens[j],
-                    message   = serializeMessage(addr, inboxMessage),
-                }
+                for j = 1, #recipient.logged_in_citizens do
+                    pushes[#pushes + 1] = {
+                        citizenid = recipient.logged_in_citizens[j],
+                        message   = serializeMessage(addr, inboxMessage, true),
+                    }
+                end
             end
         end
     end
@@ -684,7 +732,7 @@ function actions.saveDraft(source, payload)
     local fromEmail = trim(payload.fromEmail):lower()
     if fromEmail == '' then return fail('mail.senderAccountRequired', 'Sender account is required') end
 
-    local sender = store.getAccount(fromEmail)
+    local sender = store.getAccountHeader(fromEmail)
     if not sender then return fail('mail.senderAccountNotFound', 'Sender account not found') end
 
     if not lib.table.contains(sender.logged_in_citizens, me.cid) then
@@ -722,9 +770,11 @@ function actions.saveDraft(source, payload)
         flagged = false,
         attachments = sanitizeAttachments(payload.attachments, me.cid),
     }
-    store.appendMessage(sender.email, draft, mailCfg.MaxMessagesPerAccount)
+    if not store.appendMessage(sender.email, draft, mailCfg.MaxMessagesPerAccount) then
+        return fail('Could not save the draft')
+    end
 
-    return ok({ draft = serializeMessage(sender.email, draft) })
+    return ok({ draft = serializeMessage(sender.email, draft, true) })
 end
 
 ---Ownership gate for the per-message mutators: the caller's citizenid must appear in the
@@ -735,14 +785,27 @@ end
 local function requireOwnership(source, accountEmail)
     local me = whois(source); if not me then return nil, fail('mail.playerNotFound', 'Player not found') end
     if type(accountEmail) ~= 'string' or accountEmail == '' then return nil, fail('mail.accountEmailRequired', 'Account email is required') end
-    -- Gated here rather than per action: getAccount below is the whole-blob decode every one of
-    -- these mutators pays twice, and markRead/toggleFlag/move are reachable at unlimited rate.
+    -- Gated here rather than per action; the session junction lookup is covered by its PK.
     if not util.rateLimit(me.cid, 'mail:mutate', MUTATE_WINDOW_MS, MUTATE_PER_WINDOW) then
         return nil, fail('mail.slowDown', 'Slow down')
     end
-    local acc = store.getAccount(accountEmail); if not acc then return nil, fail('mail.accountNotFound', 'Account not found') end
-    if lib.table.contains(acc.logged_in_citizens, me.cid) then return me.cid, nil end
-    return nil, fail('mail.notSignedIntoAccount', 'You are not signed into that account')
+    if not store.accountExists(accountEmail) then return nil, fail('Account not found') end
+    if store.hasSession(accountEmail, me.cid) then return me.cid, nil end
+    return nil, fail('You are not signed into that account')
+end
+
+---Loads one complete message after an indexed ownership check. Mailbox listings carry only a
+---240-character preview and no attachment payload, keeping the initial server->client snapshot
+---bounded; the reader fetches the full row on demand.
+---@param source number
+---@param payload { accountEmail?: string, messageId?: string }
+---@return table
+function actions.getMessage(source, payload)
+    payload = payload or {}
+    local _, err = requireOwnership(source, payload.accountEmail); if err then return err end
+    local message = store.getMessage(payload.accountEmail, payload.messageId or '')
+    if not message then return fail('Message not found') end
+    return ok({ message = serializeMessage(payload.accountEmail, message) })
 end
 
 ---Marks a message as read. Ownership-gated; a bogus message id is a no-op.
@@ -857,12 +920,7 @@ function actions.saveAttachment(source, payload)
     payload = payload or {}
     local cid, err = requireOwnership(source, payload.accountEmail); if err then return err end
 
-    local acc = store.getAccount(payload.accountEmail)
-    if not acc then return fail('mail.accountNotFound', 'Account not found') end
-    local msg
-    for i = 1, #acc.messages do
-        if acc.messages[i].id == payload.messageId then msg = acc.messages[i]; break end
-    end
+    local msg = store.getMessage(payload.accountEmail, payload.messageId or '')
     if not msg then return fail('mail.messageNotFound', 'Message not found') end
 
     -- Client indices are zero-based over the message's attachments array.
@@ -935,12 +993,7 @@ function actions.attachmentSaveStates(source, payload)
     payload = payload or {}
     local cid, err = requireOwnership(source, payload.accountEmail); if err then return err end
 
-    local acc = store.getAccount(payload.accountEmail)
-    if not acc then return fail('mail.accountNotFound', 'Account not found') end
-    local msg
-    for i = 1, #acc.messages do
-        if acc.messages[i].id == payload.messageId then msg = acc.messages[i]; break end
-    end
+    local msg = store.getMessage(payload.accountEmail, payload.messageId or '')
     if not msg then return fail('mail.messageNotFound', 'Message not found') end
 
     local atts = type(msg.attachments) == 'table' and msg.attachments or {}
@@ -999,6 +1052,7 @@ end
 ---@return table envelope
 function actions.savedEmails(source)
     local who = whois(source); if not who then return fail('mail.noPlayer', 'No player') end
+    if not util.rateLimit(who.cid, 'mail:savedEmailsRead', 60000, 30) then return fail('Slow down') end
     return ok(savedEmailState(who.cid))
 end
 
@@ -1008,6 +1062,7 @@ end
 ---@return table envelope
 function actions.saveEmail(source, payload)
     local who = whois(source); if not who then return fail('mail.noPlayer', 'No player') end
+    if not util.rateLimit(who.cid, 'mail:savedEmailsWrite', 60000, 60) then return fail('Slow down') end
     local email = type(payload) == 'table' and trim(payload.email) or nil
     email = email and email:lower() or nil
     if not email or #email == 0 or #email > 128 or not looksLikeEmail(email) then
@@ -1026,12 +1081,13 @@ end
 ---@return table envelope
 function actions.declineEmail(source, payload)
     local who = whois(source); if not who then return fail('mail.noPlayer', 'No player') end
+    if not util.rateLimit(who.cid, 'mail:savedEmailsWrite', 60000, 60) then return fail('Slow down') end
     local email = type(payload) == 'table' and trim(payload.email) or nil
     email = email and email:lower() or nil
     if not email or #email == 0 or #email > 128 or not looksLikeEmail(email) then
         return fail('mail.invalidEmailAddress', 'Invalid email address')
     end
-    store.declineSavedEmail(who.cid, email)
+    if not store.declineSavedEmail(who.cid, email) then return fail('Saved email limit reached') end
     return ok(savedEmailState(who.cid))
 end
 
@@ -1041,6 +1097,7 @@ end
 ---@return table envelope
 function actions.removeSavedEmail(source, payload)
     local who = whois(source); if not who then return fail('mail.noPlayer', 'No player') end
+    if not util.rateLimit(who.cid, 'mail:savedEmailsWrite', 60000, 60) then return fail('Slow down') end
     local email = type(payload) == 'table' and trim(payload.email) or nil
     email = email and email:lower() or nil
     if not email or #email == 0 then return fail('mail.invalidEmailAddress', 'Invalid email address') end

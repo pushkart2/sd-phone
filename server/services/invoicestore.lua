@@ -30,15 +30,20 @@ function store.ensureSchema()
     ]])
 
     -- Installs created before personal invoices carry job NOT NULL; relax it once.
-    local nullable = MySQL.scalar.await([[
-        SELECT IS_NULLABLE FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'phone_service_invoices' AND COLUMN_NAME = 'job'
-    ]])
-    if nullable == 'NO' then
-        MySQL.query.await('ALTER TABLE phone_service_invoices MODIFY job VARCHAR(64) DEFAULT NULL')
-    end
+    util.registerSchemaTask('service-invoices-nullable-job', 10, function()
+        local nullable = MySQL.scalar.await([[
+            SELECT IS_NULLABLE FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'phone_service_invoices' AND COLUMN_NAME = 'job'
+        ]])
+        if nullable == 'NO' then
+            MySQL.query.await('ALTER TABLE phone_service_invoices MODIFY job VARCHAR(64) DEFAULT NULL')
+        end
+    end)
 
     util.ensureIndex('phone_service_invoices', 'idx_sender', '(sender_cid, status, created_at)')
+    util.ensureIndex('phone_service_invoices', 'idx_sender_history', '(sender_cid, job, created_at)')
+    util.ensureIndex('phone_service_invoices', 'idx_sender_target_pending', '(sender_cid, status, target_cid)')
+    util.ensureIndex('phone_service_invoices', 'idx_job_target_pending', '(job, target_cid, status)')
 end
 
 ---Generates a fresh invoice id.

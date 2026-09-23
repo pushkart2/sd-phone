@@ -4,6 +4,7 @@ local proxyCallback = require 'client.nui'
 -- Thin delegates into server/mail: account session, mailbox listing, composing, drafts,
 -- flags and folder moves.
 proxyCallback('sd-phone:mail:list',       'sd-phone:server:mail:list')
+proxyCallback('sd-phone:mail:getMessage', 'sd-phone:server:mail:getMessage')
 proxyCallback('sd-phone:mail:signUp',     'sd-phone:server:mail:signUp')
 proxyCallback('sd-phone:mail:signIn',     'sd-phone:server:mail:signIn')
 proxyCallback('sd-phone:mail:signOut',    'sd-phone:server:mail:signOut')

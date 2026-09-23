@@ -34,13 +34,6 @@ function store.ensureSchema()
         updated_at = "`updated_at` VARCHAR(40) NOT NULL DEFAULT ''",
     })
 
-    local hasImages = MySQL.scalar.await([[
-        SELECT 1 FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'phone_notes' AND COLUMN_NAME = 'images' LIMIT 1
-    ]])
-    if not hasImages then
-        MySQL.query.await('ALTER TABLE `phone_notes` ADD COLUMN `images` MEDIUMTEXT NULL AFTER `sketches`')
-    end
 end
 
 ---@type integer Ceiling on one read of a player's notes. Each row carries a body plus sketch and
@@ -52,10 +45,26 @@ local NOTES_CAP <const> = 300
 ---@return table[] rows note rows, empty when none
 function store.forPlayer(cid)
     return MySQL.query.await(([[
-        SELECT id, body, sketches, images, created_at, updated_at
+        SELECT id, LEFT(body, 500) AS body, '[]' AS sketches, '[]' AS images,
+               CASE WHEN JSON_VALID(sketches) THEN JSON_LENGTH(sketches) ELSE 0 END AS sketch_count,
+               CASE WHEN JSON_VALID(images) THEN JSON_LENGTH(images) ELSE 0 END AS image_count,
+               created_at, updated_at
         FROM `phone_notes` WHERE citizenid = ? ORDER BY updated_at DESC
         LIMIT %d
     ]]):format(NOTES_CAP), { cid }) or {}
+end
+
+---One complete note for the editor, scoped by the composite primary key.
+---@param cid string owner citizenid
+---@param id string note id
+---@return table|nil
+function store.get(cid, id)
+    return MySQL.single.await([[
+        SELECT id, body, sketches, images, created_at, updated_at
+        FROM phone_notes
+        WHERE citizenid = ? AND id = ?
+        LIMIT 1
+    ]], { cid, id })
 end
 
 ---Inserts or updates a note. `created_at` is only set on first insert.

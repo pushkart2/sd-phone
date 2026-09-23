@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { fetchNui, isFiveM } from '@/core/nui';
+import { apiCall } from '@/core/api';
 import { useDidEnter } from '@/hooks/useDidEnter';
 import { useNuiEvent } from '@/hooks/useNuiEvent';
 import { useNuiQuery } from '@/hooks/useNuiQuery';
@@ -22,6 +23,7 @@ export function Notes({ onClose }: { onClose: () => void }) {
         setOpenId(pendingNoteId);
         setPendingNoteId(null);
     }, [pendingNoteId, state.notes, setOpenId]);
+    const loadingNotes = useRef(new Set<string>());
 
     useNuiQuery<NotesState>('sd-phone:notes:list', { enabled: isFiveM, onData: setState });
 
@@ -46,6 +48,7 @@ export function Notes({ onClose }: { onClose: () => void }) {
             body:      '',
             sketches:  [],
             images:    [],
+            loaded:    true,
             createdAt: now,
             updatedAt: now,
         };
@@ -76,7 +79,33 @@ export function Notes({ onClose }: { onClose: () => void }) {
         setOpenId(null);
     }
 
-    const open = openId ? state.notes.find(n => n.id === openId) : null;
+    const openNote = useCallback(async (id: string) => {
+        let note = state.notes.find(n => n.id === id);
+        if (!note) return;
+        if (note.loaded === false && isFiveM) {
+            if (loadingNotes.current.has(id)) return;
+            loadingNotes.current.add(id);
+            try {
+                const res = await apiCall<{ note: Note }>('sd-phone:notes:get', { id });
+                if (!res.success || !res.data) return;
+                note = res.data.note;
+                setState(prev => ({ notes: prev.notes.map(n => n.id === id ? note! : n) }));
+            } finally {
+                loadingNotes.current.delete(id);
+            }
+        }
+        setOpenId(id);
+    }, [setOpenId, state.notes]);
+
+    // Session state can restore an editor before the summary query arrives. Hydrate it once the
+    // matching summary becomes available instead of leaving a blank editor behind the list.
+    useEffect(() => {
+        if (openId && state.notes.some(n => n.id === openId && n.loaded === false)) {
+            void openNote(openId);
+        }
+    }, [openId, openNote, state.notes]);
+
+    const open = openId ? state.notes.find(n => n.id === openId && n.loaded !== false) : null;
 
     const animateNav = useDidEnter();
 
@@ -84,7 +113,7 @@ export function Notes({ onClose }: { onClose: () => void }) {
         <div className="absolute inset-0 z-10 overflow-hidden bg-[#fbf9f3] dark:bg-base">
             <NotesList
                 notes={state.notes}
-                onOpen={setOpenId}
+                onOpen={id => { void openNote(id); }}
                 onCompose={createNote}
             />
             {open && (

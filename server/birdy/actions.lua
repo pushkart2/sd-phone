@@ -353,7 +353,10 @@ function actions.login(source, payload)
         return fail('birdy.wrongUsernamePassword', 'Wrong username or password')
     end
     local prof = store.getProfileByHandle(acc.username)
-    if not prof then return fail('birdy.accountHasNoBirdyProfile', 'That account has no Squawk profile') end
+    if not prof then return fail('birdy.accountHasNoBirdyProfile', 'That account has no Birdy profile') end
+    if store.needsPasswordRehash(prof.password) then
+        store.setPassword(prof.handle, store.hashPassword(payload.password))
+    end
 
     acctStore.setSession('birdy', cid, acc.id)
     store.setLoggedIn(prof.handle, true)
@@ -626,7 +629,7 @@ function actions.post(source, payload)
     if not row then return fail('birdy.postNotFound', 'Post not found') end
 
     local post = serializePost(row)
-    local replyRows = store.listReplies(id, me)
+    local replyRows = store.listReplies(id, me, birdyCfg.ReplyLimit)
     local thread = {}
     for i = 1, #replyRows do thread[i] = serializePost(replyRows[i]) end
     post.thread = thread
@@ -675,8 +678,8 @@ function actions.create(source, payload)
 
     local preview   = body ~= '' and body:sub(1, 80) or 'shared a photo'
     local followers = audience == 'everyone'
-        and store.allHandles(prof.handle)
-        or store.followerHandles(prof.handle)
+        and store.allHandles(prof.handle, birdyCfg.PostFanoutLimit)
+        or store.followerHandles(prof.handle, birdyCfg.PostFanoutLimit)
 
     if #followers == 0 then return ok({ post = serializePost(store.getPost(id, prof.handle)) }) end
 
@@ -896,7 +899,7 @@ function actions.followList(source, payload)
     end
 
     local users = {}
-    for _, row in ipairs(store.followList(prof.handle, target, kind)) do
+    for _, row in ipairs(store.followList(prof.handle, target, kind, birdyCfg.FollowListLimit)) do
         users[#users + 1] = {
             name        = row.display_name,
             handle      = row.handle,
@@ -1099,16 +1102,12 @@ function actions.dmList(source)
     local prof = viewer(source); if not prof then return fail('birdy.playerNotFound', 'Player not found') end
     local msgs = store.listMessagesFor(prof.handle)
 
-    local function isRead(v) return v == true or v == 1 or v == '1' end
-
     local lastByOther, unreadByOther = {}, {}
     for i = 1, #msgs do
         local m = msgs[i]
         local other = (m.from_handle == prof.handle) and m.to_handle or m.from_handle
         lastByOther[other] = m
-        if m.to_handle == prof.handle and not isRead(m.read_flag) then
-            unreadByOther[other] = (unreadByOther[other] or 0) + 1
-        end
+        unreadByOther[other] = tonumber(m.unread_count) or 0
     end
 
     local others = {}
@@ -1144,7 +1143,7 @@ function actions.dmThread(source, payload)
     local other = payload and payload.id
     if type(other) ~= 'string' or other == '' then return fail('birdy.missingConversation', 'Missing conversation') end
 
-    local rows = store.listThread(prof.handle, other)
+    local rows = store.listThread(prof.handle, other, birdyCfg.DmThreadLimit)
     local messages = {}
     for i = 1, #rows do messages[i] = serializeDm(rows[i], prof.handle) end
 

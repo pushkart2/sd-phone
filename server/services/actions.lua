@@ -78,6 +78,10 @@ local REPLY_MAX = 30
 ---@type integer Thread opens one viewer may register per window. Marking read costs a thread-
 ---existence SELECT on any key the company whitelist misses, so the endpoint still needs a ceiling.
 local READ_MAX = 90
+---@type integer Full Services threads one viewer may hydrate per minute.
+local THREAD_MAX = 90
+---@type integer Summary inbox refreshes one viewer may request per minute.
+local INBOX_MAX = 30
 
 
 
@@ -718,28 +722,14 @@ local function serializeInbox(rows, viewerKind)
     return out
 end
 
----@type integer Messages loaded per thread on an inbox build.
+---@type integer Messages loaded only when one thread is opened.
 local THREAD_MESSAGES = 100
 
----The named field of every thread row, in order, as the batch message reader's key list.
----@param threads table[]
----@param field string
----@return string[]
-local function keysOf(threads, field)
-    local out = {}
-    for i = 1, #threads do
-        local v = threads[i][field]
-        -- Dense on purpose: a hole would shorten the list the IN placeholders are counted from.
-        if v ~= nil then out[#out + 1] = v end
-    end
-    return out
-end
-
----Returns the caller's full Services inbox: `personal` threads keyed by their own number and
----`job` customer threads for their configured company, with per-viewer unread counts. Read-only.
+---Returns bounded Services thread summaries with per-viewer unread counts. Message bodies and
+---media metadata are loaded separately for the one thread the user opens.
 ---@param src number
 ---@return table
-function actions.inbox(src)
+local function loadInbox(src)
     local cid = player.getIdentifier(src)
     if not cid then return fail('services.playerNotFound', 'Player not found') end
 
@@ -750,9 +740,6 @@ function actions.inbox(src)
     if myNumber ~= '' then
         local unread  = msgstore.personalUnread(cid, myNumber)
         local threads = msgstore.citizenThreads(myNumber)
-        -- One query for every thread's messages instead of one per thread. Anything the batch
-        -- could not cover is absent from it and falls back to the old per-thread read below.
-        local batch   = msgstore.citizenThreadMessages(myNumber, keysOf(threads, 'job'), THREAD_MESSAGES)
         for _, t in ipairs(threads) do
             local e = byJob[t.job]
             personal[#personal + 1] = {
@@ -763,8 +750,8 @@ function actions.inbox(src)
                 preview  = t.last_body or '',
                 ts       = (tonumber(t.created_at) or 0) * 1000,
                 unread   = unread[t.job] or 0,
-                messages = serializeInbox(batch[t.job]
-                    or msgstore.threadMessages(t.job, myNumber, THREAD_MESSAGES), 'citizen'),
+                messages = {},
+                loaded   = false,
             }
         end
     end
@@ -774,7 +761,6 @@ function actions.inbox(src)
     if e then
         local unread  = msgstore.jobUnread(cid, myJob)
         local threads = msgstore.jobThreads(myJob)
-        local batch   = msgstore.jobThreadMessages(myJob, keysOf(threads, 'citizen_number'), THREAD_MESSAGES)
         for _, t in ipairs(threads) do
             jobThreads[#jobThreads + 1] = {
                 key      = t.citizen_number,
@@ -784,13 +770,83 @@ function actions.inbox(src)
                 preview  = t.last_body or '',
                 ts       = (tonumber(t.created_at) or 0) * 1000,
                 unread   = unread[t.citizen_number] or 0,
-                messages = serializeInbox(batch[t.citizen_number]
-                    or msgstore.threadMessages(myJob, t.citizen_number, THREAD_MESSAGES), 'staff'),
+                messages = {},
+                loaded   = false,
             }
         end
     end
 
     return ok({ personal = personal, job = jobThreads, hasJob = e ~= nil })
+end
+
+function actions.inbox(src)
+    local cid = player.getIdentifier(src)
+    if not cid then return fail('Player not found') end
+    if not util.rateLimit(cid, 'services:inbox', MSG_WINDOW, INBOX_MAX) then
+        return fail('Please wait a moment')
+    end
+    return loadInbox(src)
+end
+
+---Loads one Services thread after re-deriving its scope from the caller. Initial inbox snapshots
+---contain previews only; this is the sole path that returns up to THREAD_MESSAGES bodies/media.
+---@param src number
+---@param payload { scope?: string, key?: string }
+---@return table
+local function loadInboxThread(src, payload)
+    payload = type(payload) == 'table' and payload or {}
+    local cid = player.getIdentifier(src)
+    if not cid then return fail('Player not found') end
+    local key = tostring(payload.key or '')
+    if key == '' then return fail('Missing thread') end
+
+    local rows, viewer
+    if payload.scope == 'job' then
+        local myJob = job.getName(src)
+        local citizenNumber = digits(key):sub(1, 32)
+        if not (myJob and byJob[myJob]) or not msgstore.threadExists(myJob, citizenNumber) then
+            return fail('Missing thread')
+        end
+        rows, viewer = msgstore.threadMessages(myJob, citizenNumber, THREAD_MESSAGES), 'staff'
+    else
+        local myNumber = digits(settings.getPhoneNumber(cid) or '')
+        local company = key:sub(1, 64)
+        if myNumber == '' or not msgstore.threadExists(company, myNumber) then
+            return fail('Missing thread')
+        end
+        rows, viewer = msgstore.threadMessages(company, myNumber, THREAD_MESSAGES), 'citizen'
+    end
+    return ok({ messages = serializeInbox(rows, viewer) })
+end
+
+function actions.inboxThread(src, payload)
+    local cid = player.getIdentifier(src)
+    if not cid then return fail('Player not found') end
+    if not util.rateLimit(cid, 'services:thread', MSG_WINDOW, THREAD_MAX) then
+        return fail('Please wait a moment')
+    end
+    return loadInboxThread(src, payload)
+end
+
+---@param src number
+---@param scope 'personal'|'job'
+---@param key string
+---@return table
+local function inboxWithThread(src, scope, key)
+    local envelope = loadInbox(src)
+    local inbox = envelope.data
+    if not inbox then return { personal = {}, job = {}, hasJob = false } end
+    local full = loadInboxThread(src, { scope = scope, key = key })
+    local messages = full.data and full.data.messages or {}
+    local list = scope == 'job' and inbox.job or inbox.personal
+    for i = 1, #list do
+        if list[i].key == key then
+            list[i].messages = messages
+            list[i].loaded = true
+            break
+        end
+    end
+    return inbox
 end
 
 ---Marks a message thread read for the caller: scope 'job' keys by the customer's number,
@@ -890,7 +946,7 @@ function actions.messageCompany(src, payload)
         number = myNumber, name = myName, kind = kind, body = body, meta = meta,
     })
 
-    return ok({ inbox = actions.inbox(src).data })
+    return ok({ inbox = inboxWithThread(src, 'personal', entry.job) })
 end
 
 ---Sends a staff reply to a customer on behalf of the caller's current company; notifies the
@@ -936,7 +992,7 @@ function actions.replyCompany(src, payload)
         TriggerClientEvent('sd-phone:client:services:inbox', custSrc, {})
     end
 
-    return ok({ inbox = actions.inbox(src).data })
+    return ok({ inbox = inboxWithThread(src, 'job', citizenNumber) })
 end
 
 ---@type table<number, string> Cached citizenid per connected src (set on load, cleared on drop).

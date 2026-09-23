@@ -71,20 +71,21 @@ function store.ensureSchema()
     ]])
     util.ensureColumns('phone_message_reactions', { created_at = 'created_at BIGINT NOT NULL DEFAULT 0' })
 
-    local pk = MySQL.query.await([[
-        SELECT COLUMN_NAME AS col FROM information_schema.KEY_COLUMN_USAGE
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'phone_message_reactions'
-          AND CONSTRAINT_NAME = 'PRIMARY'
-    ]]) or {}
-    local hasEmojiInPk = false
-    local hasMidInPk = false
-    for _, r in ipairs(pk) do
-        if r.col == 'emoji' then hasEmojiInPk = true end
-        if r.col == 'mid' then hasMidInPk = true end
-    end
-    if #pk > 0 and hasMidInPk and not hasEmojiInPk then
-        MySQL.query.await('ALTER TABLE phone_message_reactions DROP PRIMARY KEY, ADD PRIMARY KEY (mid, citizenid, emoji)')
-    end
+    util.registerSchemaTask('message-reactions-primary-key', 10, function()
+        local pk = MySQL.query.await([[
+            SELECT COLUMN_NAME AS col FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'phone_message_reactions'
+              AND CONSTRAINT_NAME = 'PRIMARY'
+        ]]) or {}
+        local hasEmojiInPk, hasMidInPk = false, false
+        for _, r in ipairs(pk) do
+            if r.col == 'emoji' then hasEmojiInPk = true end
+            if r.col == 'mid' then hasMidInPk = true end
+        end
+        if #pk > 0 and hasMidInPk and not hasEmojiInPk then
+            MySQL.query.await('ALTER TABLE phone_message_reactions DROP PRIMARY KEY, ADD PRIMARY KEY (mid, citizenid, emoji)')
+        end
+    end)
 
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS phone_message_groups (

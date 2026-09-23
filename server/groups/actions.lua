@@ -291,8 +291,15 @@ function actions.accept(source, payload)
         return fail('groups.groupFull', 'Group is full')
     end
 
-    store.addMember(hit.group.id, me.cid, me.name)
-    store.removeInvite(hit.invite.id)
+    local maxGroups = math.max(1, math.floor(tonumber(groupsCfg.MaxGroupsPerPlayer) or 50))
+    if store.countMemberships(me.cid) >= maxGroups then
+        return fail(('You can join at most %d groups'):format(maxGroups))
+    end
+
+    if not store.acceptInvite(hit.invite.id, hit.group.id, me.cid, me.name,
+        groupsCfg.MaxMembersPerGroup, maxGroups) then
+        return fail('Group is full, your group limit was reached, or the invite is no longer valid')
+    end
 
     local row = store.getGroup(hit.group.id)
     if not row then return fail('groups.groupDisbanded', 'Group was disbanded') end

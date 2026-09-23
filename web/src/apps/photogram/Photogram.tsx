@@ -315,8 +315,8 @@ export function Photogram({ onClose: _onClose }: { onClose: () => void }) {
                     { key: 'username', label: t('photogram.username', 'Username') },
                     { key: 'name',     label: t('photogram.name', 'Name') },
                     { key: 'password', label: t('photogram.password', 'Password'), type: 'password' },
-                    { key: 'email',    label: t('photogram.email', 'Email'),    suffix: `@${MAIL_DOMAIN}`, createOnly: true },
-                    { key: 'phone',    label: t('photogram.phone', 'Phone'),    type: 'tel',   createOnly: true },
+                    { key: 'email',    label: t('photogram.email', 'Email'),    suffix: `@${MAIL_DOMAIN}`, createOnly: true, optional: true },
+                    { key: 'phone',    label: t('photogram.phone', 'Phone'),    type: 'tel',   createOnly: true, optional: true },
                 ]}
                 onSubmit={(mode, vals) => (mode === 'create' ? accountsRegister('photogram', vals) : accountsLogin('photogram', vals))}
                 onAuthed={() => {
