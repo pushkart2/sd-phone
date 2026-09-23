@@ -1,11 +1,12 @@
 ---@type table Shared server helpers (server.util): ensureIndex.
 local util = require 'server.util'
+local boot = require 'server.boot'
+local player = require 'bridge.server.player'
 
----@type table<string, boolean> Games allowed to own a stats row. Deliberately NOT the engine's
----`configs` table: baccarat, blackjack, crash, roulette and slots are
----single-player and never register.
+---@type table<string, boolean> Closed allowlist of games that can own a stats row. Single-player
+---games baccarat, blackjack, crash, roulette and slots are included even though they use no lobby.
 local STAT_GAMES = {
-    baccarat = true, battleship = true, blackjack = true,
+    baccarat = true, blackjack = true,
     crash = true,
     holdem = true, roulette = true, slots = true,
 }
@@ -220,5 +221,53 @@ function stats.scoreboard(game)
         ]], { game }) or {}
     end)
 end
+
+---Read the caller's own stats for one game (identity from source only). Read-only.
+lib.callback.register('sd-phone:server:games:stats', function(src, payload)
+    payload = type(payload) == 'table' and payload or {}
+    local cid = player.getIdentifier(src)
+    if not cid then return util.fail('games.playerNotFound', 'Player not found') end
+    return util.ok(stats.statsFor(cid, payload.game))
+end)
+
+---Records a client-reported finished result on the caller's own row (validated and clamped).
+lib.callback.register('sd-phone:server:games:record', function(src, payload)
+    payload = type(payload) == 'table' and payload or {}
+    local cid = player.getIdentifier(src)
+    if not cid then return util.fail('games.playerNotFound', 'Player not found') end
+    local name = player.getName(src) or ('Player ' .. tostring(src))
+    local s = stats.record(cid, payload.game, payload.mode, payload.result, name, payload.amount)
+    if not s then return util.fail('games.badResult', 'Bad result') end
+    return util.ok(s)
+end)
+
+---Global leaderboards for a game. Read-only; exposes only display names and counts.
+lib.callback.register('sd-phone:server:games:leaderboard', function(_src, payload)
+    payload = type(payload) == 'table' and payload or {}
+    return util.ok(stats.leaderboard(payload.game))
+end)
+
+---Submits a single-player high score on the caller's own row (validated and clamped).
+lib.callback.register('sd-phone:server:games:submitScore', function(src, payload)
+    payload = type(payload) == 'table' and payload or {}
+    local cid = player.getIdentifier(src)
+    if not cid then return util.fail('games.playerNotFound', 'Player not found') end
+    local name = player.getName(src) or ('Player ' .. tostring(src))
+    local s = stats.submitScore(cid, payload.game, payload.score, name)
+    if not s then return util.fail('games.badScore', 'Bad score') end
+    return util.ok(s)
+end)
+
+---Global high-score board for a game. Read-only; exposes only display names and scores.
+lib.callback.register('sd-phone:server:games:scoreboard', function(_src, payload)
+    payload = type(payload) == 'table' and payload or {}
+    return util.ok(stats.scoreboard(payload.game))
+end)
+
+-- One-shot boot thread: creates the shared stats schema.
+CreateThread(function()
+    local good, err = boot.runSchemaInstall(stats.ensureSchema)
+    if good then boot.schemaReady() else boot.schemaFailed('games:stats', err) end
+end)
 
 return stats

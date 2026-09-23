@@ -502,12 +502,6 @@ export type NuiMessage =
     | { action: 'sd-phone:wipe' }
     | { action: 'sd-phone:admin:open'; data: { adminName?: string; sim?: boolean; racing?: boolean } }
     | { action: 'sd-phone:admin:migrate'; data: import('@/admin/types').MigrationPush }
-    | { action: 'battleship:invited';  data: { fromSrc: string; fromName: string; lobbyId: string } }
-    | { action: 'battleship:lobby';    data: { id: string; host: string; public: boolean; wager: number; isHost: boolean; canStart: boolean; members: { name: string; you: boolean; host: boolean; color: string; canAfford: boolean; ready: boolean; returned: boolean }[] } }
-    | { action: 'battleship:lobbyClosed'; data: Record<string, never> }
-    | { action: 'battleship:start';    data: { gameId: string; color: string; opponent: string; pot: number } }
-    | { action: 'battleship:move';     data: { gameId: string; move: { shot: { r: number; c: number } | null; prevResult: { hit: boolean; sunk: string | null } | null } } }
-    | { action: 'battleship:ended';    data: { reason: string } }
     | { action: 'sd-phone:notification';       data: { id?: string; app?: string; image?: string; titleKey?: string; title: string; titleVars?: Record<string, string | number>; bodyKey?: string; body?: string; bodyVars?: Record<string, string | number>; time?: string; appId?: string; quietInApp?: boolean; emergency?: boolean; otherPhone?: boolean; phoneColor?: string; profileKey?: string; link?: Record<string, unknown> } }
     | { action: 'sd-phone:badges';             data: Record<string, number> }
     | { action: 'sd-phone:badges:patch';       data: Record<string, number> }

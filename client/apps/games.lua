@@ -1,10 +1,7 @@
--- Every remaining online game (battleship) shares this one bridge into the
--- generic games engine.
+-- Casino NUI callbacks share this one bridge into their server modules.
 ---@type string[] NUI action suffixes proxied 1:1 to sd-phone:server:games:<action>.
 local ACTIONS = {
-    'createLobby', 'lobbies', 'joinLobby', 'inviteLobby', 'declineInvite',
-    'leaveLobby', 'kickMember', 'setWager', 'setReady', 'setupReady', 'returnToLobby', 'startLobby', 'pending', 'move',
-    'relay', 'resign', 'finish', 'report', 'stats', 'record', 'leaderboard', 'submitScore', 'scoreboard',
+    'stats', 'record', 'leaderboard', 'submitScore', 'scoreboard',
     'chipsGet', 'chipsBuy', 'chipsSell',
     'bjDeal', 'bjHit', 'bjStand', 'bjDouble',
     'slotsSpin', 'rouletteSpin',
@@ -15,17 +12,10 @@ local ACTIONS = {
     'holdemTables', 'holdemCreate', 'holdemSit', 'holdemLeave', 'holdemAct', 'holdemSync',
 }
 
--- Thin delegates into the games engine (server/games/engine.lua).
+-- Thin delegates into the registered casino server callbacks.
 for _, name in ipairs(ACTIONS) do
     RegisterNUICallback('sd-phone:games:' .. name, function(payload, cb)
         local result = lib.callback.await('sd-phone:server:games:' .. name, false, payload)
         cb(result or { success = false, message = 'No response from server' })
     end)
 end
-
----Server push: one channel carries every game's events; fans out to a per-game NUI action.
----@param data table { game: string, action: string, data?: table } from server/games/engine.lua
-RegisterNetEvent('sd-phone:client:games', function(data)
-    if not data or not data.game or not data.action then return end
-    SendNUIMessage({ action = data.game .. ':' .. data.action, data = data.data or {} })
-end)

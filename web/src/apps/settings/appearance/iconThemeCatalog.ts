@@ -45,7 +45,6 @@ const APP_DEFS: ThemeApp[] = [
     { id: 'calculator',  label: 'Calculator',   icon: 'calculator',  accent: '#333335' },
     { id: 'passwords',   label: 'Passwords',    icon: 'passwords',   accent: '#1c1c1e' },
     { id: 'casino',      label: 'Casino',       icon: 'casino',      accent: '#0f5132' },
-    { id: 'battleship',  label: 'Battleship',   icon: 'battleship',  accent: '#17a0b5' },
     { id: 'vibez',       label: 'Clout',        icon: 'vibez',       accent: '#a855f7' },
     { id: 'weazelnews',  label: 'Weazel News',  icon: 'weazelnews',  accent: '#c8102e' },
     { id: 'streaks',     label: 'Streaks',      icon: 'streaks',     accent: '#ff7a1a' },
@@ -65,7 +64,7 @@ export const SWATCH_PREVIEW_APPS: ThemeApp[] = PREVIEW_APPS.slice(0, 3);
 
 export const GLYPH_NAMES: string[] = [
     'appstore', 'appstore_cloud', 'appstore_download', 'appstore_gift', 'bank', 'bank_coins',
-    'bank_piggy', 'bank_vault', 'battleship', 'birdy', 'birdy_egg', 'birdy_hash', 'birdy_megaphone',
+    'bank_piggy', 'bank_vault', 'birdy', 'birdy_egg', 'birdy_hash', 'birdy_megaphone',
     'blackjack',
     'calc_divide', 'calc_percent', 'calc_plus', 'calculator', 'calendar', 'calendar_check',
     'calendar_clock', 'calendar_range', 'camera', 'camera_flash', 'camera_lens', 'camera_switch',

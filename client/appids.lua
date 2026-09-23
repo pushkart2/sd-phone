@@ -5,7 +5,7 @@ local BUILTIN = {
     'maps', 'music', 'stocks', 'ryde', 'notes', 'voicememos', 'health', 'compass', 'groups',
     'services', 'pages', 'marketplace', 'radio', 'darkchat', 'cherry', 'photogram',
     'garages', 'homes', 'calculator', 'passwords', 'id',
-    'blackjack', 'casino', 'battleship', 'vibez',
+    'blackjack', 'casino', 'vibez',
     'weazelnews', 'streaks', 'birdy', 'racing', 'appstore', 'camera',
 }
 

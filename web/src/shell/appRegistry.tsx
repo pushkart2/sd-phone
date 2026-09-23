@@ -76,7 +76,6 @@ const APP_REGISTRY = {
     calculator:  entry(() => import('@/apps/calculator/Calculator').then(m => ({ default: m.Calculator }))),
     passwords:   entry(() => import('@/apps/passwords/Passwords').then(m => ({ default: m.Passwords }))),
     casino:      entry(() => import('@/apps/casino/Casino').then(m => ({ default: m.Casino }))),
-    battleship:  entry(() => import('@/apps/battleship/Battleship').then(m => ({ default: m.Battleship }))),
     vibez:       entry(() => import('@/apps/vibez/Vibez').then(m => ({ default: m.Vibez }))),
     weazelnews:  entry(() => import('@/apps/weazelnews/WeazelNews').then(m => ({ default: m.WeazelNews }))),
     streaks:     entry(() => import('@/apps/streaks/Streaks').then(m => ({ default: m.Streaks }))),
@@ -110,7 +109,7 @@ export function getAppEntry(id: AppId): AppEntry {
 // Apps show a real frozen "where you left off" card by DEFAULT. Backgrounded apps are
 // SUSPENDED (see web/src/shell/deckActive.ts): a boolean plumbed down each app's subtree
 // flips to false when it is not the interactive foreground instance, and the shared
-// choke points (useGameLoop, useOnlineLobby, useSelfLocation, the ryde/photogram/
+// choke points (useGameLoop, useSelfLocation, the ryde/photogram/
 // blocks effects) fold it into their gates so the loop / poll / render / media halts and
 // the last frame simply freezes at ~0 CPU. That makes maps, ryde, photogram, the
 // arcade + board games, and phone all cheap to keep mounted and previewable.
