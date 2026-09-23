@@ -177,7 +177,7 @@ local function opponentOf(g, src)
 end
 
 ---Push a UI event to a client through the shared games relay. The client fans it out to NUI
----action `<game>:<action>` (e.g. chess:lobby, connectfour:start). No-op for offline srcs.
+---action `<game>:<action>` (e.g. chess:lobby). No-op for offline srcs.
 ---@param src integer player server id
 ---@param game string game id
 ---@param action string relay action name

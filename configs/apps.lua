@@ -80,7 +80,6 @@ return {
         { id = 'calculator', label = 'Calculator', icon = 'calculator', route = '/calculator', accent = '#333335', base = true, enabled = true },
         { id = 'passwords', label = 'Passwords', icon = 'passwords', route = '/passwords', accent = '#1c1c1e', base = true, enabled = true },
         { id = 'casino', label = 'Casino', icon = 'casino', route = '/casino', accent = '#0F5132', base = false, enabled = true },
-        { id = 'connectfour', label = 'Connect 4', icon = 'connectfour', route = '/connectfour', accent = '#1E66D0', base = false, enabled = true },
         { id = 'chess', label = 'Chess', icon = 'chess', route = '/chess', accent = '#3B3B3B', base = false, enabled = true },
         { id = 'battleship', label = 'Battleship', icon = 'battleship', route = '/battleship', accent = '#17A0B5', base = false, enabled = true },
         { id = 'vibez', label = 'Clout', icon = 'vibez', route = '/vibez', accent = '#A855F7', base = false, enabled = true },

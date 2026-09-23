@@ -126,7 +126,6 @@ function daysAgo(d: number, hour = 12): string {
 export const TRANSACTIONS: Transaction[] = [
     { id: 't00d', date: hoursAgo(0.3), merchant: 'Samuel White', category: 'transfer', amount:  1_500.00, accountId: 'maze-checking', peerNumber: '3105550148', peerInitials: 'SW', peerColor: '#5e5ce6' },
     { id: 't00e', date: hoursAgo(0.4), merchant: 'Maya Lopez',   category: 'transfer', amount:   -250.00, accountId: 'maze-checking', peerNumber: '3105550199', peerInitials: 'ML', peerColor: '#ff375f' },
-    { id: 't00c', date: hoursAgo(0.5), merchant: 'Winnings vs Maya Lopez',  category: 'connectfour', amount: 6_000, accountId: 'maze-checking' },
     { id: 't00a', date: hoursAgo(1),  merchant: 'Winnings vs Ryan Carter', category: 'chess', amount: 20_000, accountId: 'maze-checking' },
     { id: 't00b', date: hoursAgo(1.5), merchant: 'Wager vs Ryan Carter',    category: 'chess', amount: -10_000, accountId: 'maze-checking' },
     { id: 't01', date: hoursAgo(2),  merchant: 'Burger Shot',       category: 'food',          amount:   -18.45, accountId: 'maze-checking', pending: true,                           iconOverride: Pizza  },

@@ -508,12 +508,6 @@ export type NuiMessage =
     | { action: 'chess:start';    data: { gameId: string; color: 'w' | 'b'; opponent: string; pot: number } }
     | { action: 'chess:move';     data: { gameId: string; move: { from: number; to: number; promo?: string; flag?: string } } }
     | { action: 'chess:ended';    data: { reason: string } }
-    | { action: 'connectfour:invited';  data: { fromSrc: string; fromName: string; lobbyId: string } }
-    | { action: 'connectfour:lobby';    data: { id: string; host: string; public: boolean; wager: number; isHost: boolean; canStart: boolean; members: { name: string; you: boolean; host: boolean; color: string; canAfford: boolean; ready: boolean; returned: boolean }[] } }
-    | { action: 'connectfour:lobbyClosed'; data: Record<string, never> }
-    | { action: 'connectfour:start';    data: { gameId: string; color: string; opponent: string; pot: number } }
-    | { action: 'connectfour:move';     data: { gameId: string; move: { col: number } } }
-    | { action: 'connectfour:ended';    data: { reason: string } }
     | { action: 'battleship:invited';  data: { fromSrc: string; fromName: string; lobbyId: string } }
     | { action: 'battleship:lobby';    data: { id: string; host: string; public: boolean; wager: number; isHost: boolean; canStart: boolean; members: { name: string; you: boolean; host: boolean; color: string; canAfford: boolean; ready: boolean; returned: boolean }[] } }
     | { action: 'battleship:lobbyClosed'; data: Record<string, never> }

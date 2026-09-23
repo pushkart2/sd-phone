@@ -6,7 +6,7 @@ local util = require 'server.util'
 ---single-player and never register.
 local STAT_GAMES = {
     baccarat = true, battleship = true, blackjack = true,
-    chess = true, connectfour = true, crash = true,
+    chess = true, crash = true,
     holdem = true, roulette = true, slots = true,
 }
 
@@ -18,7 +18,7 @@ local function knownGame(game) return type(game) == 'string' and STAT_GAMES[game
 
 ---@type table Stats module; the table returned at end of file. Unified per-character game stats
 ---(W/L/D, split vs-Computer / Online, cumulative chip amounts, and a single-player high score)
----shared by every game (chess, connectfour, blackjack, ...). One row per
+---shared by every game (chess, blackjack, ...). One row per
 ---(citizenid, game).
 local stats = {}
 
