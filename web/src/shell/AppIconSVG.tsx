@@ -1340,6 +1340,7 @@ const ICON_MAP: Record<string, IconComponent> = {
     garages:     GaragesIcon,
     homes:       HomesIcon,
     passwords:   PasswordsIcon,
+    // Kept for historical Casino transaction rows in Banking, not app registration.
     blackjack:   BlackjackIcon,
     casino:      CasinoIcon,
     connectfour: ConnectFourIcon,

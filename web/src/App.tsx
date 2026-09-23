@@ -55,7 +55,6 @@ import { fetchNui, isFiveM } from '@/core/nui';
 import { usePhoneReset, type PhoneResetScope } from '@/core/phoneReset';
 import { resetAuth } from '@/stores/authStore';
 import { setMailDomain } from '@/core/accountsApi';
-import { setCasinoGames } from '@/apps/casino/casinoApi';
 import { setMusicSources } from '@/apps/music/data';
 import { setNumberFormat } from '@/lib/phone';
 import { cancelSmoothScroll, shiftWheelDelta, smoothScrollBy, verticalScrollerFor, wheelDelta } from '@/lib/wheel';
@@ -466,7 +465,6 @@ function AppContent() {
         if (data.mailDomain) setMailDomain(data.mailDomain);
         if (data.number) setNumberFormat(data.number.formats, data.number.length, data.number.custom);
         setMusicSources(data.music);
-        setCasinoGames(data.casino?.games);
         setBootScreenEnabled(data.bootScreen !== false);
         useWifiStore.getState().setConfigured(data.wifiConfigured === true);
         useBluetoothStore.getState().setConfigured(data.bluetoothConfigured === true);

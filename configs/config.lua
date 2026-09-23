@@ -48,7 +48,6 @@ local config = {
     Documents   = require 'configs.documents',     -- Files: per-character documents + folders
     Id          = require 'configs.id',            -- ID: identity cards from framework records + nearby show
     Housing     = require 'configs.housing',       -- property list (multi-system)
-    Casino      = require 'configs.casino',        -- Casino app: blackjack/roulette/slots table limits + spin cadence
     Stocks      = require 'configs.stocks',         -- stock + crypto market, brokerage wallet
     Radio       = require 'configs.radio',          -- frequencies + job-restricted bands
     Music       = require 'configs.music',          -- which URL sources the Music library accepts

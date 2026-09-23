@@ -79,7 +79,6 @@ return {
         { id = 'appstore', label = 'App Store', icon = 'appstore', route = '/appstore', accent = '#0a84ff', base = true, enabled = true },
         { id = 'calculator', label = 'Calculator', icon = 'calculator', route = '/calculator', accent = '#333335', base = true, enabled = true },
         { id = 'passwords', label = 'Passwords', icon = 'passwords', route = '/passwords', accent = '#1c1c1e', base = true, enabled = true },
-        { id = 'casino', label = 'Casino', icon = 'casino', route = '/casino', accent = '#0F5132', base = false, enabled = true },
         { id = 'vibez', label = 'Clout', icon = 'vibez', route = '/vibez', accent = '#A855F7', base = false, enabled = true },
         { id = 'weazelnews', label = 'Weazel News', icon = 'weazelnews', route = '/weazelnews', accent = '#C8102E', base = false, enabled = true },
         { id = 'streaks', label = 'Streaks', icon = 'streaks', route = '/streaks', accent = '#FF7A1A', base = false, enabled = true },

@@ -40,23 +40,15 @@ do
     end
 end
 
--- Retired app ids folded into the app that replaced them. sanitize() drops anything DOWNLOADABLE
--- no longer lists, so without this remap every player who owned the old app silently loses it and
--- has to re-download the replacement. Applied on read, so the next layout save heals the row.
----@type table<string, string> Retired app id -> the id that supersedes it.
-local LEGACY_APP_IDS = { blackjack = 'casino' }
-
----Drops ids that aren't currently valid downloadables and de-dupes, preserving order, remapping
----retired ids first. Runs on every read of the stored list.
+---Drops ids that aren't currently valid downloadables and de-dupes, preserving order.
 ---@param ids string[] stored app ids
 ---@return string[] clean valid, de-duped ids
 local function sanitize(ids)
     local out, seen = {}, {}
     for _, stored in ipairs(ids or {}) do
-        local id = LEGACY_APP_IDS[stored] or stored
-        if DOWNLOADABLE[id] and not seen[id] then
-            seen[id] = true
-            out[#out + 1] = id
+        if DOWNLOADABLE[stored] and not seen[stored] then
+            seen[stored] = true
+            out[#out + 1] = stored
         end
     end
     return out

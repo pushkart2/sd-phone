@@ -84,14 +84,6 @@ end
 ---@type { youtube: boolean, hosts: string[], videos: string[] }
 local MUSIC_SOURCES = {}
 
----@type string[] Casino games this server offers, in lobby order. A game missing from
----configs/casino.lua Games counts as on, so an older config keeps every game.
-local CASINO_GAMES = {}
-for _, id in ipairs({ 'blackjack', 'holdem', 'crash', 'baccarat', 'roulette', 'slots' }) do
-    if (((config.Casino or {}).Games or {})[id]) ~= false then
-        CASINO_GAMES[#CASINO_GAMES + 1] = id
-    end
-end
 do
     local cfg = type(config.Music) == 'table' and config.Music or {}
     local hosts = {}
@@ -188,9 +180,7 @@ require 'client.apps.racing'
 require 'client.apps.ryde'
 require 'client.apps.radio'
 require 'client.apps.clock'
-require 'client.apps.casino'
 require 'client.apps.stocks'
-require 'client.apps.games'
 require 'client.apps.settings'
 require 'client.apps.sim'
 require 'client.admin'
@@ -574,7 +564,6 @@ local function RevealPhone()
             mailDomain = config.Mail.Domain,
             number    = NUMBER_FORMAT,
             music     = MUSIC_SOURCES,
-            casino    = { games = CASINO_GAMES },
             bootScreen = config.Phone.BootScreen ~= false,
             wallpaper = {
                 lock = config.Lockscreen.Wallpaper,

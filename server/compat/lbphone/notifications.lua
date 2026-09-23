@@ -15,16 +15,13 @@ for _, id in ipairs({
     'maps', 'music', 'stocks', 'ryde', 'notes', 'voicememos', 'health', 'compass', 'groups',
     'services', 'pages', 'marketplace', 'radio', 'darkchat', 'cherry', 'photogram',
     'garages', 'homes', 'calculator', 'passwords', 'id',
-    'casino', 'vibez',
+    'vibez',
     'weazelnews', 'streaks', 'birdy', 'appstore', 'camera',
 }) do SD_APPS[id] = true end
 
 ---@type table<string, string> lb-phone app name -> sd-phone app id, for the names that differ.
 ---Identity names (messages, mail, ...) resolve through SD_APPS instead.
 local APP_MAP = {
-    blackjack   = 'casino',
-    roulette    = 'casino',
-    slots       = 'casino',
     twitter     = 'birdy',
     instapic    = 'photogram',
     instagram   = 'photogram',

@@ -1,8 +1,6 @@
 
 import type { GameClock } from '@/stores/gameClockStore';
 import type { BirdyMessage, BirdyPollCounts } from '@/apps/birdy/data';
-import type { CrashBust, CrashSettled, CrashSnapshot, CrashTick } from '@/apps/casino/crash/data';
-import type { HoldemHandEnd, HoldemStatePush } from '@/apps/casino/holdem/data';
 import type { DocFile } from '@/apps/documents/data';
 import type { MedicalId } from '@/apps/health/medicalApi';
 import type { DMsg as PhotogramDM, User as PhotogramUser } from '@/apps/photogram/data';
@@ -39,9 +37,6 @@ export interface OpenPayload {
         custom?: { min: number; max: number };
     };
     bootScreen?: boolean;
-    casino?: {
-        games?: string[];
-    };
     music?: {
         youtube?: boolean;
         anyAudio?: boolean;
@@ -354,12 +349,6 @@ export type NuiMessage =
     | { action: 'sd-phone:bank:received'; data: { amount: number; from: string } }
     | { action: 'sd-phone:bank:txAdded' }
     | { action: 'sd-phone:stocks:prices'; data: { assets: { symbol: string; price: number; changePct: number }[] } }
-    | { action: 'sd-phone:crash:tick';     data: CrashTick }
-    | { action: 'sd-phone:crash:bust';     data: CrashBust }
-    | { action: 'sd-phone:crash:settled';  data: CrashSettled }
-    | { action: 'sd-phone:crash:snapshot'; data: CrashSnapshot }
-    | { action: 'sd-phone:holdem:state';   data: HoldemStatePush }
-    | { action: 'sd-phone:holdem:hand';    data: HoldemHandEnd }
     | { action: 'sd-phone:mail:received';         data: unknown }
     | { action: 'sd-phone:calendar:invited';      data: { event?: unknown } }
     | { action: 'sd-phone:calendar:refresh';      data: { eventId?: string } }

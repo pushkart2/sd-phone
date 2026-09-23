@@ -55,7 +55,6 @@ function getDescriptions(): Record<string, string> {
         stocks:      t('appstore.descStocks', 'Trade stocks & crypto'),
         vibez:       t('appstore.descVibez', 'Short videos and trends'),
         weazelnews:  t('appstore.descWeazelnews', 'Statewide headlines'),
-        casino:      t('appstore.descCasino', 'Blackjack, roulette and slots'),
         streaks:     t('appstore.descStreaks', 'A photo a day, keep your streak'),
         racing:      t('appstore.descRacing', 'Race tracks, rankings and events'),
         id:          t('appstore.descId', 'Your ID, licences and badge'),
