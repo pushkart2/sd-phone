@@ -2,11 +2,11 @@
 local util = require 'server.util'
 
 ---@type table<string, boolean> Games allowed to own a stats row. Deliberately NOT the engine's
----`configs` table: baccarat, blackjack, climber, crash, roulette and slots are
+---`configs` table: baccarat, blackjack, crash, roulette and slots are
 ---single-player and never register.
 local STAT_GAMES = {
     baccarat = true, battleship = true, blackjack = true,
-    chess = true, climber = true, connectfour = true, crash = true,
+    chess = true, connectfour = true, crash = true,
     holdem = true, roulette = true, slots = true,
 }
 

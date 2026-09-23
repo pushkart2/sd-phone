@@ -952,25 +952,6 @@ export function CasinoIcon() {
     );
 }
 
-export function ClimberIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs><LinearGrad id={u('clm')} top="#9CCC52" mid="#7CB342" bot="#5C9A2A" angle={160} /></defs>
-            <rect width={S} height={S} fill={`url(#${u('clm')})`} />
-            <rect x="8"  y="46" width="18" height="5" rx="2.5" fill="#FFFFFF" opacity="0.92" />
-            <rect x="34" y="36" width="18" height="5" rx="2.5" fill="#FFFFFF" opacity="0.92" />
-            <rect x="13" y="24" width="18" height="5" rx="2.5" fill="#FFFFFF" opacity="0.92" />
-            <g transform="translate(22 11)">
-                <rect x="-7" y="0" width="14" height="13" rx="6" fill="#FFFFFF" />
-                <circle cx="-2.5" cy="5" r="1.6" fill="#3A5A1E" />
-                <circle cx="3" cy="5" r="1.6" fill="#3A5A1E" />
-                <path d="M-3,9 Q0,11 3,9" fill="none" stroke="#3A5A1E" strokeWidth="1.2" strokeLinecap="round" />
-            </g>
-        </svg>
-    );
-}
-
 export function ConnectFourIcon() {
     const u = useIconIds();
     const discs: Record<string, string> = {
@@ -1361,7 +1342,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     passwords:   PasswordsIcon,
     blackjack:   BlackjackIcon,
     casino:      CasinoIcon,
-    climber:     ClimberIcon,
     connectfour: ConnectFourIcon,
     chess:       ChessIcon,
     battleship:  BattleshipIcon,
