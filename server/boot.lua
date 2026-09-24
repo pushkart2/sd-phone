@@ -95,7 +95,7 @@ function M.shouldInstallSchema()
 
             if ok and result then
                 -- Keep in sync with INSTALL_VERSION in server/schema.lua.
-                shouldInstall = tonumber(result.imported) ~= 1 or tonumber(result.schema_version) ~= 1
+                shouldInstall = tonumber(result.imported) ~= 1 or tonumber(result.schema_version) ~= 2
             elseif not ok then
                 print(('^3[sd-phone:schema]^0 install registry unavailable; running schema bootstrap: %s')
                     :format(tostring(result)))

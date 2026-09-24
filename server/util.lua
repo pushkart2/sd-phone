@@ -18,7 +18,8 @@ local schemaMaintenanceRunning = false
 -- sdphone:schema maintenance command.
 local schemaBootstrapDepth = 0
 local schemaMaintenanceWarnings = 0
-local schemaCatalog = { columns = {}, indexes = {} }
+local schemaCatalog = { columns = {}, indexes = {}, foreignKeys = nil }
+local foreignKeysLoading = false
 
 ---Returns one column's cached catalogue metadata. The first request for a table loads its columns
 ---in one read; later checks in the same maintenance run are in-memory lookups.
@@ -66,6 +67,45 @@ function util.schemaIndex(tableName, indexName)
     return byName[indexName] or {}
 end
 
+---Loads all foreign-key metadata once for this schema pass. MariaDB's
+---information_schema.REFERENTIAL_CONSTRAINTS join is expensive; querying it once avoids a
+---multi-second dictionary scan for every individual relationship during boot.
+---@return { byName: table<string, table<string, table>>, byRelation: table<string, table> }
+local function schemaForeignKeys()
+    if schemaCatalog.foreignKeys then return schemaCatalog.foreignKeys end
+    while foreignKeysLoading do Wait(0) end
+    if schemaCatalog.foreignKeys then return schemaCatalog.foreignKeys end
+
+    foreignKeysLoading = true
+    local ok, rows = pcall(MySQL.query.await, [[
+        SELECT rc.TABLE_NAME AS tbl,
+               rc.CONSTRAINT_NAME AS constraint_name,
+               rc.DELETE_RULE AS delete_rule, rc.UPDATE_RULE AS update_rule,
+               kcu.COLUMN_NAME AS child_column,
+               kcu.REFERENCED_TABLE_NAME AS parent_table,
+               kcu.REFERENCED_COLUMN_NAME AS parent_column
+        FROM information_schema.REFERENTIAL_CONSTRAINTS rc
+        JOIN information_schema.KEY_COLUMN_USAGE kcu
+          ON kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA
+         AND kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
+         AND kcu.TABLE_NAME = rc.TABLE_NAME
+        WHERE rc.CONSTRAINT_SCHEMA = DATABASE()
+    ]])
+    foreignKeysLoading = false
+    if not ok then error(rows) end
+
+    local byName, byRelation = {}, {}
+    for i = 1, #(rows or {}) do
+        local row = rows[i]
+        byName[row.tbl] = byName[row.tbl] or {}
+        byName[row.tbl][row.constraint_name] = row
+        local relation = table.concat({ row.tbl, row.child_column, row.parent_table, row.parent_column }, '\0')
+        byRelation[relation] = row
+    end
+    schemaCatalog.foreignKeys = { byName = byName, byRelation = byRelation }
+    return schemaCatalog.foreignKeys
+end
+
 ---@param key string stable operation identity
 ---@param phase integer lower phases run first (columns, indexes, drops, then foreign keys)
 ---@param fn fun()
@@ -111,7 +151,8 @@ end
 function util.runSchemaMaintenance()
     if schemaMaintenanceRunning then error('schema maintenance is already running') end
 
-    schemaCatalog = { columns = {}, indexes = {} }
+    schemaCatalog = { columns = {}, indexes = {}, foreignKeys = nil }
+    foreignKeysLoading = false
     local ordered = {}
     for _, task in pairs(schemaTasks) do ordered[#ordered + 1] = task end
     table.sort(ordered, function(a, b)
@@ -491,7 +532,8 @@ function util.degraded()
     return degradedOrder
 end
 
----Validates the simple `(column, column)` shape accepted by the index helpers.
+---Validates the `(column, column)` shape accepted by the index helpers, with an optional numeric
+---prefix length such as `(url(191))` for long utf8mb4 strings.
 ---@param tableName string
 ---@param indexName string
 ---@param columnsDDL string
@@ -502,11 +544,17 @@ local function indexSpec(tableName, indexName, columnsDDL)
             error('unsafe index identifier')
         end
     end
-    local inner = type(columnsDDL) == 'string' and columnsDDL:match('^%s*%((.-)%)%s*$') or nil
+    -- Use a greedy inner match so a prefix length's closing parenthesis is kept inside the
+    -- column token: `(url(191))` must parse as one outer list containing `url(191)`.
+    local inner = type(columnsDDL) == 'string' and columnsDDL:match('^%s*%((.*)%)%s*$') or nil
     if not inner then error('invalid index column list') end
     local columns = {}
     for part in inner:gmatch('[^,]+') do
-        local column = part:match('^%s*`?([%w_]+)`?%s*$')
+        local trimmed = part:match('^%s*(.-)%s*$')
+        local column = trimmed:match('^([%w_]+)$')
+            or trimmed:match('^`([%w_]+)`$')
+            or trimmed:match('^([%w_]+)%([1-9]%d*%)$')
+            or trimmed:match('^`([%w_]+)`%([1-9]%d*%)$')
         if not column then error('invalid index column') end
         columns[#columns + 1] = column
     end
@@ -706,6 +754,7 @@ function util.dropForeignKey(child, name)
         print(('^3[sd-phone]^0 could not drop foreign key %s on %s: %s'):format(name, child, err))
         return false
     end
+    schemaCatalog.foreignKeys = nil
     return true
 end
 
@@ -795,40 +844,13 @@ function util.ensureForeignKey(child, col, parent, parentCol, name, options)
         return false
     end
 
-    local existing = MySQL.single.await([[
-        SELECT rc.CONSTRAINT_NAME AS constraint_name,
-               rc.DELETE_RULE AS delete_rule, rc.UPDATE_RULE AS update_rule,
-               kcu.COLUMN_NAME AS child_column,
-               kcu.REFERENCED_TABLE_NAME AS parent_table,
-               kcu.REFERENCED_COLUMN_NAME AS parent_column
-        FROM information_schema.REFERENTIAL_CONSTRAINTS rc
-        JOIN information_schema.KEY_COLUMN_USAGE kcu
-          ON kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA
-         AND kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
-         AND kcu.TABLE_NAME = rc.TABLE_NAME
-        WHERE rc.CONSTRAINT_SCHEMA = DATABASE() AND rc.TABLE_NAME = ?
-          AND rc.CONSTRAINT_NAME = ?
-        LIMIT 1
-    ]], { child, name })
+    local foreignKeys = schemaForeignKeys()
+    local existing = foreignKeys.byName[child] and foreignKeys.byName[child][name]
     if not existing then
         -- Older resources often chose a different constraint name. Treat the relationship itself
         -- as identity so we neither stack duplicate FKs nor leave a stale delete rule in force.
-        existing = MySQL.single.await([[
-            SELECT rc.CONSTRAINT_NAME AS constraint_name,
-                   rc.DELETE_RULE AS delete_rule, rc.UPDATE_RULE AS update_rule,
-                   kcu.COLUMN_NAME AS child_column,
-                   kcu.REFERENCED_TABLE_NAME AS parent_table,
-                   kcu.REFERENCED_COLUMN_NAME AS parent_column
-            FROM information_schema.REFERENTIAL_CONSTRAINTS rc
-            JOIN information_schema.KEY_COLUMN_USAGE kcu
-              ON kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA
-             AND kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
-             AND kcu.TABLE_NAME = rc.TABLE_NAME
-            WHERE rc.CONSTRAINT_SCHEMA = DATABASE() AND rc.TABLE_NAME = ?
-              AND kcu.COLUMN_NAME = ? AND kcu.REFERENCED_TABLE_NAME = ?
-              AND kcu.REFERENCED_COLUMN_NAME = ?
-            LIMIT 1
-        ]], { child, col, parent, parentCol })
+        local relation = table.concat({ child, col, parent, parentCol }, '\0')
+        existing = foreignKeys.byRelation[relation]
     end
     if existing then
         local matches = existing.delete_rule == onDelete and existing.update_rule == onUpdate
@@ -842,6 +864,7 @@ function util.ensureForeignKey(child, col, parent, parentCol, name, options)
                 :format(existingName, child, tostring(dropped)))
             return false
         end
+        schemaCatalog.foreignKeys = nil
     end
 
     local cleanup = options.cleanup
@@ -892,6 +915,20 @@ function util.ensureForeignKey(child, col, parent, parentCol, name, options)
         print(('^3[sd-phone]^0 skipped foreign key %s on %s: %s'):format(name, child, err))
         return false
     end
+    if schemaCatalog.foreignKeys then
+        local row = {
+            tbl = child,
+            constraint_name = name,
+            delete_rule = onDelete,
+            update_rule = onUpdate,
+            child_column = col,
+            parent_table = parent,
+            parent_column = parentCol,
+        }
+        schemaCatalog.foreignKeys.byName[child] = schemaCatalog.foreignKeys.byName[child] or {}
+        schemaCatalog.foreignKeys.byName[child][name] = row
+        schemaCatalog.foreignKeys.byRelation[table.concat({ child, col, parent, parentCol }, '\0')] = row
+    end
     return true
 end
 
@@ -921,19 +958,33 @@ function util.runOnce(name, fn)
     return true
 end
 
--- All known lb-phone/sd-phone name collisions are inventoried in one catalogue read. Previously
--- every rescue call made two information_schema queries on every restart, even after the tables
--- had long since been normalized.
+-- All tables that can be rescued during bootstrap are inventoried in one catalogue read. Previously
+-- each call outside this list made its own information_schema query on every restart, even after
+-- the tables had long since been normalized.
 local RESCUE_TABLES = {
+    phone_alarms = true,
+    phone_bluetooth = true,
+    phone_blocked = true,
+    phone_call_recordings = true,
+    phone_contacts = true,
+    phone_custom_ringtones = true,
+    phone_garage_images = true,
     phone_messages = true,
     phone_message_reactions = true,
     phone_documents = true,
     phone_document_folders = true,
     phone_mail_accounts = true,
     phone_mail_messages = true,
+    phone_mail_saved_emails = true,
+    phone_mail_sessions = true,
     phone_photos = true,
     phone_photo_albums = true,
     phone_notes = true,
+    phone_sim_cards = true,
+    phone_settings = true,
+    phone_voice_memos = true,
+    phone_voicemails = true,
+    phone_wifi = true,
 }
 ---@type table<string, table<string, boolean>>|nil
 local rescueShapes
@@ -946,17 +997,18 @@ local function loadRescueShapes()
 
     rescueShapesLoading = true
     local ok, rows = pcall(MySQL.query.await, [[
-            SELECT c.TABLE_NAME AS tbl, c.COLUMN_NAME AS col
-            FROM information_schema.COLUMNS c
-            JOIN information_schema.TABLES t
-              ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME
-            WHERE c.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE'
-              AND c.TABLE_NAME IN (
+        SELECT TABLE_NAME AS tbl, COLUMN_NAME AS col
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (
                 'phone_messages', 'phone_message_reactions', 'phone_documents',
                 'phone_document_folders', 'phone_mail_accounts', 'phone_mail_messages',
-                'phone_photos', 'phone_photo_albums', 'phone_notes'
+                'phone_mail_saved_emails', 'phone_mail_sessions', 'phone_notes',
+                'phone_photos', 'phone_photo_albums', 'phone_sim_cards', 'phone_settings',
+                'phone_voice_memos', 'phone_voicemails', 'phone_wifi', 'phone_alarms',
+                'phone_bluetooth', 'phone_blocked', 'phone_call_recordings', 'phone_contacts',
+                'phone_custom_ringtones', 'phone_garage_images'
               )
-        ]])
+    ]])
     rescueShapesLoading = false
     if not ok then error(rows) end
 
@@ -988,12 +1040,9 @@ function util.rescueLegacyTable(tbl, markerColumn)
         columns = rescueShapes[tbl]
     else
         local rows = MySQL.query.await([[
-            SELECT c.COLUMN_NAME AS col
-            FROM information_schema.COLUMNS c
-            JOIN information_schema.TABLES t
-              ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME
-            WHERE c.TABLE_SCHEMA = DATABASE() AND c.TABLE_NAME = ?
-              AND t.TABLE_TYPE = 'BASE TABLE'
+            SELECT COLUMN_NAME AS col
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
         ]], { tbl }) or {}
         if #rows > 0 then
             columns = {}

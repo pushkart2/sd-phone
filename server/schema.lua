@@ -3,8 +3,10 @@ local util = require 'server.util'
 local boot = require 'server.boot'
 
 -- Increment this when a release adds schema work that must be applied to already-validated servers.
-local SCHEMA_VERSION = 1
-local INSTALL_VERSION = 1
+-- Version 2 also forces existing installs through the synchronous bootstrap repair path, so
+-- databases that were marked valid before the repair guard existed receive missing columns.
+local SCHEMA_VERSION = 2
+local INSTALL_VERSION = 2
 local VALIDATION_KEY = 'sd-phone'
 local running = false
 local validatedVersion
