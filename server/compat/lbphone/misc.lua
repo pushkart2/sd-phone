@@ -75,13 +75,6 @@ stubLbExport('DeleteDarkChatChannel', false)
 stubLbExport('AddUserToDarkChatChannel', false)
 stubLbExport('RemoveUserFromDarkChatChannel', false)
 
--- Crypto: sd-phone has no crypto wallet.
-stubLbExport('AddCrypto', false)
-stubLbExport('RemoveCrypto', false)
-stubLbExport('AddCustomCoin', nil)
-stubLbExport('GetCoin', nil)
-stubLbExport('GetOwnedCoin', false)
-
 -- lb-phone's custom callback wire and the custom-app ecosystem built on it are not bridged.
 stubLbExport('RegisterCallback', nil, 'is not bridged: the lb-phone callback wire and custom-app ecosystem are out of scope')
 stubLbExport('BaseCallback', nil, 'is not bridged: the lb-phone callback wire and custom-app ecosystem are out of scope')

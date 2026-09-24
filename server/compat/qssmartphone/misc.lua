@@ -66,11 +66,6 @@ stubExport('useWirelessEarbuds', nil,
 stubExport('usePowerbank', nil,
     'has no sd-phone equivalent: the sd-phone battery is a cosmetic status-bar drain, not a stored charge, so there is nothing to recharge')
 
--- The crypto DLC's undocumented balance writer. sd-phone's Crypto is a market simulation with no
--- external grant path, so a caller's award has nowhere to land.
-stubExport('AddCrypto', false,
-    'has no sd-phone equivalent: sd-phone Crypto is a price simulation with no external grant path')
-
 -- PRO's undocumented unique-phone item hook. sd-phone reads phone ownership from the inventory on
 -- demand rather than caching it, so a removed phone needs no notification to stay correct.
 stubPro('handleDeleteItem', nil,

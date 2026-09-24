@@ -106,12 +106,12 @@ Already on a [Qbox Dashboard](https://dashboard.qbox.re) plan? You can point upl
 | **Communication** | Phone (1:1, group and company calls over pma-voice), Messages (SMS, group threads, GIFs, money and location cards), Mail (multi-account, global inboxes), Groups, Dark Chat, Radio, Find Friends |
 | **Social** | Photogram (posts, stories, DMs, real live video streaming), Birdy, Cherry, Clout (short-form video), Streaks, all on a shared accounts engine with registration, sign-in, and password resets delivered in-game |
 | **Camera & media** | Camera (live game view: photos, video with voice capture, selfie mode), Photos, Music (with AirShare library sharing), Voice Memos |
-| **World** | Maps (CDN-streamed tiles, routing, pins), Garages, Homes, Bank, Services (company directory, dispatch messaging, phone multijob), Ryde (player-to-player ride hailing), Racing (race board with an in-game track creator, unlocked by a `racing_usb` item), Weazel News, Pages, Marketplace, Weather, Stocks |
+| **World** | Maps (CDN-streamed tiles, routing, pins), Garages, Homes, Bank, Services (company directory, dispatch messaging, phone multijob), Ryde (player-to-player ride hailing), Racing (race board with an in-game track creator, unlocked by a `racing_usb` item), Weazel News, Pages, Marketplace, Weather |
 | **Utilities** | Clock (alarms), Calendar, Notes (with sketches), Files (documents with multi-signer signing, sendable as mail attachments), Calculator, Compass, Health (daily stats and a server-wide steps leaderboard), Passwords, ID (identity cards from your character record and licences, showable to a nearby phone), App Store, Settings |
 
 ## Home screen widgets
 
-Eleven widgets, each in three sizes (2x2, 4x2 and 4x4), added from the Add Widget sheet in edit mode and placed anywhere on any page.
+Ten widgets, each in three sizes (2x2, 4x2 and 4x4), added from the Add Widget sheet in edit mode and placed anywhere on any page.
 
 | Widget | Shows |
 |---|---|
@@ -120,14 +120,13 @@ Eleven widgets, each in three sizes (2x2, 4x2 and 4x4), added from the Add Widge
 | **Clock (Digital)** | Large type, city, seconds and full date |
 | **Now Playing** | Artwork, track and transport controls that work without opening Music |
 | **Wallet** | Balance, cash on hand and recent transactions |
-| **Stocks** | Your holdings first by position value, with profit or loss, sparklines and a portfolio total |
 | **Contacts** | Hand-picked people you tap to call, chosen with the standard contact picker |
 | **Garage** | Your vehicles with photos, plates and stored / out / impounded status |
 | **Activity** | Steps, distance and heart rate as concentric rings |
 | **Weazel News** | The lead story with its photo, plus the breaking ticker |
 | **Timers & Alarms** | A live countdown ring, or the next alarm and everything else you have set |
 
-Nine of them offer a **Dark, Light or Glass** finish; Glass frosts your wallpaper behind the tile. Weather and Now Playing take their colour from their content instead. Clock and Weather also align left, centre or right. Previews in the picker render over your own wallpaper at true size, so what you see is what gets placed.
+Eight of them offer a **Dark, Light or Glass** finish; Glass frosts your wallpaper behind the tile. Weather and Now Playing take their colour from their content instead. Clock and Weather also align left, centre or right. Previews in the picker render over your own wallpaper at true size, so what you see is what gets placed.
 
 ## Companion: sd-tablet
 

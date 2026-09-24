@@ -13,7 +13,6 @@ import { ContactsWidget } from './ContactsWidget';
 import { GarageWidget } from './GarageWidget';
 import { NewsWidget } from './NewsWidget';
 import { NowPlayingWidget } from './NowPlayingWidget';
-import { StocksWidget } from './StocksWidget';
 import { TimersWidget } from './TimersWidget';
 import { WalletWidget } from './WalletWidget';
 import { WeatherWidget } from './WeatherWidget';
@@ -111,14 +110,6 @@ const ALL_WIDGETS: WidgetDef[] = [
         appId: 'garages',
         themes: true,
         render: o => <GarageWidget size={o.size} width={o.width} height={o.height} theme={o.theme} />,
-    },
-    {
-        kind: 'stocks',
-        label: () => t('widgets.stocks', 'Stocks'),
-        sizes: ['sm', 'md', 'lg'],
-        appId: 'stocks',
-        themes: true,
-        render: o => <StocksWidget size={o.size} width={o.width} height={o.height} theme={o.theme} />,
     },
     {
         kind: 'news',

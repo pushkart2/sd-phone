@@ -116,7 +116,15 @@ end
 function M.runSchemaInstall(ensureSchema)
     schemaInFlight = schemaInFlight + 1
     local ok, err = pcall(function()
-        if M.shouldInstallSchema() then ensureSchema() end
+        if not M.shouldInstallSchema() then return end
+
+        -- Existing installs may need columns that the store queries later in the same bootstrap
+        -- (for example Photos.trusted and Racing.publish_status). Keep those repairs synchronous
+        -- for this scoped pass; ordinary restarts still defer catalogue work to sdphone:schema.
+        util.beginSchemaBootstrap()
+        local installed, installErr = pcall(ensureSchema)
+        util.endSchemaBootstrap()
+        if not installed then error(installErr) end
     end)
     schemaInFlight = schemaInFlight - 1
     return ok, err

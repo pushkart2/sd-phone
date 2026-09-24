@@ -21,7 +21,6 @@ local APP_MAP = {
     news        = 'weazelnews',
     yellowpages = 'pages',
     taxi        = 'ryde',
-    crypto      = 'stocks',
     valet       = 'garages',
     garage      = 'garages',
     wallet      = 'bank',

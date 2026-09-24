@@ -15,7 +15,6 @@ export type AppTarget =
     | { app: 'voicememos'; memoId: string }
     | { app: 'garages'; vehicleId: string }
     | { app: 'homes'; homeId: string }
-    | { app: 'stocks'; symbol: string }
     | { app: 'weazelnews'; articleId: string }
     | { app: 'marketplace'; listingId: string }
     | { app: 'pages'; postId: string }

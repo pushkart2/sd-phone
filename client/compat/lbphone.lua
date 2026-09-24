@@ -448,11 +448,6 @@ registerLbExport('SetAppInstalled', function(app, _installed)
     warnOnce('SetAppInstalled', 'install state is managed by the sd-phone App Store; the request was ignored')
 end)
 
--- Crypto app readers.
-stubLbExport('GetCoinValue', 0)
-stubLbExport('GetCryptoWallet', {})
-stubLbExport('GetOwnedCoin', false)
-
 -- Notification and contact mutations.
 stubLbExport('DeleteNotification', false)
 stubLbExport('AddContact', false, 'is unsupported client-side; use the sd-phone server contact exports instead')

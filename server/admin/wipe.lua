@@ -31,8 +31,6 @@ local CID_SINGLE = {
     { 'phone_cookie',                'citizenid' },
     { 'phone_alarms',                'citizenid' },
     { 'phone_timer_recents',         'citizenid' },
-    { 'phone_stock_holdings',        'citizenid' },
-    { 'phone_stock_wallet',          'citizenid' },
     { 'phone_racing_tracks',         'citizenid' },
     { 'phone_racing_profiles',       'citizenid' },
     { 'phone_racing_results',        'citizenid' },
@@ -342,7 +340,7 @@ end)
 ---
 ---Deliberately narrower than CID_SINGLE above. Left alone: phone_passwords (the reset dialog
 ---promises saved logins survive), group memberships, and anything holding value or belonging to
----another system - bank history, stock holdings and wallet, casino chips, game saves, racing
+---another system - bank history, casino chips, game saves, racing
 ---data. Erasing a handset should not reach into the economy.
 local DEVICE_CONTENT = {
     { 'phone_contacts',              'citizenid' },

@@ -13,6 +13,10 @@ local schemaTasks = {}
 local schemaTaskSequence = 0
 local schemaMaintenanceActive = false
 local schemaMaintenanceRunning = false
+-- During the first install/upgrade pass, stores must be able to use columns immediately after
+-- ensureColumns() returns. Outside that scoped pass, schema repairs stay deferred for the manual
+-- sdphone:schema maintenance command.
+local schemaBootstrapDepth = 0
 local schemaMaintenanceWarnings = 0
 local schemaCatalog = { columns = {}, indexes = {} }
 
@@ -67,7 +71,7 @@ end
 ---@param fn fun()
 ---@return boolean queued
 local function queueSchemaTask(key, phase, fn)
-    if schemaMaintenanceActive then return false end
+    if schemaMaintenanceActive or schemaBootstrapDepth > 0 then return false end
     if not schemaTasks[key] then
         schemaTaskSequence = schemaTaskSequence + 1
         schemaTasks[key] = { key = key, phase = phase, sequence = schemaTaskSequence, run = fn }
@@ -194,6 +198,16 @@ function util.fail(key, message, vars, field)
     if field then response.field = field end
     return response
 end
+
+---Enables synchronous schema repairs while a store is bootstrapping its tables.
+---Nested store bootstraps share the scope, so one finishing cannot re-enable queuing for another.
+function util.beginSchemaBootstrap()
+    schemaBootstrapDepth = schemaBootstrapDepth + 1
+end
+
+---Leaves the synchronous schema-repair scope.
+function util.endSchemaBootstrap()
+    schemaBootstrapDepth = math.max(0, schemaBootstrapDepth - 1)
 end
 
 ---@type string Alphabet for generated row ids (base-36, lowercase) - matches the frontend's id shape.

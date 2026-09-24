@@ -140,7 +140,7 @@ return {
         -- Everything else that opens onto a list
         'mail:list', 'mail:savedEmails', 'darkchat:rooms', 'darkchat:notifications',
         'cherry:state', 'cherry:thread', 'marketplace:list', 'pages:list',
-        'weazelnews:feed', 'weazelnews:view', 'stocks:market',
+        'weazelnews:feed', 'weazelnews:view',
         'banking:overview', 'garages:list', 'homes:list', 'services:directory', 'services:inbox',
         'ryde:history', 'ryde:leaderboard',
     },

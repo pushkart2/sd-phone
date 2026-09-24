@@ -169,9 +169,3 @@ unsupported('recipe', 'Show your phone balance plan',
     'sd-phone has no phone balance plan; service is decided by cell tower coverage instead.')
 unsupported('deletemarket', 'Reset a Market entry',
     'sd-phone Marketplace listings are managed from the app and its Admin panel, not by config id.')
-unsupported('setcryptoworth', 'Set the crypto price',
-    'sd-phone crypto prices come from its own market simulation and are not set by command.')
-unsupported('checkcryptoworth', 'Show the crypto price',
-    'sd-phone shows crypto prices in the Crypto section of the Bank app.')
-unsupported('crypto', 'Show your crypto total',
-    'sd-phone shows your crypto holdings in the Crypto section of the Bank app.')

@@ -55,7 +55,6 @@ const APP_REGISTRY = {
     weather:     entry(() => import('@/apps/weather/Weather').then(m => ({ default: m.Weather }))),
     maps:        entry(() => import('@/apps/maps/Maps').then(m => ({ default: m.Maps }))),
     music:       entry(() => import('@/apps/music/Music').then(m => ({ default: m.Music }))),
-    stocks:      entry(() => import('@/apps/stocks/Stocks').then(m => ({ default: m.Stocks }))),
     ryde:        entry(() => import('@/apps/ryde/Ryde').then(m => ({ default: m.Ryde }))),
     notes:       entry(() => import('@/apps/notes/Notes').then(m => ({ default: m.Notes }))),
     documents:   entry(() => import('@/apps/documents/Documents').then(m => ({ default: m.Documents }))),

@@ -100,17 +100,4 @@ end
 ---addBankTransaction(sender, receiver, reason, amount): the export form of bank.addTransaction.
 registerExport('addBankTransaction', bank.addTransaction)
 
--- Crypto: sd-phone's market app is Stocks - symbol-keyed holdings bought with real money through
--- the player's own brokerage wallet, with no per-coin wallet a resource may credit or debit by
--- numeric coin id. Reads report an empty holding so a caller's balance check simply fails rather
--- than crediting an account that does not exist.
-stubExport('addcrypto', nil,
-    'has no sd-phone equivalent: the Stocks app holds symbol-keyed positions bought through the player\'s own brokerage wallet, not coin-id wallets a resource can credit')
-stubExport('removecrypto', nil,
-    'has no sd-phone equivalent: the Stocks app holds symbol-keyed positions bought through the player\'s own brokerage wallet, not coin-id wallets a resource can debit')
-stubExport('checkcryptoamount', false,
-    'has no sd-phone equivalent: there is no coin-id wallet to check, so every holding reads as empty')
-stubExport('getcryptoamount', 0,
-    'has no sd-phone equivalent: there is no coin-id wallet to read, so every balance reads as zero')
-
 return bank

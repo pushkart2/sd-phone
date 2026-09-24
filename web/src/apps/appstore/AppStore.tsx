@@ -52,7 +52,6 @@ function getDescriptions(): Record<string, string> {
         homes:       t('appstore.descHomes', 'Browse properties'),
         ryde:        t('appstore.descRyde', 'Request rides across town'),
         radio:       t('appstore.descRadio', 'Talk on shared frequencies'),
-        stocks:      t('appstore.descStocks', 'Trade stocks & crypto'),
         vibez:       t('appstore.descVibez', 'Short videos and trends'),
         weazelnews:  t('appstore.descWeazelnews', 'Statewide headlines'),
         streaks:     t('appstore.descStreaks', 'A photo a day, keep your streak'),

@@ -65,7 +65,6 @@ export const SECTIONS: SectionDef[] = [
     { key: 'garages', title: () => t('spotlight.garages', 'Garages'), appId: 'garages', open: hit => requestOpenAt({ app: 'garages', vehicleId: hit.id }) },
     { key: 'homes', title: () => t('spotlight.homes', 'Homes'), appId: 'homes', open: hit => requestOpenAt({ app: 'homes', homeId: hit.id }) },
     { key: 'places', title: () => t('spotlight.places', 'Places'), appId: 'maps', open: openPlace },
-    { key: 'stocks', title: () => t('spotlight.stocks', 'Stocks'), appId: 'stocks', open: hit => requestOpenAt({ app: 'stocks', symbol: hit.id }) },
     { key: 'weazelnews', title: () => t('spotlight.weazelnews', 'Weazel News'), appId: 'weazelnews', open: hit => requestOpenAt({ app: 'weazelnews', articleId: hit.id }) },
     { key: 'marketplace', title: () => t('spotlight.marketplace', 'Marketplace'), appId: 'marketplace', open: hit => requestOpenAt({ app: 'marketplace', listingId: hit.id }) },
     { key: 'pages', title: () => t('spotlight.pages', 'Pages'), appId: 'pages', open: hit => requestOpenAt({ app: 'pages', postId: hit.id }) },

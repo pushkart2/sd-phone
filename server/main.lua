@@ -94,7 +94,6 @@ require 'server.appgate'
 require 'server.ryde.init'
 require 'server.radio.init'
 require 'server.clock.init'
-require 'server.stocks.init'
 require 'server.admin.wipe'
 require 'server.admin.init'
 -- Registers the manual database-maintenance command. Store boot threads populate its queue as they

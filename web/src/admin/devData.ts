@@ -105,7 +105,7 @@ const APPS = [
 const DOWNLOADABLE = [
     { id: 'vibez', label: 'Clout' }, { id: 'cherry', label: 'Cherry' },
     { id: 'darkchat', label: 'Dark Chat' }, { id: 'marketplace', label: 'Marketplace' },
-    { id: 'pages', label: 'Pages' }, { id: 'stocks', label: 'Stocks' },
+    { id: 'pages', label: 'Pages' },
 ];
 
 export const DEV_MUTES: AdminMute[] = [

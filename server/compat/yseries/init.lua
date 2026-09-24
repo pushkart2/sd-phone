@@ -55,7 +55,6 @@ require 'server.compat.yseries.groups'
 require 'server.compat.yseries.ypay'
 require 'server.compat.yseries.darkchat'
 require 'server.compat.yseries.misc'
-require 'server.compat.yseries.markets'
 require 'server.compat.yseries.weather'
 -- commands.lua registers YSeries' admin commands under their own names.
 require 'server.compat.yseries.commands'

@@ -1130,27 +1130,6 @@ function VoiceMemosIcon() {
     );
 }
 
-function StocksIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs><LinearGrad id={u('stkbg')} top="#22D67F" mid="#16C784" bot="#0E9C63" angle={160} /></defs>
-            <rect width={S} height={S} fill={`url(#${u('stkbg')})`} />
-            <g opacity="0.30" fill="#FFFFFF">
-                <rect x="13" y="40" width="4" height="9"  rx="1.4" />
-                <rect x="22" y="36" width="4" height="13" rx="1.4" />
-                <rect x="31" y="41" width="4" height="8"  rx="1.4" />
-                <rect x="40" y="33" width="4" height="16" rx="1.4" />
-            </g>
-            <polyline points="11,41 22,32 31,37 47,17" fill="none" stroke="#FFFFFF" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M47 17 L39.5 17 M47 17 L47 24.5" fill="none" stroke="#FFFFFF" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="11" cy="41" r="2.3" fill="#FFFFFF" />
-            <circle cx="22" cy="32" r="2.3" fill="#FFFFFF" />
-            <circle cx="31" cy="37" r="2.3" fill="#FFFFFF" />
-        </svg>
-    );
-}
-
 function RadioIcon() {
     const u = useIconIds();
     return (
@@ -1315,7 +1294,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     compass:  CompassIcon,
     maps:     MapsIcon,
     findfriends: FindFriendsIcon,
-    stocks:   StocksIcon,
     ryde:     RydeIcon,
     camera:   CameraIcon,
     photos:   PhotosIcon,

@@ -117,8 +117,6 @@ local COPY = {
     { 'phone_passwords',         'citizenid' },
     { 'phone_alarms',            'citizenid' },
     { 'phone_timer_recents',     'citizenid' },
-    { 'phone_stock_holdings',    'citizenid' },
-    { 'phone_stock_wallet',      'citizenid' },
     { 'phone_casino_chips',      'citizenid' },
     { 'phone_cookie',            'citizenid' },
     { 'phone_game_stats',        'citizenid' },

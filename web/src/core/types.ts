@@ -348,7 +348,6 @@ export type NuiMessage =
     | { action: 'sd-phone:health';  data: HealthPayload }
     | { action: 'sd-phone:bank:received'; data: { amount: number; from: string } }
     | { action: 'sd-phone:bank:txAdded' }
-    | { action: 'sd-phone:stocks:prices'; data: { assets: { symbol: string; price: number; changePct: number }[] } }
     | { action: 'sd-phone:mail:received';         data: unknown }
     | { action: 'sd-phone:calendar:invited';      data: { event?: unknown } }
     | { action: 'sd-phone:calendar:refresh';      data: { eventId?: string } }

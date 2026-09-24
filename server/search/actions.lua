@@ -2,7 +2,7 @@
 local player = require 'bridge.server.player'
 ---@type table Shared helpers (server.util): envelopes, trim, rate limits, LIKE escaping.
 local util = require 'server.util'
----@type table sd-phone config root (configs/config.lua): stocks assets and feed limits.
+---@type table sd-phone config root (configs/config.lua): feed limits.
 local config = require 'configs.config'
 ---@type table Gate evaluator (server.gates): which apps this player may use.
 local gates = require 'server.gates'
@@ -63,7 +63,6 @@ local SOURCES <const> = {
     garages     = 'garages',
     homes       = 'homes',
     places      = 'maps',
-    stocks      = 'stocks',
     weazelnews  = 'weazelnews',
     marketplace = 'marketplace',
     pages       = 'pages',
@@ -74,7 +73,7 @@ local SOURCES <const> = {
 ---@type string[] Source keys in the order they run.
 local ORDER <const> = {
     'contacts', 'messages', 'mail', 'notes', 'calendar', 'documents', 'recents', 'voicememos',
-    'garages', 'homes', 'places', 'stocks', 'weazelnews', 'marketplace', 'pages', 'birdy', 'photogram',
+    'garages', 'homes', 'places', 'weazelnews', 'marketplace', 'pages', 'birdy', 'photogram',
 }
 
 ---@type table<string, true> Sources whose failure has already been printed this resource start.
@@ -359,19 +358,6 @@ local function searchPlaces(q)
     return hits
 end
 
----@param q string
----@return table[]
-local function searchStocks(q)
-    local needle, hits = q:lower(), {}
-    for _, a in ipairs((config.Stocks or {}).Assets or {}) do
-        if a.symbol and matches(needle, a.symbol, a.name) then
-            hits[#hits + 1] = hit(a.symbol, a.name or a.symbol, a.symbol)
-            if #hits >= PER_SECTION then break end
-        end
-    end
-    return hits
-end
-
 ---Published articles only; scheduled and draft rows are never read.
 ---@param q string
 ---@return table[]
@@ -462,7 +448,6 @@ local RUNNERS <const> = {
     garages     = function(src, _, q) return searchGarages(src, q) end,
     homes       = function(src, _, q) return searchHomes(src, q) end,
     places      = function(_, _, q) return searchPlaces(q) end,
-    stocks      = function(_, _, q) return searchStocks(q) end,
     weazelnews  = function(_, _, q) return searchWeazelNews(q) end,
     marketplace = function(_, _, q) return searchListings('marketplace', marketplace, config.Marketplace.ListLimit, q) end,
     pages       = function(_, _, q) return searchListings('pages', pages, config.Pages.ListLimit, q) end,
@@ -478,7 +463,7 @@ local RUNNERS <const> = {
 function actions.query(src, payload)
     local result = {
         contacts = {}, messages = {}, mail = {}, notes = {}, calendar = {}, documents = {}, recents = {},
-        voicememos = {}, garages = {}, homes = {}, places = {}, stocks = {}, weazelnews = {},
+        voicememos = {}, garages = {}, homes = {}, places = {}, weazelnews = {},
         marketplace = {}, pages = {}, birdy = {}, photogram = {},
     }
     local cid = player.getIdentifier(src)

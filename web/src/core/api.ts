@@ -7,6 +7,7 @@ export interface Envelope<T = void> {
     messageKey?:  string;
     messageVars?: Record<string, string | number>;
     data?:        T;
+    field?:       string;
 }
 
 // The server refuses in English and sends the catalogue key alongside it, because it has no
@@ -18,8 +19,6 @@ export function failText<T extends string | null | undefined>(
 ): string | T {
     if (res.messageKey && res.message !== undefined) return t(res.messageKey, res.message, res.messageVars);
     return res.message ?? fallback;
-    field?:   string;
-    data?:        T;
 }
 
 export async function apiCall<T>(event: string, payload?: unknown): Promise<Envelope<T>> {

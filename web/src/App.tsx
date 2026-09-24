@@ -933,11 +933,9 @@ function AppContent() {
      * Server reads for the widgets that have no push of their own.
      *
      * Driven off the home screen BECOMING VISIBLE rather than the phone opening: vehicles get
-     * taken out in the world, articles get published by other players, and holdings change inside
-     * the Stocks app - none of which fire an event this UI can hear. Refreshing on arrival at the
-     * home screen catches all of it, while an idle phone and a phone sitting inside an app both
-     * cost nothing. Deliberately NOT watchMarket(): subscribing to per-tick pushes is the right
-     * cost for an open Stocks screen and the wrong one for a tile you glance at.
+     * taken out in the world and articles get published by other players, neither of which fires
+     * an event this UI can hear. Refreshing on arrival at the home screen catches both, while an
+     * idle phone and a phone sitting inside an app cost nothing.
      */
     const homeVisible = !!view && !locked && !currentApp;
     useEffect(() => {
@@ -947,21 +945,11 @@ function AppContent() {
             .then(m => m.fetchVehicles())
             .then(v => useWidgetData.getState().setVehicles(v))
             .catch(() => {});
-        void import('@/apps/stocks/stocksApi')
-            .then(m => m.fetchMarket())
-            .then(mk => useWidgetData.getState().setAssets(mk.assets))
-            .catch(() => {});
         void import('@/apps/weazelnews/weazelnewsApi')
             .then(m => m.weazelFeed())
             .then(f => useWidgetData.getState().setNews(f.articles, f.ticker))
             .catch(() => {});
     }, [homeVisible, refreshWallet]);
-
-    // Free liveness: these ticks are already arriving whenever the Stocks app is watching, so
-    // mirroring them means leaving the app does not drop you onto a frozen tile.
-    useNuiEvent('sd-phone:stocks:prices', useCallback((data) => {
-        if (data?.assets) useWidgetData.getState().setPrices(data.assets);
-    }, []));
 
     useNuiEvent('sd-phone:session', useCallback((data) => {
         if (data && typeof data.startMs === 'number') useSessionStore.getState().setStartMs(data.startMs);
