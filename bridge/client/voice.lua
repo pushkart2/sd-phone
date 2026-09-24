@@ -77,7 +77,7 @@ end
 
 ---Joins or leaves a radio channel. Channel 0 means leave.
 ---
----The channel arrives as the integer the Radio app derives from the frequency; SaltyChat names
+---The channel arrives as an integer frequency supplied by the calling voice integration; SaltyChat names
 ---channels with STRINGS, so the same 125 has to go over as '125' or it joins nothing.
 ---@param channel integer 0 to leave
 ---@return boolean handled

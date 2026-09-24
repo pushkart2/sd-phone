@@ -14,7 +14,7 @@ export function useSelfLocation(dev: SelfLocation = { x: -1037, y: -2738, h: 0 }
     const [me, setMe] = useState<SelfLocation | null>(isFiveM ? null : dev);
     // The last-known position stays painted (this listener is never gated), so the
     // frozen card shows a real dot; only the native location stream is refcounted off
-    // while backgrounded. The module-level count composes across maps/ryde consumers:
+    // while backgrounded. The module-level count composes across map consumers:
     // an inactive consumer drops its +1 while a foreground one keeps the stream alive.
     useNuiEvent('sd-phone:maps:location', useCallback((d) => {
         if (d) setMe({ x: d.x, y: d.y, h: d.h });

@@ -13,7 +13,7 @@ local mediaGuard = require 'server.media.guard'
 local PG = config.Pages
 ---@type table Actions module; the table returned at end of file. Every handler returns the
 ---{ success, message?, data? } envelope. The owner is the caller's citizenid and the timestamp is
----set here. Structural twin of server.marketplace.actions.
+---set here. Uses the same published-post rules as the other feed apps.
 local actions = {}
 
 local util = require 'server.util'

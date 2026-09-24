@@ -1,10 +1,15 @@
 import { forwardRef, useMemo } from 'react';
 
-import { MapView, useStageProjector, type MapViewHandle } from '@/apps/maps/MapView';
-import { Pin } from '@/apps/ryde/ui';
+import { MapView, usePinStyle, useStageProjector, type MapViewHandle } from '@/apps/maps/MapView';
+import type { ReactNode } from 'react';
 
 import { RACING_ACCENT } from './racingTheme';
 import type { RoutePoint } from './data';
+
+function Pin({ x, y, z = 10, children }: { x: number; y: number; z?: number; children: ReactNode }) {
+    const style = usePinStyle(x, y);
+    return <div style={{ ...style, zIndex: z, pointerEvents: 'none' }} className="flex flex-col items-center">{children}</div>;
+}
 
 export function TrackRoute({ points, accent, thin = false }: {
     points: RoutePoint[];

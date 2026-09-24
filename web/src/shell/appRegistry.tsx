@@ -55,7 +55,6 @@ const APP_REGISTRY = {
     weather:     entry(() => import('@/apps/weather/Weather').then(m => ({ default: m.Weather }))),
     maps:        entry(() => import('@/apps/maps/Maps').then(m => ({ default: m.Maps }))),
     music:       entry(() => import('@/apps/music/Music').then(m => ({ default: m.Music }))),
-    ryde:        entry(() => import('@/apps/ryde/Ryde').then(m => ({ default: m.Ryde }))),
     notes:       entry(() => import('@/apps/notes/Notes').then(m => ({ default: m.Notes }))),
     documents:   entry(() => import('@/apps/documents/Documents').then(m => ({ default: m.Documents }))),
     id:          entry(() => import('@/apps/id/Id').then(m => ({ default: m.Id }))),
@@ -64,8 +63,6 @@ const APP_REGISTRY = {
     compass:     entry(() => import('@/apps/compass/Compass').then(m => ({ default: m.Compass }))),
     services:    entry(() => import('@/apps/services/Services').then(m => ({ default: m.Services }))),
     pages:       entry(() => import('@/apps/pages/Pages').then(m => ({ default: m.Pages }))),
-    marketplace: entry(() => import('@/apps/marketplace/Marketplace').then(m => ({ default: m.Marketplace }))),
-    radio:       entry(() => import('@/apps/radio/Radio').then(m => ({ default: m.Radio }))),
     darkchat:    entry(() => import('@/apps/darkchat/DarkChat').then(m => ({ default: m.DarkChat }))),
     cherry:      entry(() => import('@/apps/cherry/Cherry').then(m => ({ default: m.Cherry }))),
     photogram:   entry(() => import('@/apps/photogram/Photogram').then(m => ({ default: m.Photogram }))),
@@ -106,9 +103,9 @@ export function getAppEntry(id: AppId): AppEntry {
 // Apps show a real frozen "where you left off" card by DEFAULT. Backgrounded apps are
 // SUSPENDED (see web/src/shell/deckActive.ts): a boolean plumbed down each app's subtree
 // flips to false when it is not the interactive foreground instance, and the shared
-// choke points (useGameLoop, useSelfLocation, the ryde/photogram/
+// choke points (useGameLoop, useSelfLocation, the photogram/
 // blocks effects) fold it into their gates so the loop / poll / render / media halts and
-// the last frame simply freezes at ~0 CPU. That makes maps, ryde, photogram, the
+// the last frame simply freezes at ~0 CPU. That makes maps, photogram, the
 // arcade + board games, and phone all cheap to keep mounted and previewable.
 //
 // camera is the ONLY genuine exception: it drives a GTA-native cell-cam through a

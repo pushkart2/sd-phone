@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
     AudioLines, Bird, Camera, Clapperboard, DatabaseZap, FileText, Flag, Flame, Hash, Images, LayoutDashboard, Mail, Map,
-    MessageSquare, Mic, Newspaper, Rss, ScrollText, Search, ShieldCheck, ShoppingBag, Skull, StickyNote,
+    MessageSquare, Mic, Newspaper, Rss, ScrollText, Search, ShieldCheck, Skull, StickyNote,
     Trash2, TriangleAlert, VolumeX, X,
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -27,7 +27,7 @@ import { ToastHost, closeTopmostOverlay, useToasts } from './ui';
 
 type PageId =
     | 'dashboard' | 'media' | 'map' | 'players' | 'numbers' | 'flags' | 'mutes' | 'bin' | 'audit' | 'migration' | 'birdy'
-    | 'messages' | 'darkchat' | 'photogram' | 'vibez' | 'cherry' | 'marketplace' | 'pages' | 'gallery' | 'racing'
+    | 'messages' | 'darkchat' | 'photogram' | 'vibez' | 'cherry' | 'pages' | 'gallery' | 'racing'
     | 'mail' | 'documents' | 'weazelnews' | 'notes' | 'voicememos' | 'callrecordings';
 
 interface NavItem { id: PageId; label: string; icon: React.ReactNode }
@@ -53,7 +53,6 @@ const NAV_APPS: NavItem[] = [
     { id: 'photogram',   label: 'Photogram',   icon: <Camera size={15} /> },
     { id: 'vibez',       label: 'Clout',       icon: <Clapperboard size={15} /> },
     { id: 'cherry',      label: 'Cherry',      icon: <Flame size={15} /> },
-    { id: 'marketplace', label: 'Marketplace', icon: <ShoppingBag size={15} /> },
     { id: 'pages',       label: 'Pages',       icon: <Newspaper size={15} /> },
     { id: 'weazelnews',  label: 'Weazel News', icon: <Rss size={15} /> },
     { id: 'documents',   label: 'Documents',   icon: <FileText size={15} /> },
@@ -81,7 +80,6 @@ const PAGE_TITLE: Record<PageId, string> = {
     photogram:   'Photogram moderation',
     vibez:       'Clout moderation',
     cherry:      'Cherry profiles',
-    marketplace: 'Marketplace moderation',
     pages:       'Pages moderation',
     gallery:     'Gallery — player photos',
     racing:      'Racing — track board',
@@ -100,7 +98,6 @@ const CONTENT_PAGES: Record<string, { search: string; empty: string; deleteBody:
     photogram:   { search: 'Filter posts by caption or username',         empty: 'No Photogram posts yet.',     deleteBody: 'The post goes to the Recycle bin for 30 days. Its comments, likes and saves do not come back.', thread: 'Comments' },
     vibez:       { search: 'Filter posts by caption or username',         empty: 'No Clout posts yet.',         deleteBody: 'The post goes to the Recycle bin for 30 days. Its comments, likes and saves do not come back.', thread: 'Comments' },
     cherry:      { search: 'Filter profiles by username, name or bio',    empty: 'No Cherry profiles yet.',     deleteBody: '',                                                             thread: '' },
-    marketplace: { search: 'Filter listings by title or description',     empty: 'No listings yet.',            deleteBody: 'The listing goes to the Recycle bin for 30 days.',                          thread: '' },
     pages:       { search: 'Filter posts by title or description',        empty: 'No posts yet.',               deleteBody: 'The post goes to the Recycle bin for 30 days.',                             thread: '' },
     gallery:     { search: 'Filter photos by citizen ID',                 empty: 'No photos yet.',              deleteBody: 'The photo goes to the Recycle bin for 30 days. The albums it was in do not come back.', thread: '', grid: true },
     mail:        { search: 'Filter mailboxes by address, name or message text', empty: 'No mailboxes yet.',     deleteBody: '',                                                             thread: 'Messages' },

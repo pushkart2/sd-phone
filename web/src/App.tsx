@@ -23,7 +23,6 @@ import { ControlCenter, ControlCenterHotzone } from '@/shell/ControlCenter';
 import { NotificationCenter, NotificationCenterHotzone } from '@/shell/NotificationCenter';
 import { MusicProvider, useMusic } from '@/apps/music/MusicContext';
 import { LockscreenWidgetsProvider } from '@/shell/LockscreenWidgetsContext';
-import { ryDevDataHidden, ryDevToggleData } from '@/apps/ryde/data';
 import { asAppId, isPreviewApp, preloadAllApps, preloadApp, setPreloadPaused, type AppId } from '@/shell/appRegistry';
 import { AppSwitcher } from '@/shell/AppSwitcher';
 import { HOME_HOLD_MS, HOME_HOLD_SLOP, holdAction, swipeAction, tapAction, type HomeAction } from '@/shell/homeGesture';
@@ -587,19 +586,6 @@ function AppContent() {
     useNuiEvent('sd-phone:wipe', useCallback(() => {
         try { localStorage.clear(); } catch { /* ignore */ }
         window.location.reload();
-    }, []));
-
-    const [radioIsland, setRadioIsland] = useState({ on: false, standby: false, freq: 0, onAir: false });
-    useNuiEvent('sd-phone:radio:status', useCallback((d) => {
-        setRadioIsland(s => ({
-            on:      !!d.on,
-            standby: !!d.standby && !d.on,
-            freq:    d.freq,
-            onAir:   d.on ? s.onAir : false,
-        }));
-    }, []));
-    useNuiEvent('sd-phone:radio:onair', useCallback((d) => {
-        setRadioIsland(s => ({ ...s, onAir: !!d.active }));
     }, []));
 
     // Bring an app to the fullscreen foreground: single mount point of truth. Bumps
@@ -1514,7 +1500,7 @@ function AppContent() {
                 {deckLayer}
                 <div key="shell-closed" className={theme === 'dark' ? 'dark' : undefined} data-dark-theme={darkTheme} data-light-theme={lightTheme} style={themeVars}>
                 {peek && (
-                    <PhoneShell peek={peek} frameColor={peekColor ?? frameColor} radioIsland={radioIsland} alarmIsland={{ ringing: !!ringingAlarm, since: ringingSince }}>
+                    <PhoneShell peek={peek} frameColor={peekColor ?? frameColor} alarmIsland={{ ringing: !!ringingAlarm, since: ringingSince }}>
                         <div className="wallpaper absolute inset-0" style={{ backgroundImage: `url(${peekWall})` }} />
                         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-black/5 to-transparent" />
                         <StatusBar
@@ -1594,15 +1580,6 @@ function AppContent() {
             {import.meta.env.DEV && (
                 <button
                     type="button"
-                    onClick={() => { ryDevToggleData(); window.location.reload(); }}
-                    className="fixed start-3 top-12 z-[99999] rounded-md bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-white/20 hover:bg-black/90"
-                >
-                    {ryDevDataHidden() ? 'Ryde data: off' : 'Ryde data: on'}
-                </button>
-            )}
-            {import.meta.env.DEV && (
-                <button
-                    type="button"
                     onClick={() => window.postMessage({
                         action: 'sd-phone:payphone:open',
                         data: {
@@ -1630,7 +1607,7 @@ function AppContent() {
                     {hour24 ? '24h: on' : '24h: off'}
                 </button>
             )}
-            <PhoneShell cameraActive={cameraMode} landscape={cameraMode && landscape} entering={entering} leaving={leaving} onClose={closePhone} frameColor={frameColor} radioIsland={radioIsland} alarmIsland={{ ringing: !!ringingAlarm, since: ringingSince }}>
+            <PhoneShell cameraActive={cameraMode} landscape={cameraMode && landscape} entering={entering} leaving={leaving} onClose={closePhone} frameColor={frameColor} alarmIsland={{ ringing: !!ringingAlarm, since: ringingSince }}>
                 {!(showSetup && setupHello && !noSim) && (
                     <StatusBar
                         use24h={hour24}

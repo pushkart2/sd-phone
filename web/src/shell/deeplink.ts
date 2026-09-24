@@ -16,7 +16,6 @@ export type AppTarget =
     | { app: 'garages'; vehicleId: string }
     | { app: 'homes'; homeId: string }
     | { app: 'weazelnews'; articleId: string }
-    | { app: 'marketplace'; listingId: string }
     | { app: 'pages'; postId: string }
     | { app: 'birdy'; handle: string }
     | { app: 'photogram'; handle: string }

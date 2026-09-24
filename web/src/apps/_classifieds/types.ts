@@ -1,6 +1,6 @@
 import { formatMoney } from '@/lib/money';
 
-export type ClassifiedFeedAction = 'sd-phone:pages:feed' | 'sd-phone:marketplace:feed';
+export type ClassifiedFeedAction = 'sd-phone:pages:feed';
 
 export interface ClassifiedItem {
     id:     string;

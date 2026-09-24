@@ -15,7 +15,6 @@ local APPS = {
     vibez     = { name = 'Clout',     code = '84239' },
     birdy     = { name = 'Squawk',    code = '24739' },
     mail      = { name = 'Mail',      code = '62450' },
-    ryde      = { name = 'Ryde',      code = '79333' },
 }
 
 ---Pretty display name for an app, falling back to the raw key for apps with no delivery identity.

@@ -9,7 +9,7 @@ import { usePaged } from '../usePaged';
 
 const APP_LABEL: Record<string, string> = {
     birdy: 'Squawk', messages: 'Messages', darkchat: 'Dark Chat', photogram: 'Photogram',
-    vibez: 'Clout', marketplace: 'Marketplace', pages: 'Pages', cherry: 'Cherry',
+    vibez: 'Clout', pages: 'Pages', cherry: 'Cherry',
     weazelnews: 'Weazel News', notes: 'Notes',
 };
 

@@ -98,8 +98,8 @@ end
 
 ---@type table<integer, string[]> Copied tables: { table, identity column }. Everything a
 ---restore should carry to the new SIM. Deliberately absent: number-keyed public content
----(marketplace/pages/service messages - tied to the old number), username-keyed social apps
----(Photogram/Birdy/Cherry/Ryde survive via account login, and their sessions ARE copied via
+---(pages/service messages - tied to the old number), username-keyed social apps
+---(Photogram/Birdy/Cherry survive via account login, and their sessions ARE copied via
 ---phone_app_sessions), and darkchat/group-chat room state (moved, not copied, below).
 local COPY = {
     { 'phone_contacts',          'citizenid' },
@@ -120,7 +120,6 @@ local COPY = {
     { 'phone_casino_chips',      'citizenid' },
     { 'phone_cookie',            'citizenid' },
     { 'phone_game_stats',        'citizenid' },
-    { 'phone_radio_saved',       'citizenid' },
     { 'phone_service_prefs',     'citizenid' },
     { 'phone_bank_transactions', 'citizenid' },
     { 'phone_app_sessions',      'citizenid' },

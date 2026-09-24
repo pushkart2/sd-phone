@@ -1,5 +1,4 @@
----@type table Classifieds porters (server.migrate.port.classifieds). Carries lb-phone's Marketplace
----and Yellow Pages posts into sd-phone's Marketplace and Pages, which share one row shape.
+---@type table Classifieds porters (server.migrate.port.classifieds). Carries Yellow Pages posts.
 local M = {}
 
 ---@type table Migration data layer (server.migrate.store).
@@ -20,7 +19,7 @@ local function clamp(s, n)
     return v:sub(1, n)
 end
 
----Copies one lb-phone classifieds table into one sd-phone table.
+---Copies one lb-phone Pages table into sd-phone.
 ---@param ctx table migration context (numberToCid, dryRun)
 ---@param sourceTable string lb-phone table name, unprefixed
 ---@param attachmentColumn string the column holding the media
@@ -58,11 +57,6 @@ local function copy(ctx, sourceTable, attachmentColumn, write)
 end
 
 ---@param ctx table migration context
----@return { migrated: number, skipped: number }
-function M.marketplace(ctx)
-    return copy(ctx, 'phone_marketplace_posts', 'attachments', store.insertMarketplace)
-end
-
 ---@param ctx table migration context
 ---@return { migrated: number, skipped: number }
 function M.pages(ctx)

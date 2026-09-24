@@ -2,8 +2,8 @@
 ---claim one of these, and the lb-phone compat layer maps foreign app names onto them.
 local BUILTIN = {
     'photos', 'bank', 'settings', 'clock', 'messages', 'phone', 'calendar', 'mail', 'weather',
-    'maps', 'music', 'ryde', 'notes', 'voicememos', 'health', 'compass',
-    'services', 'pages', 'marketplace', 'radio', 'darkchat', 'cherry', 'photogram',
+    'maps', 'music', 'notes', 'voicememos', 'health', 'compass',
+    'services', 'pages', 'darkchat', 'cherry', 'photogram',
     'garages', 'homes', 'calculator', 'passwords', 'id',
     'vibez',
     'weazelnews', 'streaks', 'birdy', 'racing', 'appstore', 'camera',

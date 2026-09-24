@@ -1,8 +1,7 @@
----@type table Classifieds porters (server.migrate.port.y.classifieds). Carries YSeries' YBuy ads
----and PromoHub posts into sd-phone's Marketplace and Pages, which share one row shape.
+---@type table Classifieds porters (server.migrate.port.y.classifieds). Carries PromoHub posts.
 local M = {}
 
----@type table Migration data layer (server.migrate.store): the two classifieds writers.
+---@type table Migration data layer (server.migrate.store): the Pages writer.
 local store = require 'server.migrate.store'
 ---@type table YSeries source reads (server.migrate.ystore): paged table reads.
 local ystore = require 'server.migrate.ystore'
@@ -25,7 +24,7 @@ local function clamp(s, n)
     return v:sub(1, n)
 end
 
----Copies one YSeries classifieds table into one sd-phone table. Both source tables key on
+---Copies one YSeries Pages table into sd-phone. Both source tables key on
 ---phone_imei and carry their own contact number, which is preferred over the device's when present.
 ---@param ctx table migration context (imeiToCid, imeiToNumber, digits, dryRun)
 ---@param sourceTable string YSeries table name, unprefixed
@@ -74,11 +73,6 @@ local function copy(ctx, sourceTable, bodyColumn, numberColumn, write)
 end
 
 ---@param ctx table migration context
----@return { migrated: number, skipped: number }
-function M.marketplace(ctx)
-    return copy(ctx, 'ybuy_ads', 'description', 'phone_number', store.insertMarketplace)
-end
-
 ---@param ctx table migration context
 ---@return { migrated: number, skipped: number }
 function M.pages(ctx)

@@ -1,7 +1,5 @@
 ---@type table Yellow Pages persistence layer (server.pages.store): post row CRUD.
 local pagesStore = require 'server.pages.store'
----@type table Marketplace persistence layer (server.marketplace.store): listing row CRUD.
-local mpStore    = require 'server.marketplace.store'
 ---@type table Contacts persistence layer (server.contacts.store): contact + call-log row CRUD.
 local contactsStore = require 'server.contacts.store'
 ---@type table Messages persistence layer (server.messages.store): mailbox row CRUD.
@@ -31,21 +29,17 @@ local function at(y, m, d, hh, mm)
     return os.time({ year = y, month = m, day = d, hour = hh or 12, min = mm or 0, sec = 0 })
 end
 
----@type string Base URL for in-game-loadable vehicle photos (docs.fivem.net renders).
-local VEH = 'https://docs.fivem.net/vehicles/'
-
----/seedclassifieds - DEV TOOL: seeds the Yellow Pages + Marketplace tables with the entries from
----the web dev mock data (web/src/apps/{pages,marketplace}/data.ts). Idempotent; admin-gated.
+---/seedpages - DEV TOOL: seeds the Yellow Pages table with representative entries. Idempotent;
+---admin-gated.
 ---@param source integer player server id
-lib.addCommand('seedclassifieds', {
-    help = 'Dev: seed Yellow Pages + Marketplace with the dev mock entries',
+lib.addCommand('seedpages', {
+    help = 'Dev: seed Yellow Pages with the dev mock entries',
     restricted = 'group.admin',
 }, function(source)
     local cid = player.getIdentifier(source)
     if not cid then return end
 
     MySQL.query.await("DELETE FROM `pages_posts` WHERE citizenid = ? OR (citizenid = ? AND title = 'Tiling and bathroom fitting')", { OTHER, cid })
-    MySQL.query.await("DELETE FROM `marketplace_listings` WHERE citizenid = ? OR (citizenid = ? AND title IN ('Tornado, restored', 'Seminole, tow bar'))", { OTHER, cid })
 
     pagesStore.insert(OTHER, 'Dog walking, Mirror Park',
         'Two walks a day, small groups only, and a photo once they are back inside. Full for August, taking names for September.',
@@ -63,34 +57,9 @@ lib.addCommand('seedclassifieds', {
         'Twelve years on the tools. Wet rooms, splashbacks, regrouting, tile repairs. I quote in person and the quote is the price you pay.',
         nil, nil, nil, '2135550107', nil, os.time())
 
-    mpStore.insert(OTHER, 'Alloys and tyres',
-        'Eighteens off a Sultan, so they will go on anything with that stud pattern. Most of the tread is left and one wheel has a kerb mark on the lip. Collection only, they are heavier than they look.',
-        900, nil, nil, '2135550362', nil, at(2026, 6, 2, 16, 40))
-    mpStore.insert(OTHER, 'Wanted: Sentinel',
-        'After an Ubermacht Sentinel, any year, running or not. Ring me rather than message, I miss messages. If it is off the road, tell me what is wrong with it and I will still come and look.',
-        nil, nil, nil, '3105550557', nil, at(2026, 6, 5, 13, 15))
-    mpStore.insert(cid, 'Seminole, tow bar',
-        'This Canis has been the family car, so expect crumbs in the back. Tow bar and roof bars stay with it. It is due a service in about six hundred miles and I would rather price that in than pretend otherwise.',
-        11200, VEH .. 'seminole.webp', nil, '2135550107', nil, at(2026, 6, 7, 9, 5))
-    mpStore.insert(OTHER, 'Carbon RS, tidy',
-        'Nagasaki, chain and sprockets done last month and there is fresh rubber on the rear. A spare fairing in black comes with it, plus the original exhaust in a box. No test rides without a licence, sorry.',
-        14400, VEH .. 'carbonrs.webp', nil, '3105550194', nil, at(2026, 6, 9, 20, 30))
-    mpStore.insert(OTHER, 'Gauntlet, will swap',
-        'Bravado, supercharged, coilovers, cage in the back. My situation has changed, so I would look at a part exchange against anything with four doors and a boot. Email is better than ringing, I am underground most of the day.',
-        28750, VEH .. 'gauntlet.webp', nil, '2135550416', 'r.okafor@lsmail.com', at(2026, 6, 11, 11, 50))
-    mpStore.insert(OTHER, 'Warrener, project',
-        'The Vulcar turns over and will not fire. I have run out of both patience and driveway. Interior is complete and all the glass is good. Bring a trailer, it is not driving out of here.',
-        3200, VEH .. 'warrener.webp', nil, '2135550623', nil, at(2026, 6, 12, 22, 10))
-    mpStore.insert(OTHER, 'Futo, cheap to run',
-        'Daily drove this Karin for three years and it never once left me stranded. The rear arch on the driver side has started bubbling, which is why it is priced where it is. Viewings at the Sandy Shores yard.',
-        9500, VEH .. 'futo.webp', nil, '3105550281', nil, at(2026, 6, 14, 12, 25))
-    mpStore.insert(cid, 'Tornado, restored',
-        'Two years of evenings went into this Declasse. New loom, rebuilt carb, and the paint is a respray in the colour it left the factory in. Every receipt is in a folder and you can read the lot before you decide anything.',
-        42000, VEH .. 'tornado.webp', nil, '2135550107', nil, os.time())
-
-    print('^2[sd-phone]^0 seeded Yellow Pages + Marketplace dev entries')
+    print('^2[sd-phone]^0 seeded Yellow Pages dev entries')
     TriggerClientEvent('sd-phone:client:notify', source, {
-        app = 'phone', title = 'Dev Seed', body = 'Seeded Yellow Pages + Marketplace entries. Reopen the apps to view.',
+        app = 'phone', title = 'Dev Seed', body = 'Seeded Yellow Pages entries. Reopen Pages to view.',
     })
 end)
 

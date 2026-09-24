@@ -222,19 +222,6 @@ export interface MessagesIncomingPush {
     muted:        boolean;
 }
 
-export interface RydeLatLng { label: string; x: number; y: number }
-export interface RydeRequestPush { id: string; riderName: string; pickup: RydeLatLng; dropoff: RydeLatLng; distance: number; createdAt: number }
-interface RydeTripPush {
-    id: string; status: string; role: 'rider' | 'driver';
-    requestId?: string;
-    riderName?: string; driverName?: string;
-    vehicle?: string; plate?: string; color?: string; rating?: number; number?: string;
-    fare?: number; payment?: string; distance?: number;
-    pickup?: RydeLatLng; dropoff?: RydeLatLng;
-    rideId?: string; paid?: boolean; earn?: number; by?: string;
-    waypoint?: { x: number; y: number };
-}
-
 interface ClassifiedFeedItem {
     id: string;
     title: string;
@@ -307,15 +294,6 @@ export type NuiMessage =
     | { action: 'sd-phone:lockscreenWidget:hide'; data: { key: string } }
     | { action: 'sd-phone:pages:feed';       data: ClassifiedFeedPush }
     | { action: 'sd-phone:weazelnews:feed';  data: { type: 'changed' | 'job' } }
-    | { action: 'sd-phone:marketplace:feed'; data: ClassifiedFeedPush }
-    | { action: 'sd-phone:ryde:requestAdded';   data: RydeRequestPush }
-    | { action: 'sd-phone:ryde:requestRemoved'; data: { id: string } }
-    | { action: 'sd-phone:ryde:waitingCount';   data: { count: number } }
-    | { action: 'sd-phone:ryde:offer';          data: RydeTripPush }
-    | { action: 'sd-phone:ryde:offerRemoved';   data: { id: string; requestId?: string } }
-    | { action: 'sd-phone:ryde:tripUpdate';     data: RydeTripPush }
-    | { action: 'sd-phone:ryde:ratingReceived'; data: { id: string; stars: number; tip?: number } }
-    | { action: 'sd-phone:ryde:peerLocation';   data: { tripId: string; role: 'rider' | 'driver'; x: number; y: number; h: number } }
     | { action: 'sd-phone:close' }
     | { action: 'sd-phone:profileReset' }
     | { action: 'sd-phone:client:characterLoaded' }
@@ -379,10 +357,6 @@ export type NuiMessage =
     | { action: 'sd-phone:payphone:ended';    data: { channel: number; reason: string } }
     | { action: 'sd-phone:payphone:incoming';      data: { channel: number } }
     | { action: 'sd-phone:payphone:incomingEnded'; data: { channel: number } }
-    | { action: 'sd-phone:radio:status';   data: { on: boolean; freq: number; standby?: boolean } }
-    | { action: 'sd-phone:radio:onair';    data: { active: boolean } }
-    | { action: 'sd-phone:radio:count';    data: { count: number } }
-    | { action: 'sd-phone:radio:forceoff'; data: { message?: string } }
     | { action: 'sd-phone:video:request' }
     | { action: 'sd-phone:video:accept' }
     | { action: 'sd-phone:video:stop' }

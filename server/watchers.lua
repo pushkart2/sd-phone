@@ -68,7 +68,7 @@ end
 
 ---The registry for `name`, created on first use. Every module requiring the same name gets the
 ---same set, so a subscribe on one side is visible to the broadcast on the other.
----@param name string app id ('pages', 'marketplace', ...)
+---@param name string app id ('pages', ...)
 ---@return table registry
 function M.of(name)
     local r = registries[name]

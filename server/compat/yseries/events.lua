@@ -77,21 +77,6 @@ AddEventHandler('sd-phone:server:photogram:post', function(p)
     }, p.citizenid)
 end)
 
----Marketplace listing -> yseries:server:ybuy:on-new-ad (adData, playerIdentifier).
-AddEventHandler('sd-phone:server:marketplace:post', function(p)
-    TriggerEvent('yseries:server:ybuy:on-new-ad', {
-        title         = p.title,
-        description   = p.body,
-        category      = nil,
-        price         = p.price,
-        contactName   = nil,
-        number        = p.number,
-        allowMessages = true,
-        allowCalls    = true,
-        attachments   = attachments(p.images or (p.image and { p.image } or nil)),
-    }, p.citizenid)
-end)
-
 ---Yellow-pages post -> yseries:server:promoHub:on-new-ad (adData, playerIdentifier).
 AddEventHandler('sd-phone:server:pages:post', function(p)
     TriggerEvent('yseries:server:promoHub:on-new-ad', {

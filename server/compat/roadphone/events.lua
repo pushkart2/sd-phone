@@ -134,15 +134,6 @@ AddEventHandler('roadphone:fetchallmails', function(playerSource)
     sd:pushBadges(src)
 end)
 
----roadphone:taxi:sync / roadphone:taxi:sync:remove: RoadPad's taxi-job bridge. sd-phone's Ryde owns
----the whole request/accept/complete lifecycle, so there is no foreign job table to write into.
-local function taxiSync()
-    shim.warnOnce('taxi:sync', 'roadphone:taxi:sync has no sd-phone counterpart: Ryde owns its own ride requests end to end, so a job written from outside would never be matched, quoted or paid; use the saveTaxiTripToHistory export to file a finished trip instead')
-end
-
-AddEventHandler('roadphone:taxi:sync', taxiSync)
-AddEventHandler('roadphone:taxi:sync:remove', taxiSync)
-
 ---Call teardown -> roadphone:server:addCallHistory, once per party, with each side's own view of
 ---the call. RoadPhone's callType is 'voice' throughout: sd-phone reports a video upgrade on the
 ---call payload rather than as a separate history kind.

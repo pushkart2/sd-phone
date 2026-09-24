@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { AlarmClock, Music2, Pause, Phone, Play, Radio, SkipBack, SkipForward } from 'lucide-react';
+import { AlarmClock, Music2, Pause, Phone, Play, SkipBack, SkipForward } from 'lucide-react';
 
 import { device } from '@device';
 import { useViewportScale } from '@/device/viewport';
@@ -84,7 +84,6 @@ export interface PhoneShellProps {
     landscape?: boolean;
     peek?: 'in' | 'out';
     onClose?: () => void;
-    radioIsland?: { on: boolean; standby: boolean; freq: number; onAir: boolean };
     alarmIsland?: { ringing: boolean; since: number };
     frameColor?: string;
 }
@@ -412,7 +411,7 @@ function RailKey({ btn, m }: { btn: RailButton; m: ChassisMetrics }) {
     );
 }
 
-export function PhoneShell({ children, hidden = false, cameraActive = false, entering = false, leaving = false, landscape = false, peek, onClose, radioIsland, alarmIsland, frameColor = DEFAULT_FRAME_COLOR }: PhoneShellProps) {
+export function PhoneShell({ children, hidden = false, cameraActive = false, entering = false, leaving = false, landscape = false, peek, onClose, alarmIsland, frameColor = DEFAULT_FRAME_COLOR }: PhoneShellProps) {
     const { brightness, phoneScale, phoneAlign, phoneTilt, openAnim, ringtoneVol, setRingtoneVol, islandPet, shell } = useTheme('brightness', 'phoneScale', 'phoneAlign', 'phoneTilt', 'openAnim', 'ringtoneVol', 'setRingtoneVol', 'islandPet', 'shell');
     const foldW = useScreenW();
     const foldable = useFoldable();
@@ -441,11 +440,6 @@ export function PhoneShell({ children, hidden = false, cameraActive = false, ent
     const callActive    = useCallStore(s => s.phase !== null);
     const callRinging   = useCallStore(s => s.phase === 'incoming' || s.phase === 'outgoing');
     const callStartedAt = useCallStore(s => s.startedAt);
-
-    const radioOn      = radioIsland?.on      ?? false;
-    const radioStandby = radioIsland?.standby ?? false;
-    const radioFreq    = radioIsland?.freq    ?? 0;
-    const radioOnAir   = radioIsland?.onAir   ?? false;
 
     const alarmRinging = alarmIsland?.ringing ?? false;
 
@@ -479,8 +473,8 @@ export function PhoneShell({ children, hidden = false, cameraActive = false, ent
     const alarmSince   = alarmIsland?.since   ?? 0;
 
     useEffect(() => {
-        if (!nowPlaying || callActive || radioOn || radioStandby || alarmRinging) setMusicExpanded(false);
-    }, [nowPlaying, callActive, radioOn, radioStandby, alarmRinging]);
+        if (!nowPlaying || callActive || alarmRinging) setMusicExpanded(false);
+    }, [nowPlaying, callActive, alarmRinging]);
 
     const [rendered, setRendered]         = useState<Track | null>(nowPlaying);
     const [islandClosing, setIslandClosing] = useState(false);
@@ -496,7 +490,7 @@ export function PhoneShell({ children, hidden = false, cameraActive = false, ent
     const islandTrack = rendered;
 
     const petStageNow =
-        callActive || radioOn || radioStandby || alarmRinging ? petStage(CALL_X + 76)
+        callActive || alarmRinging ? petStage(CALL_X + 76)
         : islandTrack ? (musicExpanded || islandClosing ? null : petStage(MIP_X + 41))
         : petStage(DI_X + 9);
 
@@ -1008,7 +1002,7 @@ export function PhoneShell({ children, hidden = false, cameraActive = false, ent
                         />
                     )}
 
-                    {hostsIsland && islandTrack && !callActive && !radioOn && !radioStandby && !alarmRinging && (
+                    {hostsIsland && islandTrack && !callActive && !alarmRinging && (
                         <MusicIsland m={m}
                             track={islandTrack}
                             playing={musicPlaying}
@@ -1033,19 +1027,6 @@ export function PhoneShell({ children, hidden = false, cameraActive = false, ent
                                 <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#30D158' }}>
                                     {callStartedAt ? <RingDuration since={callStartedAt} /> : t('shell.mobile','Mobile')}
                                 </span>
-                            </span>
-                        </IslandPill>
-                    )}
-
-                    {hostsIsland && (
-                        <IslandPill m={m}
-                            active={(radioOn || radioStandby) && !callActive && !alarmRinging}
-                            onClick={() => { if (radioOn) void fetchNui('sd-phone:radio:leave'); else void fetchNui('sd-phone:radio:set', { on: true }); }}
-                            compactX={DI_X} compactW={DI_W} expandedX={CALL_X} expandedW={CALL_W}
-                        >
-                            <span className="absolute start-3 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
-                                <Radio className={`h-[16px] w-[16px] ${radioOnAir ? 'animate-pulse' : ''}`} style={{ color: radioOn ? '#30D158' : '#FF453A', transition: 'color 0.2s ease' }} strokeWidth={2.4} />
-                                <span className="text-[13px] font-semibold tabular-nums" style={{ color: radioOn ? '#30D158' : '#FF453A', transition: 'color 0.2s ease' }}>{radioFreq.toFixed(1)}</span>
                             </span>
                         </IslandPill>
                     )}

@@ -130,24 +130,6 @@ function PagesIcon() {
     );
 }
 
-function MarketplaceIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs><LinearGrad id={u('mkt')} top="#4FA9FF" mid="#1B8BF6" bot="#0A63E0" /></defs>
-            <rect width={S} height={S} fill={`url(#${u('mkt')})`} />
-            <svg x="12" y="12" width="36" height="36" viewBox="0 0 24 24"
-                fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
-                <path d="M2 7h20" />
-                <path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7" />
-            </svg>
-        </svg>
-    );
-}
-
 function MailIcon() {
     const u = useIconIds();
     return (
@@ -271,26 +253,6 @@ function FindFriendsIcon() {
             <circle cx="30" cy="28.5" r="6.5" fill="#FFFFFF" />
             <path d="M30,35 L30,42" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
             <circle cx="30" cy="28.5" r="2.6" fill="#16B85A" />
-        </svg>
-    );
-}
-
-function RydeIcon() {
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <rect width={S} height={S} fill="#000000" />
-            <text
-                x="30" y="31"
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontFamily="Inter, -apple-system, 'SF Pro Display', sans-serif"
-                fontSize="16"
-                fontWeight="600"
-                letterSpacing="-0.4"
-                fill="#fff"
-            >
-                Ryde
-            </text>
         </svg>
     );
 }
@@ -1086,32 +1048,6 @@ function VoiceMemosIcon() {
     );
 }
 
-function RadioIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs>
-                <LinearGrad id={u('rdbg')} top="#3C3C3E" mid="#262628" bot="#161618" angle={160} />
-                <RadialGrad id={u('rdsh')} inner="rgba(255,255,255,0.13)" outer="rgba(255,255,255,0)" cx="32%" cy="15%" />
-            </defs>
-            <rect width={S} height={S} fill={`url(#${u('rdbg')})`} />
-            <rect width={S} height={S} fill={`url(#${u('rdsh')})`} />
-
-            <rect x="24.5" y="7.5" width="3" height="10" rx="1.5" fill="#FFFFFF" />
-
-            <rect x="22" y="16" width="16" height="32" rx="4.6" fill="#FFFFFF" />
-
-            <g stroke="#262628" strokeWidth="1.6" strokeLinecap="round">
-                <line x1="25.6" y1="21" x2="34.4" y2="21" />
-                <line x1="25.6" y1="24" x2="34.4" y2="24" />
-            </g>
-
-            <rect x="25.3" y="28" width="9.4" height="9" rx="2" fill="#262628" />
-            <circle cx="30" cy="42.6" r="2" fill="#262628" />
-        </svg>
-    );
-}
-
 function ReviewIcon() {
     const u = useIconIds();
     return (
@@ -1243,14 +1179,11 @@ const ICON_MAP: Record<string, IconComponent> = {
     services: ServicesIcon,
     pages:    PagesIcon,
     review:     ReviewIcon,
-    marketplace: MarketplaceIcon,
-    radio:    RadioIcon,
     mail:     MailIcon,
     safari:    SafariIcon,
     compass:  CompassIcon,
     maps:     MapsIcon,
     findfriends: FindFriendsIcon,
-    ryde:     RydeIcon,
     camera:   CameraIcon,
     photos:   PhotosIcon,
     music:    MusicIcon,

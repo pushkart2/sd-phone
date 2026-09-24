@@ -167,5 +167,3 @@ unsupported('clearalarms', 'Delete your alarms',
     'sd-phone alarms are deleted from the Clock app itself.')
 unsupported('recipe', 'Show your phone balance plan',
     'sd-phone has no phone balance plan; service is decided by cell tower coverage instead.')
-unsupported('deletemarket', 'Reset a Market entry',
-    'sd-phone Marketplace listings are managed from the app and its Admin panel, not by config id.')

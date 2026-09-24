@@ -148,17 +148,4 @@ AddEventHandler('sd-phone:server:pages:post', function(p)
     })
 end)
 
----New Marketplace listing -> lb-phone:marketplace:newPost. body becomes description and the
----stored images pass through as attachments (empty table when the listing has no photos).
-AddEventHandler('sd-phone:server:marketplace:post', function(p)
-    TriggerEvent('lb-phone:marketplace:newPost', {
-        id          = p.id,
-        number      = p.number or '',
-        title       = p.title,
-        description = p.body,
-        attachments = p.images or {},
-        price       = p.price or 0,
-    })
-end)
-
 -- Not mirrored (no sd-phone analog): lb-phone:numberChanged, factoryReset, toggleVerified, trendy:newPost, darkchat:newMessage.

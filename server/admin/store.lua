@@ -849,7 +849,7 @@ CONTENT.gallery = {
     end,
 }
 
----Shared adapter for the two classifieds-style tables (marketplace_listings / pages_posts).
+---Shared adapter for the Pages classifieds-style table.
 ---@param tbl string table name
 ---@return table adapter
 local function classifieds(tbl)
@@ -871,7 +871,6 @@ local function classifieds(tbl)
         end,
     }
 end
-CONTENT.marketplace = classifieds('marketplace_listings')
 CONTENT.pages       = classifieds('pages_posts')
 
 ---@type integer Seconds this server's local time runs ahead of UTC, measured once at load.

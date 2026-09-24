@@ -124,7 +124,7 @@ export function Maps({ onClose }: { onClose: () => void }) {
         return () => { alive = false; };
     }, [withTarget]);
 
-    // Shared with the ryde consumers: useSelfLocation refcounts the native stream and gates it on
+    // Shared with other map consumers: useSelfLocation refcounts the native stream and gates it on
     // useDeckActive. Maps used to duplicate this inline without either, so a backgrounded Maps kept
     // the stream running, and its ungated on/off fought the refcount other consumers rely on.
     const me = useSelfLocation();

@@ -37,7 +37,6 @@ source.ports = {
     { key = 'mail',       label = 'mail',       run = require('server.migrate.port.mail').run },
     { key = 'wallet',     label = 'wallet',     run = require('server.migrate.port.wallet').run },
     { key = 'voicememos', label = 'voicememos', run = require('server.migrate.port.voicememos').run },
-    { key = 'marketplace', label = 'marketplace', run = require('server.migrate.port.classifieds').marketplace },
     { key = 'pages',      label = 'pages',      run = require('server.migrate.port.classifieds').pages },
     -- Last: links sessions to the accounts the photogram and Squawk porters created.
     { key = 'sessions',   label = 'sessions',   run = require('server.migrate.port.sessions').run },
@@ -85,7 +84,6 @@ source.domainSources = {
     mail       = { 'mail_accounts', 'mail_messages' },
     wallet     = { 'wallet_transactions' },
     voicememos = { 'voice_memos_recordings' },
-    marketplace = { 'phone_marketplace_posts' },
     pages      = { 'phone_yellow_pages_posts' },
     sessions   = { 'logged_in_accounts' },
 }

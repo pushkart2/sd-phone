@@ -66,7 +66,6 @@ export const SECTIONS: SectionDef[] = [
     { key: 'homes', title: () => t('spotlight.homes', 'Homes'), appId: 'homes', open: hit => requestOpenAt({ app: 'homes', homeId: hit.id }) },
     { key: 'places', title: () => t('spotlight.places', 'Places'), appId: 'maps', open: openPlace },
     { key: 'weazelnews', title: () => t('spotlight.weazelnews', 'Weazel News'), appId: 'weazelnews', open: hit => requestOpenAt({ app: 'weazelnews', articleId: hit.id }) },
-    { key: 'marketplace', title: () => t('spotlight.marketplace', 'Marketplace'), appId: 'marketplace', open: hit => requestOpenAt({ app: 'marketplace', listingId: hit.id }) },
     { key: 'pages', title: () => t('spotlight.pages', 'Pages'), appId: 'pages', open: hit => requestOpenAt({ app: 'pages', postId: hit.id }) },
     { key: 'birdy', title: () => t('spotlight.birdy', 'Birdy'), appId: 'birdy', open: hit => requestOpenAt({ app: 'birdy', handle: hit.id }) },
     { key: 'photogram', title: () => t('spotlight.photogram', 'Photogram'), appId: 'photogram', open: hit => requestOpenAt({ app: 'photogram', handle: hit.id }) },

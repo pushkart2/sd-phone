@@ -103,10 +103,10 @@ Already on a [Qbox Dashboard](https://dashboard.qbox.re) plan? You can point upl
 
 | | |
 |---|---|
-| **Communication** | Phone (1:1, group and company calls over pma-voice), Messages (SMS, group threads, GIFs, money and location cards), Mail (multi-account, global inboxes), Dark Chat, Radio, Find Friends |
+| **Communication** | Phone (1:1, group and company calls over pma-voice), Messages (SMS, group threads, GIFs, money and location cards), Mail (multi-account, global inboxes), Dark Chat, Find Friends |
 | **Social** | Photogram (posts, stories, DMs, real live video streaming), Birdy, Cherry, Clout (short-form video), Streaks, all on a shared accounts engine with registration, sign-in, and password resets delivered in-game |
 | **Camera & media** | Camera (live game view: photos, video with voice capture, selfie mode), Photos, Music (with AirShare library sharing), Voice Memos |
-| **World** | Maps (CDN-streamed tiles, routing, pins), Garages, Homes, Bank, Services (company directory, dispatch messaging, phone multijob), Ryde (player-to-player ride hailing), Racing (race board with an in-game track creator, unlocked by a `racing_usb` item), Weazel News, Pages, Marketplace, Weather |
+| **World** | Maps (CDN-streamed tiles, routing, pins), Garages, Homes, Bank, Services (company directory, dispatch messaging, phone multijob), Racing (race board with an in-game track creator, unlocked by a `racing_usb` item), Weazel News, Pages, Weather |
 | **Utilities** | Clock (alarms), Calendar, Notes (with sketches), Files (documents with multi-signer signing, sendable as mail attachments), Calculator, Compass, Health (daily stats and a server-wide steps leaderboard), Passwords, ID (identity cards from your character record and licences, showable to a nearby phone), App Store, Settings |
 
 ## Home screen widgets

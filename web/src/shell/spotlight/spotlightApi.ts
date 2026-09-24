@@ -19,7 +19,6 @@ export interface RemoteResults {
     homes:       GenericHit[];
     places:      GenericHit[];
     weazelnews:  GenericHit[];
-    marketplace: GenericHit[];
     pages:       GenericHit[];
     birdy:       GenericHit[];
     photogram:   GenericHit[];
@@ -40,7 +39,6 @@ export const SOURCE_APP: Record<SearchSource, string> = {
     homes:       'homes',
     places:      'maps',
     weazelnews:  'weazelnews',
-    marketplace: 'marketplace',
     pages:       'pages',
     birdy:       'birdy',
     photogram:   'photogram',
@@ -67,7 +65,6 @@ export async function searchRemote(q: string, sources: SearchSource[]): Promise<
         homes:       list(data.homes),
         places:      list(data.places),
         weazelnews:  list(data.weazelnews),
-        marketplace: list(data.marketplace),
         pages:       list(data.pages),
         birdy:       list(data.birdy),
         photogram:   list(data.photogram),

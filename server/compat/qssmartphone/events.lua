@@ -45,7 +45,6 @@ end
 RegisterNetEvent('qs-smartphone:server:AddNotifies', function(payload)
     notifications.deliver(source, payload)
 end)
-
 ---The legacy mail + Quest event, triggered from the client with { sender, subject, message, button }.
 RegisterNetEvent('qs-smartphone:server:sendNewMail', function(payload)
     if type(payload) ~= 'table' then return end
@@ -156,8 +155,6 @@ unsupportedEvent('qs-smartphone:server:GetCurrentLawyers',
     'sd-phone has no lawyer registry; read on-duty employees of the job through the Services app instead')
 unsupportedEvent('qs-smartphone:server:SendFakeNUmber',
     'sd-phone has no fake-number DLC, so there is no alternate number to send from')
-unsupportedEvent('qs-smartphone:server:uberPay',
-    'sd-phone settles Ryde fares inside its own ride flow, which takes no external payment trigger')
 unsupportedEvent('qs-smartphone-pro:serverCallback',
     'it is PRO\'s internal callback transport; sd-phone uses ox_lib callbacks and cannot answer it')
 
@@ -196,10 +193,4 @@ AddEventHandler('playerDropped', function()
     if not openPhones[src] then return end
     openPhones[src] = nil
     TriggerEvent('phone:closed', src, { reason = 'disconnected' })
-end)
-
----Services duty change -> qs-smartphone:marketplace:dutyChanged (accountId, jobName, source), whose
----source argument comes LAST. The account id is sd-phone's data identity for that phone.
-AddEventHandler('sd-phone:services:dutyChanged', function(src, jobName, on)
-    TriggerEvent('qs-smartphone:marketplace:dutyChanged', identify.scopeOf(src), on and jobName or nil, src)
 end)

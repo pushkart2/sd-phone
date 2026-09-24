@@ -25,7 +25,7 @@ local runner = {}
 local FOREIGN_NAMES = {
     lbphone = { photogram = 'InstaPic', birdy = 'Birdy', vibez = 'Trendy', wallet = 'Wallet',
                 pages = 'Yellow Pages' },
-    yseries = { photogram = 'Instashots', birdy = 'Y', wallet = 'YPay', marketplace = 'YBuy',
+    yseries = { photogram = 'Instashots', birdy = 'Y', wallet = 'YPay',
                 pages = 'PromoHub', photos = 'Gallery', calls = 'Recents', cherry = 'Lovr',
                 weazelnews = 'News', mail = 'YCloud Mail' },
 }
@@ -52,7 +52,6 @@ local TITLES = {
     wallet     = 'Bank',
     voicememos = 'Voice Memos',
     sessions   = 'Signed-in accounts',
-    marketplace = 'Marketplace',
     pages      = 'Pages',
     cherry     = 'Cherry',
     darkchat   = 'Dark Chat',
@@ -78,7 +77,6 @@ local BLURB = {
     wallet     = 'Wallet transaction history.',
     voicememos = 'Voice memo recordings.',
     sessions   = 'Keeps migrated players signed into their accounts.',
-    marketplace = 'For-sale listings with their photos and asking prices.',
     pages      = 'Business and service adverts from the Yellow Pages board.',
     cherry     = 'Dating profiles, swipes, matches and the messages inside them.',
     darkchat   = 'Anonymous chat rooms, who was in them and what was said.',
@@ -105,7 +103,7 @@ local TARGETS = {
     'phone_vibez_notifications',
     { 'phone_mail_accounts', 'password_hash' }, { 'phone_message_reactions', 'mid' },
     'phone_bank_transactions', 'phone_voice_memos',
-    'marketplace_listings', 'pages_posts',
+    'pages_posts',
     'phone_cherry_profiles', 'phone_cherry_swipes', 'phone_cherry_matches', 'phone_cherry_messages',
     'darkchat_rooms', 'darkchat_members', 'darkchat_messages', 'darkchat_nicknames',
     'phone_weazel_articles',

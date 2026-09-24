@@ -92,14 +92,14 @@ return {
     -- on-device behaviour: they stay readable in a dead zone and it is the SEND that fails,
     -- refused server-side against Thresholds.Text and Thresholds.Call. Leaving `call` out would
     -- also block hangup and decline, stranding a player whose signal drops mid-call in a session
-    -- they cannot end. radio is RF, not cellular. payphone is a landline, and being reachable on
-    -- one in a dead zone is the entire point of it. voice carries both the voice memo library
+    -- they cannot end. payphone is a landline, and being reachable on one in a dead zone is the
+    -- entire point of it. voice carries both the voice memo library
     -- and the peer signalling a live call's audio runs on, so gating it would connect calls that
     Offline = {
         'settings', 'phone', 'apps', 'sim', 'admin', 'badges', 'compat',
         'notes', 'documents', 'photos', 'albums', 'music', 'clock', 'voice',
         'contacts', 'call', 'calls', 'messages', 'payphone', 'share', 'airshare',
-        'radio', 'medical',
+        'medical',
     },
 
     -- Single actions that need Thresholds.Data even though the app around them is offline-safe,
@@ -139,9 +139,8 @@ return {
         'vibez:savedPosts', 'vibez:comments', 'vibez:activity', 'vibez:counts', 'vibez:followList',
         -- Everything else that opens onto a list
         'mail:list', 'mail:savedEmails', 'darkchat:rooms', 'darkchat:notifications',
-        'cherry:state', 'cherry:thread', 'marketplace:list', 'pages:list',
+        'cherry:state', 'cherry:thread', 'pages:list',
         'weazelnews:feed', 'weazelnews:view',
         'banking:overview', 'garages:list', 'homes:list', 'services:directory', 'services:inbox',
-        'ryde:history', 'ryde:leaderboard',
     },
 }

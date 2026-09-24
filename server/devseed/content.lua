@@ -42,8 +42,6 @@ local voiceActs       = require 'server.voicememos.actions'
 local weazelStore     = require 'server.weazelnews.store'
 ---@type table Gallery persistence (server.photos.store): photo rows.
 local photosStore     = require 'server.photos.store'
----@type table Marketplace persistence (server.marketplace.store): listing rows.
-local marketplaceStore = require 'server.marketplace.store'
 ---@type table Yellow Pages persistence (server.pages.store): post rows.
 local pagesStore      = require 'server.pages.store'
 ---@type table Mail config (configs.mail): the domain the seeded senders write from.
@@ -59,9 +57,6 @@ local AVATAR = 'https://i.pravatar.cc/160?img=%d'
 local VIDEO = 'https://download.samplelib.com/mp4/sample-5s.mp4'
 ---@type string A short public sample recording, so a seeded voice memo actually plays.
 local AUDIO = 'https://download.samplelib.com/mp3/sample-9s.mp3'
----@type string Base URL for in-game-loadable vehicle photos, as used by /seedclassifieds.
-local VEH = 'https://docs.fivem.net/vehicles/'
-
 ---A picture URL that stays the same for the same key across re-seeds.
 ---@param key string stable seed key
 ---@return string url
@@ -103,7 +98,6 @@ local BAIT = {
     darkchat    = 'everyone get on teamspeak, ts3server is back up on the old address',
     photogram   = 'prints available, dm me. paypal or venmo, your choice',
     vibez       = 'full version is up on discord.gg/lscustoms if you want the whole run',
-    marketplace = 'open to offers but I would take real money for the right price',
     pages       = 'ten percent off if you pay by venmo instead of cash',
     cherry      = 'easier to talk off here, discord.gg/notacatfish, same name',
     weazelnews  = 'The station has denied that any of the funds were moved by paypal, ' ..
@@ -734,24 +728,8 @@ content.seed.gallery = function(ctx)
     return result(rows, false, 'the camera writes these, so there is no action to call')
 end
 
-content.seed.classifieds = function(ctx)
+content.seed.pages = function(ctx)
     local rows = 0
-
-    ---@type table[] Title, body, price, image, owner index.
-    local listings = {
-        { 'Sultan, one owner', 'Serviced last month and the belt is done. Two keys, both work. ' ..
-          'The dent in the rear quarter is honest and priced in.', 16500, VEH .. 'sultan.webp', 1 },
-        { 'Toolbox, full', 'Everything in the photo comes with it. Some of the sockets are missing ' ..
-          'and I am not pretending otherwise.', 450, nil, 2 },
-        { 'Kuruma, quick sale', BAIT.marketplace, 21000, VEH .. 'kuruma.webp', 3 },
-        { 'Two dining chairs', 'Solid, one has a wobble that a screwdriver would fix in a minute. ' ..
-          'Collection from Mirror Park.', 60, nil, 4 },
-    }
-    for i, l in ipairs(listings) do
-        local member = cast.at(l[5])
-        marketplaceStore.insert(member.id, l[1], l[2], l[3], l[4], nil, member.number, nil, l[2] == BAIT.marketplace and baited(3) or ago(i * 2, 4))
-        rows = rows + 1
-    end
 
     ---@type table[] Title, body, owner index.
     local posts = {
@@ -777,7 +755,7 @@ content.seed.classifieds = function(ctx)
         nil, nil, nil, ctx.number, nil, os.time(), os.time() + 7200)
     rows = rows + 1
 
-    return result(rows, false, 'covered separately by /seedclassifieds for your own character')
+    return result(rows, false, 'covered separately by /seedpages for your own character')
 end
 
 ---Removes the rows the caller owns: the ones written through each app's own action path, found by
@@ -871,7 +849,6 @@ function content.clearCast(cid)
     wipe('DELETE FROM phone_voice_memos WHERE citizenid LIKE ?')
     wipe('DELETE FROM phone_weazel_articles WHERE author_cid LIKE ?')
     wipe('DELETE FROM phone_photos WHERE citizenid LIKE ?')
-    wipe('DELETE FROM marketplace_listings WHERE citizenid LIKE ?')
     wipe('DELETE FROM pages_posts WHERE citizenid LIKE ?')
 
     -- The Dark Chat room outlives its messages, and its membership rows go with it.
@@ -888,7 +865,7 @@ end
 ---apps that key on a handle need one to exist before they can attribute anything to it.
 content.order = {
     'mail', 'photogram', 'vibez', 'birdy', 'cherry', 'messages', 'darkchat',
-    'documents', 'notes', 'voicememos', 'weazelnews', 'gallery', 'classifieds',
+    'documents', 'notes', 'voicememos', 'weazelnews', 'gallery', 'pages',
 }
 
 return content

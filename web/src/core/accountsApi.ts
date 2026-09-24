@@ -41,7 +41,7 @@ export async function accountsLogout(app: string): Promise<{ switchedTo: string 
     return { switchedTo: d?.switchedTo ?? null };
 }
 
-export const ACCOUNT_APPS = ['photogram', 'cherry', 'vibez', 'ryde', 'birdy', 'mail'] as const;
+export const ACCOUNT_APPS = ['photogram', 'cherry', 'vibez', 'birdy', 'mail'] as const;
 
 export async function accountsSignOutAll(app?: string): Promise<{ signedOut: number }> {
     if (!isFiveM) {
@@ -94,7 +94,6 @@ const DEV_VAULT: VaultEntry[] = [
     { id: 4, app: 'mail', username: `work@${MAIL_DOMAIN}`, password: 'hunter22', email: `work@${MAIL_DOMAIN}`, created: DEV_CREATED + DEV_DAY * 2 },
     { id: 5, app: 'cherry', username: 'dev', password: 'hunter22', email: `dev@${MAIL_DOMAIN}`, created: DEV_CREATED + DEV_DAY * 3 },
     { id: 6, app: 'vibez',  username: 'dev', password: 'hunter22', email: `dev@${MAIL_DOMAIN}`, created: DEV_CREATED + DEV_DAY * 4 },
-    { id: 7, app: 'ryde',   username: 'dev', password: 'hunter22', email: `dev@${MAIL_DOMAIN}`, created: DEV_CREATED + DEV_DAY * 5 },
 ];
 
 export async function accountsSavePassword(app: string, values: Record<string, string | undefined>): Promise<void> {

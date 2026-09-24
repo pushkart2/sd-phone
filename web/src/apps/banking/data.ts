@@ -54,7 +54,7 @@ export type Category =
     | 'food' | 'groceries' | 'shopping' | 'transport' | 'fuel'
     | 'entertainment' | 'services' | 'health' | 'bills' | 'housing'
     | 'income' | 'transfer' | 'invoice' | 'chess' | 'connectfour' | 'battleship' | 'blackjack'
-    | 'casino' | 'ryde' | 'streaks' | 'standing';
+    | 'casino' | 'streaks' | 'standing';
 
 export interface CategoryMeta {
     label: string;
@@ -89,7 +89,6 @@ export function getCategories(): Record<Category, CategoryMeta> {
         battleship:    { label: t('banking.catBattleship', 'Battleship'),    icon: Ship,         color: '#17A0B5' },
         blackjack:     { label: t('banking.catBlackjack', 'Blackjack'),     icon: Spade,        color: '#1C8A4E' },
         casino:        { label: t('banking.catCasino', 'Casino'),        icon: Dices,        color: '#0F5132' },
-        ryde:          { label: t('banking.catRyde', 'Ryde'),          icon: Car,          color: '#1c1c1e' },
         streaks:       { label: t('banking.catStreaks', 'Streaks'),       icon: Flame,        color: '#FF7A1A' },
     };
     return categoryCache;

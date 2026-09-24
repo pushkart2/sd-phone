@@ -26,8 +26,6 @@ local garages = require 'bridge.server.garages'
 local housing = require 'bridge.server.housing'
 ---@type table Weazel News persistence (server.weazelnews.store).
 local weazelnews = require 'server.weazelnews.store'
----@type table Marketplace persistence (server.marketplace.store).
-local marketplace = require 'server.marketplace.store'
 ---@type table Pages persistence (server.pages.store).
 local pages = require 'server.pages.store'
 ---@type table Birdy handlers (server.birdy.actions): profile search.
@@ -64,7 +62,6 @@ local SOURCES <const> = {
     homes       = 'homes',
     places      = 'maps',
     weazelnews  = 'weazelnews',
-    marketplace = 'marketplace',
     pages       = 'pages',
     birdy       = 'birdy',
     photogram   = 'photogram',
@@ -73,7 +70,7 @@ local SOURCES <const> = {
 ---@type string[] Source keys in the order they run.
 local ORDER <const> = {
     'contacts', 'messages', 'mail', 'notes', 'calendar', 'documents', 'recents', 'voicememos',
-    'garages', 'homes', 'places', 'weazelnews', 'marketplace', 'pages', 'birdy', 'photogram',
+    'garages', 'homes', 'places', 'weazelnews', 'pages', 'birdy', 'photogram',
 }
 
 ---@type table<string, true> Sources whose failure has already been printed this resource start.
@@ -377,7 +374,7 @@ end
 
 ---Live rows from a listings-shaped feed store; scheduled rows are never included.
 ---@param name string feed key for the shared cache
----@param store table marketplace or pages store
+---@param store table listings store
 ---@param limit integer feed cap from config
 ---@param q string
 ---@return table[]
@@ -449,7 +446,6 @@ local RUNNERS <const> = {
     homes       = function(src, _, q) return searchHomes(src, q) end,
     places      = function(_, _, q) return searchPlaces(q) end,
     weazelnews  = function(_, _, q) return searchWeazelNews(q) end,
-    marketplace = function(_, _, q) return searchListings('marketplace', marketplace, config.Marketplace.ListLimit, q) end,
     pages       = function(_, _, q) return searchListings('pages', pages, config.Pages.ListLimit, q) end,
     birdy       = function(src, _, q) return searchProfiles(birdy.search, src, q) end,
     photogram   = function(src, _, q) return searchProfiles(photogram.search, src, q) end,
@@ -464,7 +460,7 @@ function actions.query(src, payload)
     local result = {
         contacts = {}, messages = {}, mail = {}, notes = {}, calendar = {}, documents = {}, recents = {},
         voicememos = {}, garages = {}, homes = {}, places = {}, weazelnews = {},
-        marketplace = {}, pages = {}, birdy = {}, photogram = {},
+        pages = {}, birdy = {}, photogram = {},
     }
     local cid = player.getIdentifier(src)
     if not cid then return ok(result) end

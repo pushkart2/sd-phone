@@ -115,7 +115,7 @@ end
 ---A MySQL DATETIME string for an epoch seconds value, defaulting to now.
 ---
 ---sd-phone's target columns are split between BIGINT epoch seconds (messages, calls, wallet,
----photogram, marketplace, pages) and real TIMESTAMP columns (photos, albums, every phone_birdy_*).
+---photogram, pages) and real TIMESTAMP columns (photos, albums, every phone_birdy_*).
 ---Handing an integer to a TIMESTAMP column does not error: MariaDB stores '0000-00-00 00:00:00',
 ---which reads back as a zero date and sorts every row to the bottom of a DESC ordering. Use this
 ---for the TIMESTAMP columns and pass the raw number to the BIGINT ones.

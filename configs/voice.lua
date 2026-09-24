@@ -3,7 +3,7 @@
 -- real WebRTC mesh (each nearby player's client streams their mic peer-to-peer, mixed into the
 -- recording).
 --
--- Provider/Resources pick which voice script carries CALLS and the RADIO. The two supported
+-- Provider/Resources pick which voice script carries CALLS and optional voice channels. The two supported
 -- dialects are not interchangeable: pma-voice takes numeric call channels and Mumble natives,
 -- SaltyChat takes string call identifiers and has no mic-mute API at all, so the phone hides its
 -- in-call Mute button there rather than offering one that does nothing.

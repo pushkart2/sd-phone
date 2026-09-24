@@ -20,7 +20,6 @@ local APP_MAP = {
     gallery     = 'photos',
     news        = 'weazelnews',
     yellowpages = 'pages',
-    taxi        = 'ryde',
     valet       = 'garages',
     garage      = 'garages',
     wallet      = 'bank',

@@ -548,27 +548,6 @@ eventCookies[#eventCookies + 1] = RegisterNetEvent('roadphone:client:GiveContact
     TriggerServerEvent('sd-phone:server:compat:roadphone:giveContact', target)
 end)
 
----roadphone:client:joinradio(frequency): tunes the phone's Radio, subject to the same restricted
----band check the app runs. The Radio app owns the voice channel, so this stores what it opens on.
----@param frequency number|string the frequency to tune to
-eventCookies[#eventCookies + 1] = RegisterNetEvent('roadphone:client:joinradio', function(frequency)
-    local freq = tonumber(frequency)
-    if not freq then return end
-
-    local verdict = ask('sd-phone:server:radio:canTune', freq)
-    if type(verdict) == 'table' and verdict.allowed == false then return end
-
-    warnOnce('joinradio', 'stored the frequency for the Radio app to open on; sd-phone joins the voice channel from the Radio app itself, so the player still taps to go live')
-    local prefs = askData('sd-phone:server:radio:get') or {}
-    ask('sd-phone:server:radio:save', { frequency = freq, volume = prefs.volume })
-end)
-
----roadphone:client:leaveradio(): leaves the radio channel through the same path a server-side
----band restriction uses, so the voice channel drops and the Radio app follows.
-eventCookies[#eventCookies + 1] = RegisterNetEvent('roadphone:client:leaveradio', function()
-    TriggerEvent('sd-phone:client:radio:forceoff', { message = 'You left the radio channel.' })
-end)
-
 ---roadphone:service:newDispatch(dispatch): the client end of RoadPhone's dispatch flow. sd-phone's
 ---Services app reads its dispatches from the server, so one injected here arrives as a banner.
 ---@param dispatch table { message?, sender?, coords?, ... }
@@ -684,7 +663,7 @@ stubExport('StopIslandActivity', false,
 stubExport('getMusicState', {
     isPlaying = false, isPaused = false, title = nil, artist = nil, image = nil,
     length = 0, current = 0, lengthFormatted = '0:00', currentFormatted = '0:00',
-    volume = 0, isRadio = false,
+    volume = 0,
 }, 'has no sd-phone equivalent: the Music app owns playback inside the UI and publishes no Lua transport state')
 stubExport('watchPauseMusic', false, 'has no sd-phone equivalent: the Music app has no Lua transport controls')
 stubExport('watchResumeMusic', false, 'has no sd-phone equivalent: the Music app has no Lua transport controls')

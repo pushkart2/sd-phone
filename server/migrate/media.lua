@@ -103,7 +103,7 @@ function media.json(raw)
     return json.encode(media.urls(raw))
 end
 
----A cover image and the full list, for the two classifieds tables that store both.
+---A cover image and the full list, for Pages rows that store both.
 ---@param raw any
 ---@return string|nil cover, string|nil imagesJson
 function media.cover(raw)

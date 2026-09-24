@@ -17,7 +17,6 @@ local APP_MAP = {
     bank       = 'bank',
     y          = 'birdy',
     instashots = 'photogram',
-    ybuy       = 'marketplace',
     promohub   = 'pages',
     news       = 'weazelnews',
     darkchat   = 'darkchat',

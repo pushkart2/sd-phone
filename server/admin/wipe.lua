@@ -24,8 +24,6 @@ local CID_SINGLE = {
     { 'phone_voice_memos',           'citizenid' },
     { 'phone_map_markers',           'citizenid' },
     { 'phone_bank_transactions',     'citizenid' },
-    { 'phone_radio',                 'citizenid' },
-    { 'phone_radio_saved',           'citizenid' },
     { 'phone_game_stats',            'citizenid' },
     { 'phone_casino_chips',          'citizenid' },
     { 'phone_cookie',                'citizenid' },
@@ -35,7 +33,6 @@ local CID_SINGLE = {
     { 'phone_racing_profiles',       'citizenid' },
     { 'phone_racing_results',        'citizenid' },
     { 'phone_service_prefs',         'citizenid' },
-    { 'marketplace_listings',        'citizenid' },
     { 'pages_posts',                 'citizenid' },
     { 'phone_passwords',             'citizenid' },
     { 'phone_documents',             'citizenid' },
@@ -161,12 +158,6 @@ local function wipeCid(cid)
         -- By username, not by created_by: accounts made before the creator column existed carry
         -- no owner, and leaving one behind is a login that resolves to a profile that is gone.
         rows = rows + del("DELETE FROM phone_app_accounts WHERE app = 'birdy' AND username = ?", { h })
-    end
-
-    local ry = userFor['ryde']
-    if ry then
-        rows = rows + del('DELETE FROM phone_ryde_rides WHERE rider_username = ? OR driver_username = ?', { ry, ry })
-        rows = rows + del('DELETE FROM phone_ryde_drivers WHERE username = ?', { ry })
     end
 
     -- Mail sessions are normalized; one indexed delete signs this character out everywhere.
@@ -358,8 +349,6 @@ local DEVICE_CONTENT = {
     { 'phone_timer_recents',         'citizenid' },
     { 'phone_documents',             'citizenid' },
     { 'phone_document_folders',      'citizenid' },
-    { 'phone_radio',                 'citizenid' },
-    { 'phone_radio_saved',           'citizenid' },
     { 'phone_custom_ringtones',      'citizenid' },
 }
 

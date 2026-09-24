@@ -76,11 +76,10 @@ local APP_TABLES = {
         'phone_vibez_likes', 'phone_vibez_notifications', 'phone_vibez_follows',
         'phone_vibez_posts', 'phone_vibez_profiles',
     },
-    ryde = { 'phone_ryde_rides', 'phone_ryde_drivers' },
 }
 
 ---@type string[] APP_TABLES keys in a stable order, for the help text and the wipe-everything pass.
-local APP_ORDER = { 'mail', 'birdy', 'photogram', 'cherry', 'vibez', 'ryde' }
+local APP_ORDER = { 'mail', 'birdy', 'photogram', 'cherry', 'vibez' }
 
 ---Empties one table, swallowing the error when it does not exist on this install.
 ---@param tbl string table name
@@ -112,9 +111,9 @@ end
 ---@param source integer player server id (0 from console)
 ---@param args table { app?: string }
 lib.addCommand('wipephoneaccounts', {
-    help = 'Wipe phone app accounts and all their content. No argument wipes every app; pass one of mail, birdy, photogram, cherry, vibez, ryde to wipe just that one.',
+    help = 'Wipe phone app accounts and all their content. No argument wipes every app; pass one of mail, birdy, photogram, cherry, vibez to wipe just that one.',
     params = {
-        { name = 'app', type = 'string', help = 'mail | birdy | photogram | cherry | vibez | ryde (blank = all)', optional = true },
+        { name = 'app', type = 'string', help = 'mail | birdy | photogram | cherry | vibez (blank = all)', optional = true },
     },
     restricted = 'group.admin',
 }, function(source, args)

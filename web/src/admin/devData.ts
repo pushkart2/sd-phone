@@ -104,7 +104,7 @@ const APPS = [
 
 const DOWNLOADABLE = [
     { id: 'vibez', label: 'Clout' }, { id: 'cherry', label: 'Cherry' },
-    { id: 'darkchat', label: 'Dark Chat' }, { id: 'marketplace', label: 'Marketplace' },
+    { id: 'darkchat', label: 'Dark Chat' },
     { id: 'pages', label: 'Pages' },
 ];
 
@@ -137,7 +137,6 @@ export function devOverview(cid: string): AdminOverview {
             { id: 101, app: 'birdy',      username: p.handle,          displayName: p.display, email: `${p.handle}@lifeinvader.com`, phone: p.number, createdAt: ago(90 * DAY) },
             { id: 102, app: 'photogram',  username: `${p.handle}_pics`, displayName: p.display, email: `${p.handle}@lifeinvader.com`, phone: p.number, createdAt: ago(61 * DAY) },
             { id: 103, app: 'mail',       username: p.handle,          displayName: p.name,    email: `${p.handle}@lifeinvader.com`, phone: null,     createdAt: ago(120 * DAY) },
-            { id: 104, app: 'marketplace', username: p.handle,         displayName: p.display, email: null,                          phone: p.number, createdAt: ago(30 * DAY) },
         ],
         birdy: [{
             handle:       p.handle,
@@ -275,7 +274,6 @@ const CONTENT: Record<string, { label: string; titles: string[]; bodies: string[
     photogram:   { label: 'Post',    titles: [], bodies: ['sunset off the pier', 'new wheels finally on', 'coffee and a long shift', 'found this alley downtown', 'race night', 'no filter, promise'], imaged: true },
     vibez:       { label: 'Vibe',    titles: [], bodies: ['drift compilation', 'day in the life of a paramedic', 'how to lose $40k in 90 seconds', 'tunnel run at 3am', 'my garage tour', 'worst parking job in the city'], imaged: true },
     cherry:      { label: 'Profile', titles: ['Dana, 27', 'Marcus, 31', 'Tola, 24', 'Jonas, 35', 'Priya, 29', 'Ade, 26'], bodies: ['Looking for someone who drives.', 'Mechanic. Ask me anything.', 'Journalist, terrible cook.', 'Taxi driver, great stories.', 'EMS. I work nights.', 'Car guy. Obviously.'] },
-    marketplace: { label: 'Listing', titles: ['Sultan RS', 'Set of 18s', 'Apartment sublet', 'Toolbox, full', 'Camera body', 'Spare engine'], bodies: ['Two owners, clean.', 'Kerb mark on one lip.', 'Two months, Mirror Park.', 'Everything in the photo.', 'Barely used.', 'Pulled from a runner.'], priced: true },
     pages:       { label: 'Post',    titles: ['Mechanic wanted', 'Lost dog', 'Race night Friday', 'Room to let', 'Selling my spot', 'Tow service'], bodies: ['Popular St yard, ask for Sam.', 'Answers to Bruno. Reward.', 'Meet at the docks, 11pm.', 'Quiet building, no pets.', 'Vinewood, good views.', '24/7, fair rates.'] },
     gallery:     { label: 'Photo',   titles: [], bodies: [], imaged: true },
     mail:        { label: 'Mailbox', titles: ['sam.black@ls.mail', 'dana.k@ls.mail', 'm.reyes@ls.mail', 'tola@weazel.mail', 'jonas.l@ls.mail', 'priya.r@ls.mail'], bodies: ['Samuel Black', 'Dana Kovac', 'Marcus Reyes', 'Tola Okafor', 'Jonas Lindqvist', 'Priya Raman'] },
@@ -426,7 +424,6 @@ export function devThread(app: string, id: string): { items: AdminThreadItem[]; 
 const FLAG_SEED: [string, string, string, string, string][] = [
     ['birdy',       'ooc-contact', 'Out-of-character contact', 'discord.gg/', 'join the discord.gg/lsrp we run the real races there'],
     ['darkchat',    'real-money',  'Real-money trading',       'paypal',      'can do 40 paypal for the whole crate, dm me'],
-    ['marketplace', 'real-money',  'Real-money trading',       'cash app',    'selling the Sultan, taking cash app only, no in game money'],
     ['messages',    'ooc-contact', 'Out-of-character contact', 'teamspeak',   'get on teamspeak, easier than typing all this'],
     ['photogram',   'ooc-contact', 'Out-of-character contact', 'discord.gg/', 'full album on discord.gg/lscar meets every friday'],
     ['pages',       'real-money',  'Real-money trading',       'venmo',       'apartment sublet, venmo the deposit and its yours'],
@@ -463,7 +460,6 @@ export function devFlags(status: string): { flags: AdminFlag[]; nextCursor: null
 const AUDIT_ACTIONS: [string, string][] = [
     ['mute',              'birdy for 5d: Repeated slurs in replies after a warning.'],
     ['birdy-verify',      'sblack -> blue'],
-    ['delete-content',    'marketplace marketplace-3'],
     ['restore-content',   'bin entry 308'],
     ['reset-passcode',    'passcode cleared'],
     ['set-number',        '5550233 -> 5550241'],
@@ -501,7 +497,6 @@ export function devAudit(q?: string, action?: string): AdminAuditEntry[] {
 
 const BIN_SEED: [string, string, string, string][] = [
     ['photogram',   'race night, meet at the docks',            'its comments, likes and saves', 'Demo Admin'],
-    ['marketplace', 'Sultan RS, taking cash app only',          '',                              'S. Nicol'],
     ['darkchat',    'price list is up, dm for the drop',        'its reactions',                 'Demo Admin'],
     ['pages',       'Room to let, no questions asked',          '',                              'Demo Admin'],
     ['weazelnews',  'Docks closed after overnight raid',        '',                              'S. Nicol'],

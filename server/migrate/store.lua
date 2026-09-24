@@ -520,15 +520,7 @@ function store.insertBlocked(rows)
     insertMulti('INSERT IGNORE INTO phone_blocked (citizenid, number) VALUES', 2, rows)
 end
 
----Insert a batch of Marketplace listings. rows:
----{ citizenid, title, body, price, image, images, number, email, created_at }. `id` is left out
----because the target column is auto-increment.
----@param rows any[][]
-function store.insertMarketplace(rows)
-    insertMulti('INSERT IGNORE INTO marketplace_listings (citizenid, title, body, price, image, images, `number`, email, created_at) VALUES', 9, rows)
-end
-
----Insert a batch of Pages posts. Same row shape as insertMarketplace: the two apps share a schema.
+---Insert a batch of Pages posts.
 ---@param rows any[][]
 function store.insertPages(rows)
     insertMulti('INSERT IGNORE INTO pages_posts (citizenid, title, body, price, image, images, `number`, email, created_at) VALUES', 9, rows)

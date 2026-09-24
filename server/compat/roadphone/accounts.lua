@@ -7,7 +7,7 @@ local stubExport, stubMeta = shim.stubExport, shim.stubMeta
 -- has no such account: each app signs in on its own through the accounts engine, and the only
 -- phone-wide "cloud" is a per-device backup snapshot with no session behind it. A resource wanting
 -- the account behind a player should ask per app instead - exports['sd-phone']:getSessionAccount(app,
--- citizenid) answers for mail, birdy, photogram, cherry, vibez and ryde.
+--- citizenid) answers for mail, birdy, photogram, cherry and vibez.
 ---@type string The clause the RoadID family shares.
 local WHY = 'has no sd-phone counterpart: there is no phone-wide cloud account, apps signing in individually through getSessionAccount(app, citizenid) instead'
 

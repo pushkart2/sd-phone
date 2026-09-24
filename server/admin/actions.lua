@@ -544,7 +544,7 @@ function actions.birdySetVerified(source, payload)
 end
 
 ---One page of an app's content for the per-app moderation pages (messages, darkchat,
----photogram, cherry, marketplace, pages). Author names resolve like everywhere else.
+---photogram, cherry, pages). Author names resolve like everywhere else.
 ---@param source number admin player server id
 ---@param payload { app?: string, cursor?: string, q?: string }|nil
 ---@return table envelope { items, nextCursor, deletable, threaded }
@@ -617,7 +617,7 @@ function actions.contentThreadDelete(source, payload)
 end
 
 ---Deletes one content row from an app that allows it (darkchat message, photogram post,
----marketplace listing, pages post).
+---pages post).
 ---@param source number admin player server id
 ---@param payload { app?: string, id?: string }|nil
 ---@return table envelope

@@ -42,7 +42,7 @@ end
 ---@param citizenid string owner citizenid (resolved server-side, never from the payload)
 ---@param title string post title (pre-capped)
 ---@param body string post body (pre-capped)
----@param price nil always nil for Pages (schema parity with marketplace_listings)
+---@param price nil always nil for Pages
 ---@param image string|nil first photo URL (legacy column + card thumbnail)
 ---@param images string|nil JSON array of photo URLs
 ---@param number string contact number digits (may be '')
