@@ -135,7 +135,6 @@ local gameclock = require 'client.gameclock'
 
 -- Loaded for side effects: each app module registers its own NUI callbacks, net events and
 -- server proxies.
-require 'client.apps.groups'
 require 'client.apps.health'
 require 'client.apps.medical'
 require 'client.apps.mail'

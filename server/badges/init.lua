@@ -8,8 +8,6 @@ local contactStore   = require 'server.contacts.store'
 local voicemailStore = require 'server.voicemail.store'
 ---@type table Mail persistence layer (server.mail.store): inbox unread counts.
 local mailStore      = require 'server.mail.store'
----@type table Groups persistence layer (server.groups.store): pending-invite counts.
-local groupStore     = require 'server.groups.store'
 ---@type table App-accounts persistence layer (server.accounts.store): per-app session lookups.
 local acctStore      = require 'server.accounts.store'
 ---@type table Photogram persistence layer (server.photogram.store): notification/DM counts.
@@ -61,7 +59,6 @@ local counters = {
     messages  = function(cid) return messageStore.unreadCount(cid) end,
     phone     = function(cid) return contactStore.unreadMissedCount(cid) + voicemailStore.unlistenedCount(cid) end,
     mail      = function(cid) return mailStore.unreadCount(cid) end,
-    groups    = function(cid) return groupStore.pendingInviteCount(cid) end,
     photogram = photogramCount,
     vibez     = vibezCount,
     birdy     = birdyCount,
@@ -78,7 +75,7 @@ local memo = {}
 ---Per-app unread counts for one character, keyed by home-screen app id, computed straight from
 ---the database on every call.
 ---@param cid string framework per-character id
----@return { messages: number, phone: number, mail: number, groups: number, photogram: number, vibez: number, birdy: number }
+---@return { messages: number, phone: number, mail: number, photogram: number, vibez: number, birdy: number }
 function badges.snapshot(cid)
     local out = {}
     for app, count in pairs(counters) do out[app] = count(cid) end
@@ -132,7 +129,7 @@ function badges.push(source)
 end
 
 ---Recomputes ONE app's badge and pushes just that number, merged into whatever the phone already
----shows. A content fan-out only ever changes its own app's count, and a full snapshot costs seven
+---shows. A content fan-out only ever changes its own app's count, and a full snapshot costs several
 ---store reads (one of them an unindexed mail scan) - paid per recipient.
 ---@param source number player server id
 ---@param app string home-screen app id; an unknown id is a no-op
@@ -144,18 +141,18 @@ function badges.pushApp(source, app)
     if not cid then return end
     local n = count(cid)
     -- Patch the memo in place rather than ageing it: the fetch must agree with what was pushed,
-    -- but one app's recount says nothing about the other six.
+    -- but one app's recount says nothing about the other counters.
     local hit = memo[cid]
     if hit then hit.snap[app] = n end
     TriggerClientEvent('sd-phone:client:badgePatch', source, { [app] = n })
 end
 
 ---Fetched once by the React app on phone open. An unresolvable caller gets all-zero counts.
----Read-only, and memoised: the full snapshot is ten store reads, one of them an unindexed mail
----scan, so a repeat caller is served the last one.
+---Read-only, and memoised: the full snapshot includes an unindexed mail scan, so a repeat caller is
+---served the last one.
 lib.callback.register('sd-phone:server:badges:get', function(src)
     local cid = player.getIdentifier(src)
-    if not cid then return { messages = 0, phone = 0, mail = 0, groups = 0, photogram = 0, vibez = 0, birdy = 0 } end
+    if not cid then return { messages = 0, phone = 0, mail = 0, photogram = 0, vibez = 0, birdy = 0 } end
     return memoized(cid)
 end)
 
@@ -170,7 +167,7 @@ end)
 ---A player's current per-app unread counts without pushing them. Nil when the source doesn't
 ---resolve to a loaded character.
 ---@param source number player server id
----@return { messages: number, phone: number, mail: number, groups: number, photogram: number, birdy: number }|nil counts
+---@return { messages: number, phone: number, mail: number, photogram: number, birdy: number }|nil counts
 exports('getBadgeCounts', function(source)
     if type(source) ~= 'number' then return nil end
     local cid = player.getIdentifier(source)

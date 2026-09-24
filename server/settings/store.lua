@@ -41,7 +41,6 @@ function store.ensureSchema()
             citizenid          VARCHAR(64) NOT NULL,
             device             VARCHAR(16) NOT NULL DEFAULT 'phone',
             phone_number       VARCHAR(20) NULL,
-            active_group_id    VARCHAR(16) NULL,
             ringtone           VARCHAR(64) NULL,
             notification_tone  VARCHAR(64) NULL,
             airplane_mode      TINYINT(1)  NOT NULL DEFAULT 0,
@@ -234,9 +233,6 @@ function store.ensureSchema()
             MySQL.query.await('ALTER TABLE phone_settings DROP INDEX idx_phone_settings_number')
         end
     end)
-    util.ensureForeignKey('phone_settings', 'active_group_id', 'phone_groups', 'id', 'fk_settings_active_group', {
-        onDelete = 'SET NULL', cleanup = 'null', replace = true,
-    })
 end
 
 ---Clamps an app id to a lowercase slug capped at 32 chars; nil for empty/invalid input.
@@ -455,10 +451,10 @@ end
 ---@type string[] Columns a Reset All Settings carries across. Everything NOT listed is a
 ---preference and goes back to its default. What survives is the three things a preference reset
 ---has no business touching: identity (the number), what you signed up to (setup state, your
----installed apps, your group, your lock) and content you authored (contact card, uploaded
+---installed apps, your lock) and content you authored (contact card, uploaded
 ---wallpapers, custom palettes and icon themes).
 local RESET_KEEP = {
-    'phone_number', 'setup_done', 'installed_apps', 'active_group_id',
+    'phone_number', 'setup_done', 'installed_apps',
     'card_name', 'card_avatar', 'card_email', 'card_address',
     'custom_wallpapers', 'palette_custom', 'icon_custom',
     'passcode', 'face_id',

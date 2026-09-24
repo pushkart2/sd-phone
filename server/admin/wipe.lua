@@ -44,7 +44,6 @@ local CID_SINGLE = {
     { 'phone_message_reactions',     'citizenid' },
     { 'phone_message_group_members', 'citizenid' },
     { 'phone_message_groups',        'owner_cid' },
-    { 'phone_groups',                'leader_cid' },
     { 'darkchat_members',            'citizenid' },
     { 'darkchat_messages',           'citizenid' },
     { 'darkchat_nicknames',          'citizenid' },

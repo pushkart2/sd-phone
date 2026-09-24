@@ -183,24 +183,6 @@ export interface HealthPayload {
     pending?:  { steps: number; distanceM: number; activeMs: number };
 }
 
-interface GroupInvitePush {
-    id:          string;
-    groupId:     string;
-    groupName:   string;
-    invitedBy:   string;
-    memberCount: number;
-    color:       string;
-}
-
-interface GroupRosterPush {
-    groupId: string;
-}
-
-interface GroupDisbandPush {
-    groupId: string;
-    name?:   string;
-}
-
 interface CallPush {
     channel: number;
     name?:   string;
@@ -358,12 +340,6 @@ export type NuiMessage =
     | { action: 'sd-phone:id:received';           data: ReceivedIdCard }
     | { action: 'sd-phone:medical:scanned';       data: { record?: MedicalId } }
     | { action: 'sd-phone:photos:uploadFailed';   data: { code?: string } }
-    | { action: 'sd-phone:groups:inviteReceived'; data: GroupInvitePush }
-    | { action: 'sd-phone:groups:memberJoined';   data: GroupRosterPush }
-    | { action: 'sd-phone:groups:memberLeft';     data: GroupRosterPush }
-    | { action: 'sd-phone:groups:disbanded';      data: GroupDisbandPush }
-    | { action: 'sd-phone:groups:kicked';         data: GroupDisbandPush }
-    | { action: 'sd-phone:groups:updated';        data: GroupRosterPush }
     | { action: 'sd-phone:maps:pinAdded';         data: { id: string; label: string; x: number; y: number; icon: string; color: string } }
     | { action: 'sd-phone:birdy:dmReceived';      data: {
         conversationId: string;

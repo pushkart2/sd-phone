@@ -1106,31 +1106,6 @@ CONTENT.callrecordings = {
     end,
 }
 
-CONTENT.groups = {
-    deletable = false,
-    list = function(ts, id, like, limit)
-        return MySQL.query.await([[
-            SELECT id, UNIX_TIMESTAMP(created_at) AS ts, leader_cid AS author_cid, name AS title,
-                   avatar AS image, members
-            FROM phone_groups
-            WHERE (? IS NULL OR name LIKE ? OR leader_cid LIKE ?)
-              AND (? IS NULL OR created_at < FROM_UNIXTIME(?)
-                   OR (created_at = FROM_UNIXTIME(?) AND id < ?))
-            ORDER BY created_at DESC, id DESC
-            LIMIT ?
-        ]], { like, like, like, ts, ts, ts, id, limit }) or {}
-    end,
-    shape = function(item, row)
-        local members = row.members
-        if type(members) == 'string' then
-            local okJson, decoded = pcall(json.decode, members)
-            members = okJson and decoded or nil
-        end
-        local n = type(members) == 'table' and #members or 0
-        item.label = n > 0 and (n .. (n == 1 and ' member' or ' members')) or nil
-    end,
-}
-
 ---Whether an app id has a content adapter, whether its rows can be deleted, and whether a row
 ---expands into a thread the panel can open.
 ---@param app string

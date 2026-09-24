@@ -40,7 +40,6 @@ function getDescriptions(): Record<string, string> {
         appstore:    t('appstore.descAppstore', 'Discover and download apps'),
         calculator:  t('appstore.descCalculator', 'Everyday calculations'),
         passwords:   t('appstore.descPasswords', 'Store your logins securely'),
-        groups:      t('appstore.descGroups', 'Create and join crews'),
         birdy:       t('appstore.descBirdy', 'Short posts from around the city'),
         services:    t('appstore.descServices', 'Hire local services'),
         pages:       t('appstore.descPages', "The city's business directory"),

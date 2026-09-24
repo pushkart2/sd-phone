@@ -103,7 +103,7 @@ Already on a [Qbox Dashboard](https://dashboard.qbox.re) plan? You can point upl
 
 | | |
 |---|---|
-| **Communication** | Phone (1:1, group and company calls over pma-voice), Messages (SMS, group threads, GIFs, money and location cards), Mail (multi-account, global inboxes), Groups, Dark Chat, Radio, Find Friends |
+| **Communication** | Phone (1:1, group and company calls over pma-voice), Messages (SMS, group threads, GIFs, money and location cards), Mail (multi-account, global inboxes), Dark Chat, Radio, Find Friends |
 | **Social** | Photogram (posts, stories, DMs, real live video streaming), Birdy, Cherry, Clout (short-form video), Streaks, all on a shared accounts engine with registration, sign-in, and password resets delivered in-game |
 | **Camera & media** | Camera (live game view: photos, video with voice capture, selfie mode), Photos, Music (with AirShare library sharing), Voice Memos |
 | **World** | Maps (CDN-streamed tiles, routing, pins), Garages, Homes, Bank, Services (company directory, dispatch messaging, phone multijob), Ryde (player-to-player ride hailing), Racing (race board with an in-game track creator, unlocked by a `racing_usb` item), Weazel News, Pages, Marketplace, Weather |

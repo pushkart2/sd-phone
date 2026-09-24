@@ -40,8 +40,6 @@ local voiceStore      = require 'server.voicememos.store'
 local voiceActs       = require 'server.voicememos.actions'
 ---@type table Weazel News persistence (server.weazelnews.store): article rows.
 local weazelStore     = require 'server.weazelnews.store'
----@type table Groups persistence (server.groups.store): group rows and their member lists.
-local groupsStore     = require 'server.groups.store'
 ---@type table Gallery persistence (server.photos.store): photo rows.
 local photosStore     = require 'server.photos.store'
 ---@type table Marketplace persistence (server.marketplace.store): listing rows.
@@ -717,30 +715,6 @@ content.seed.weazelnews = function(ctx)
     return result(rows, false, 'publishing needs a newsroom job, so these go in as rows')
 end
 
-content.seed.groups = function(ctx)
-    ---@type table[] Name, colour, leader index, and how many stand-ins join.
-    local groups = {
-        { 'Yard crew', '#ff9f0a', 1, 4 },
-        { 'Thursday five a side', '#34c759', 2, 5 },
-        { 'Paleto run', '#5ac8fa', 3, 2 },
-    }
-    local rows = 0
-    for i, g in ipairs(groups) do
-        local leader = cast.at(g[3])
-        local id = util.newId(8)
-        groupsStore.insertGroup(id, g[1], leader.id, g[2],
-            { { citizenid = leader.id, name = leader.name, joined_at = ago(i * 4) } })
-        for m = 1, g[4] do
-            local member = cast.at(g[3] + m)
-            groupsStore.addMember(id, member.id, member.name)
-        end
-        -- The caller joins the first one, so at least one group is visible from their own phone.
-        if i == 1 then groupsStore.addMember(id, ctx.cid, ctx.name) end
-        rows = rows + 1
-    end
-    return result(rows, false, 'group creation is bound to the creator being online')
-end
-
 content.seed.gallery = function(ctx)
     local rows = 0
 
@@ -896,7 +870,6 @@ function content.clearCast(cid)
     wipe('DELETE FROM phone_notes WHERE citizenid LIKE ?')
     wipe('DELETE FROM phone_voice_memos WHERE citizenid LIKE ?')
     wipe('DELETE FROM phone_weazel_articles WHERE author_cid LIKE ?')
-    wipe('DELETE FROM phone_groups WHERE leader_cid LIKE ?')
     wipe('DELETE FROM phone_photos WHERE citizenid LIKE ?')
     wipe('DELETE FROM marketplace_listings WHERE citizenid LIKE ?')
     wipe('DELETE FROM pages_posts WHERE citizenid LIKE ?')
@@ -915,7 +888,7 @@ end
 ---apps that key on a handle need one to exist before they can attribute anything to it.
 content.order = {
     'mail', 'photogram', 'vibez', 'birdy', 'cherry', 'messages', 'darkchat',
-    'documents', 'notes', 'voicememos', 'weazelnews', 'groups', 'gallery', 'classifieds',
+    'documents', 'notes', 'voicememos', 'weazelnews', 'gallery', 'classifieds',
 }
 
 return content

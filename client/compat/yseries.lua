@@ -140,28 +140,6 @@ stubExport('ToggleLandscape', false,
 stubExport('SetNuiFocusKeepInput', nil,
     'is not supported: sd-phone owns its own NUI focus, and handing it out mid-session strands the shell')
 
--- Groups: sd-phone tracks membership and a leader, but none of YSeries side-job staging.
-
-registerExport('GetGroupId', function() return sd:getActiveGroupId() end)
-
----IsGroupLeader(): whether the local player leads their active group. The cached group is the
----server's export view, which names its leader by citizenid, so the local player is identified by
----matching their own server id against the pre-resolved `source` on each member.
-registerExport('IsGroupLeader', function()
-    local group = sd:getActiveGroup()
-    if type(group) ~= 'table' or not group.leaderCitizenid then return false end
-
-    local mySource = GetPlayerServerId(PlayerId())
-    for _, member in ipairs(group.members or {}) do
-        if member.source == mySource then
-            return member.citizenid == group.leaderCitizenid
-        end
-    end
-    return false
-end)
-
-stubExport('GetJobStage', nil, 'has no sd-phone equivalent: groups carry no job stage')
-
 -- Companies: dispatch-style messaging is a server export in sd-phone.
 
 stubExport('SendCompanyMessage', false,

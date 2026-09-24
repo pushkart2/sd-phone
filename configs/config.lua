@@ -26,7 +26,6 @@ local config = {
     Accounts    = require 'configs.accounts',      -- app-account limits (Photogram/Cherry/Vibez/Ryde)
     Mail        = require 'configs.mail',          -- email accounts + limits
     Messages    = require 'configs.messages',       -- SMS / iMessage threads
-    Groups      = require 'configs.groups',        -- player groups / crews
     Birdy       = require 'configs.birdy',         -- microblog
     Photogram   = require 'configs.photogram',     -- photo social + live video streaming
     Vibez       = require 'configs.vibez',          -- short-video social + live video streaming

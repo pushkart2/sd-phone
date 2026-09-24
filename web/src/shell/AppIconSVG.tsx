@@ -654,50 +654,6 @@ function HealthIcon() {
     );
 }
 
-function GroupsIcon() {
-    const u = useIconIds();
-    return (
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S}>
-            <defs>
-                <LinearGrad id={u('grpsbg')} top="#C084FC" mid="#7C3AED" bot="#4C1D95" angle={148} />
-                <radialGradient id={u('grpsgl')} cx="62%" cy="22%" r="58%">
-                    <stop offset="0%"   stopColor="rgba(255,255,255,0.24)" />
-                    <stop offset="100%" stopColor="rgba(255,255,255,0)"    />
-                </radialGradient>
-                <radialGradient id={u('grpsvig')} cx="50%" cy="110%" r="60%">
-                    <stop offset="0%"   stopColor="rgba(40,0,90,0.38)" />
-                    <stop offset="100%" stopColor="rgba(40,0,90,0)"    />
-                </radialGradient>
-            </defs>
-
-            <rect width={S} height={S} fill={`url(#${u('grpsbg')})`} />
-            <rect width={S} height={S} fill={`url(#${u('grpsgl')})`} />
-            <rect width={S} height={S} fill={`url(#${u('grpsvig')})`} />
-
-            <path
-                d="M23,60 C23,45 30,36 37,36 C44,36 51,45 51,60 Z"
-                fill="white" opacity="0.48"
-            />
-            <circle cx="37" cy="17" r="7.5" fill="white" opacity="0.48" />
-            <path d="M31.5,13 Q31.5,10.5 34.5,10.5"
-                fill="none" stroke="rgba(255,255,255,0.28)"
-                strokeWidth="1.8" strokeLinecap="round" />
-
-            <path
-                d="M4,60 C4,44 12,35 22,35 C32,35 40,44 40,60 Z"
-                fill="white"
-            />
-            <circle cx="22" cy="22" r="9.5" fill="white" />
-            <path d="M15,17 Q15,13 19.5,13"
-                fill="none" stroke="rgba(220,180,255,0.45)"
-                strokeWidth="2" strokeLinecap="round" />
-            <path d="M14,30 Q22,33 30,30"
-                fill="none" stroke="rgba(80,0,160,0.18)"
-                strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-    );
-}
-
 function CalculatorIcon() {
     const COLS = [21.4, 30, 38.6];
     const ROWS = [28.6, 36.8, 45];
@@ -1309,7 +1265,6 @@ const ICON_MAP: Record<string, IconComponent> = {
     settings: SettingsIcon,
     appstore: AppStoreIcon,
     health:      HealthIcon,
-    groups:      GroupsIcon,
     calculator:  CalculatorIcon,
     birdy:       BirdyIcon,
     darkchat:    DarkChatIcon,

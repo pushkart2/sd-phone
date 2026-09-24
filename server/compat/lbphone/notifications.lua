@@ -12,7 +12,7 @@ local registerLbExport, warnOnce = shim.registerLbExport, shim.warnOnce
 local SD_APPS = {}
 for _, id in ipairs({
     'photos', 'bank', 'settings', 'clock', 'messages', 'phone', 'calendar', 'mail', 'weather',
-    'maps', 'music', 'ryde', 'notes', 'voicememos', 'health', 'compass', 'groups',
+    'maps', 'music', 'ryde', 'notes', 'voicememos', 'health', 'compass',
     'services', 'pages', 'marketplace', 'radio', 'darkchat', 'cherry', 'photogram',
     'garages', 'homes', 'calculator', 'passwords', 'id',
     'vibez',

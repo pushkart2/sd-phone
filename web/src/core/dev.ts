@@ -46,7 +46,6 @@ export function devInjectMockData(): () => void {
             { id: 'health',   label: 'Health',    icon: 'health',   route: '/health',   accent: '#ff2d55', base: true },
             { id: 'documents', label: 'Files',    icon: 'documents', route: '/documents', accent: '#3478F6', base: true },
             { id: 'id',       label: 'ID',        icon: 'id',       route: '/id',       accent: '#2C3440', base: true },
-            { id: 'groups',   label: 'Groups',    icon: 'groups',   route: '/groups',   accent: '#6C63FF' },
             { id: 'birdy',    label: 'Squawk',    icon: 'birdy',    route: '/birdy',    accent: '#1d9bf0' },
             { id: 'services', label: 'Services',  icon: 'services', route: '/services', accent: '#16B8A6' },
             { id: 'pages',    label: 'Pages',     icon: 'pages',    route: '/pages',    accent: '#FBC02D' },
@@ -94,7 +93,7 @@ export function devInjectMockData(): () => void {
             window.setTimeout(() => window.postMessage({ action: 'sd-phone:notification', data: n }, '*'), 400 + i * 350),
         ));
         seedTimers.push(window.setTimeout(
-            () => window.postMessage({ action: 'sd-phone:badges', data: { messages: 2, phone: 3, mail: 5, groups: 1 } }, '*'),
+            () => window.postMessage({ action: 'sd-phone:badges', data: { messages: 2, phone: 3, mail: 5 } }, '*'),
             400,
         ));
     }

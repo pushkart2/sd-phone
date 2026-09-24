@@ -283,12 +283,11 @@ const CONTENT: Record<string, { label: string; titles: string[]; bodies: string[
     weazelnews:  { label: 'City',    titles: ['Docks closed after overnight raid', 'Third street race this week ends in arrests', 'Mayor announces transit funding', 'Vinewood gallery opens to crowds', 'Hospital wing reopens', 'Storm warning issued for the coast'], bodies: ['Officers moved in shortly after two in the morning.', 'Residents say the noise has become nightly.', 'The plan covers two new lines.', 'The opening drew several hundred visitors.', 'Capacity is up by forty beds.', 'Sailings are suspended until further notice.'], imaged: true },
     notes:       { label: 'Note',    titles: [], bodies: ['dock code 4471', 'ask Dana about the engine', 'shopping: oil, filter, plugs', 'meet Thursday 9pm', 'do not lend the van again', 'plate: 46FGH921'] },
     voicememos:  { label: '0:42',    titles: ['Voice memo 1', 'Interview', 'Song idea', 'Reminder', 'Meeting notes', 'Voice memo 6'], bodies: [] },
-    groups:      { label: '5 members', titles: ['Popular St Crew', 'Night Runners', 'Weazel City Desk', 'EMS Shift B', 'Tunnel Rats', 'Sunday Drivers'], bodies: [] },
 };
 
 const THREADED = new Set(['messages', 'darkchat', 'photogram', 'vibez', 'mail', 'documents']);
 
-const UNDELETABLE = new Set(['messages', 'cherry', 'mail', 'notes', 'groups']);
+const UNDELETABLE = new Set(['messages', 'cherry', 'mail', 'notes']);
 
 const LIKED = new Set(['darkchat', 'photogram', 'vibez']);
 

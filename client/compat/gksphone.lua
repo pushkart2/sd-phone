@@ -455,33 +455,6 @@ registerExport('UpdateMapLocation', function(id, patch)
     TriggerServerEvent('sd-phone:server:compat:gks:map', 'update', id, patch)
 end)
 
--- Job Center. sd-phone tracks group membership and a leader, but none of gksphone's staged job task
--- lists, so leadership answers for real and the task surface reports what it cannot do.
-
----IsGroupLeader(): whether the local player leads their active group. The cached group is the
----server's export view, which names its leader by citizenid, so the local player is identified by
----matching their own server id against the pre-resolved `source` on each member.
-registerExport('IsGroupLeader', function()
-    local group = sd:getActiveGroup()
-    if type(group) ~= 'table' or not group.leaderCitizenid then return false end
-
-    local mySource = GetPlayerServerId(PlayerId())
-    for _, member in ipairs(group.members or {}) do
-        if member.source == mySource then
-            return member.citizenid == group.leaderCitizenid
-        end
-    end
-    return false
-end)
-
----@type string Shared reason clause for the Job Center task surface.
-local TASK_WHY = 'has no sd-phone equivalent: sd-phone groups carry no job task list, so there is no task state to read or advance'
-
-stubExport('IsTaskStatus', false, TASK_WHY)
-stubExport('TaskUpdate', nil, TASK_WHY)
-stubExport('TaskListUpdate', nil, TASK_WHY)
-stubExport('TaskList', {}, TASK_WHY)
-
 -- gksphone's own state bags, mirrored from sd-phone's. sd-phone publishes phoneOpen, softOpen,
 -- batteryLevel, airplaneMode, phoneDisabled, inCall, callId and callStatus already; the four below
 -- are gksphone's own names for values sd-phone has, written replicated so a server-side reader sees

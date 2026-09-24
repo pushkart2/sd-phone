@@ -152,7 +152,7 @@ interface ViewState {
     showDate:      boolean;
 }
 
-const SERVER_BADGE_APPS = new Set<AppId>(['messages', 'phone', 'mail', 'groups', 'photogram', 'birdy', 'vibez']);
+const SERVER_BADGE_APPS = new Set<AppId>(['messages', 'phone', 'mail', 'photogram', 'birdy', 'vibez']);
 
 // How many apps the switcher shows / the recents list remembers. Every visible card
 // wants a live preview, so the retain cap below is bound to this - keeping them the

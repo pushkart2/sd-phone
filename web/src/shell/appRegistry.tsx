@@ -62,7 +62,6 @@ const APP_REGISTRY = {
     voicememos:  entry(() => import('@/apps/voicememos/VoiceMemos').then(m => ({ default: m.VoiceMemos }))),
     health:      entry(() => import('@/apps/health/Health').then(m => ({ default: m.Health }))),
     compass:     entry(() => import('@/apps/compass/Compass').then(m => ({ default: m.Compass }))),
-    groups:      entry(() => import('@/apps/groups/Groups').then(m => ({ default: m.Groups }))),
     services:    entry(() => import('@/apps/services/Services').then(m => ({ default: m.Services }))),
     pages:       entry(() => import('@/apps/pages/Pages').then(m => ({ default: m.Pages }))),
     marketplace: entry(() => import('@/apps/marketplace/Marketplace').then(m => ({ default: m.Marketplace }))),

@@ -100,7 +100,7 @@ end
 ---restore should carry to the new SIM. Deliberately absent: number-keyed public content
 ---(marketplace/pages/service messages - tied to the old number), username-keyed social apps
 ---(Photogram/Birdy/Cherry/Ryde survive via account login, and their sessions ARE copied via
----phone_app_sessions), and darkchat/groups room state (moved, not copied, below).
+---phone_app_sessions), and darkchat/group-chat room state (moved, not copied, below).
 local COPY = {
     { 'phone_contacts',          'citizenid' },
     { 'phone_blocked',           'citizenid' },
@@ -132,7 +132,7 @@ local COPY = {
 ---@type string[] phone_settings columns carried by a restore. The number, citizenid and
 ---timestamps stay out: the new SIM keeps its own number.
 local SETTINGS_COLS = {
-    'active_group_id', 'ringtone', 'notification_tone', 'card_name', 'card_avatar',
+    'ringtone', 'notification_tone', 'card_name', 'card_avatar',
     'card_email', 'card_address', 'installed_apps', 'home_layout', 'lock_clock', 'card_style',
     'wallpaper', 'wallpaper_home', 'blur_lock', 'blur_home', 'custom_wallpapers', 'passcode',
     'face_id', 'chat_text_scale', 'phone_scale', 'phone_align', 'phone_tilt', 'dock_style', 'open_anim',
@@ -235,7 +235,7 @@ end
 ---Restores a phone profile: copies `fromId`'s data onto `toId` (the current SIM identity) and
 ---moves live group-chat membership over, rewriting the stored member number to the new SIM's.
 ---The source profile keeps its rows - whoever holds the old SIM keeps what was on it. Live
----room state (groups, mail logins) can't come from a snapshot, so it moves from `liveFromId` -
+---room state (group chats, mail logins) can't come from a snapshot, so it moves from `liveFromId` -
 ---the previously enrolled phone - which for legacy pointer backups IS the backup identity.
 ---@param fromId string backed-up identity (cloud snapshot, or a phone identity on legacy rows)
 ---@param toId string current SIM identity
