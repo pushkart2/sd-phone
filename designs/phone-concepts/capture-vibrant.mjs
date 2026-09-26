@@ -16,6 +16,11 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   const checkHomeGrid = async () => {
     if (await page.locator('.home .message-preview, .home [data-open="chat"]').count()) throw new Error('Removed home message preview is still present');
+    if (await page.locator('.home .apps-caption, .home [data-open="apps"]').count()) throw new Error('Removed app caption is still present');
+    for (const phone of await page.locator('.concept:not([hidden]) .coast').all()) {
+      const grid=phone.locator('.home .app-grid').first();
+      if (await grid.count() && await grid.locator('[data-app-tile]').count()<24) throw new Error('Coast home is missing the sixth app row');
+    }
     const layouts = await page.locator('.home:visible').evaluateAll(homes => homes.map(home => {
       const content = home.closest('.content').getBoundingClientRect();
       const pager = home.querySelector('.home-pager'), grids = [...pager.querySelectorAll('.app-grid')];
@@ -94,7 +99,8 @@ try {
     if (await phone.locator('.composer input').inputValue() !== 'Keep this draft') throw new Error(`${id}: draft lost on mode change`);
     await phone.locator('.app-header [data-open="messages"]').click();
     await phone.locator('.app-header [data-open="home"]').click();
-    await phone.locator('.home [data-open="apps"]').click();
+    await phone.locator('.home [data-open="camera"]').click();
+    await phone.locator('[data-open="apps"]').click();
     await phone.locator('[data-search]').fill('no such app');
     if (!await phone.locator('[data-empty]').isVisible()) throw new Error(`${id}: empty search missing`);
     await phone.locator('[data-search]').fill('voice');
@@ -105,8 +111,7 @@ try {
     await phone.locator('[data-play]').click();
     if (await phone.locator('[data-play]').getAttribute('aria-label') !== 'Pause music') throw new Error(`${id}: player failed`);
     await phone.locator('.app-header [data-open="home"]').click();
-    await phone.locator('.home [data-open="apps"]').click();
-    await phone.locator('[data-open="settings"]').click();
+    await phone.locator('.home [data-open="settings"]').click();
     await phone.locator('.settings-row [data-mode]').click();
     if (await phone.locator('.screen').getAttribute('data-mode') !== mode) throw new Error(`${id}: settings appearance failed`);
     await phone.locator('.mode-button').click();
