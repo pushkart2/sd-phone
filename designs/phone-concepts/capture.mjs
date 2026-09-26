@@ -44,6 +44,11 @@ try {
     await page.goto(`${source.href}?concept=${id}`);
     await page.screenshot({ path: fileURLToPath(new URL(`${id}.png`, screenshots)), fullPage: true });
     const phone = page.locator(`[data-design="${id}"]`);
+    if (id.startsWith('paper-mosaic')) {
+      if (await phone.locator('.home-app-grid [data-app-tile]').count() !== 12) throw new Error(`${id}: home icon grid missing`);
+      await phone.locator('.home-app-grid [data-open="bank"]').click();
+      if (await phone.locator('.balance').textContent() !== '$12,480.00') throw new Error(`${id}: home icon launch failed`);
+    }
     await phone.locator('.phone-nav [data-open="messages"]').click();
     await phone.locator('[data-chat="Alex Morgan"]').click();
     await phone.locator('.composer input').fill('See you in five.');
@@ -62,9 +67,16 @@ try {
     }
     await page.screenshot({ path: fileURLToPath(new URL(`${id}-messages.png`, screenshots)), fullPage: true });
     await phone.locator('.phone-nav [data-open="apps"]').click();
+    if (id.startsWith('paper-mosaic')) {
+      if (await phone.locator('.drawer-app-grid [data-app-tile]').count() !== 15) throw new Error(`${id}: drawer icon grid missing`);
+      await page.screenshot({ path: fileURLToPath(new URL(`${id}-apps.png`, screenshots)), fullPage: true });
+      await phone.locator('[data-search]').fill('not an app');
+      if (!await phone.locator('[data-search-empty]').isVisible()) throw new Error(`${id}: empty search state missing`);
+    }
     await phone.locator('[data-search]').fill('bank');
-    if (await phone.locator('.app-list-item:visible').count() !== 1) throw new Error(`${id}: app search failed`);
-    await phone.locator('.app-list-item:visible').click();
+    const entries = phone.locator('.app-list-item:visible, [data-app-tile]:visible');
+    if (await entries.count() !== 1) throw new Error(`${id}: app search failed`);
+    await entries.click();
     if (await phone.locator('.balance').textContent() !== '$12,480.00') throw new Error(`${id}: bank failed`);
     await phone.locator('.phone-nav [data-open="apps"]').click();
     await phone.locator('[data-open="music"]').click();
@@ -98,7 +110,11 @@ try {
   }
   await page.screenshot({ path: fileURLToPath(new URL('paper-mosaic-messages-comparison.png', screenshots)), fullPage: true });
   if (errors.length) throw new Error(errors.join('\n'));
-  console.log('Captured original studies and Paper × Mosaic light/dark homescreens and messages. Navigation, messaging, search, player, contrast, theme switching, draft preservation, and responsive checks passed.');
+  for (const id of ['paper-mosaic-light', 'paper-mosaic-dark']) {
+    await page.locator(`[data-design="${id}"] .phone-nav [data-open="apps"]`).click();
+  }
+  await page.screenshot({ path: fileURLToPath(new URL('paper-mosaic-apps-comparison.png', screenshots)), fullPage: true });
+  console.log('Captured original studies and Paper × Mosaic light/dark icon grids, apps, and messages. Icon launches, navigation, messaging, search, player, contrast, theme switching, draft preservation, and responsive checks passed.');
 } finally {
   await browser.close();
 }

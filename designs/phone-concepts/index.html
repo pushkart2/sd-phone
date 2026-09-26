@@ -116,6 +116,17 @@
     .unread { width: 20px; height: 20px; background: var(--accent); color: var(--bg); font-size: 11px; display: grid; place-items: center; border-radius: 3px; margin-left: auto; }
     .paper-search { margin: 23px 0 0; display: flex; align-items: center; gap: 10px; width: 100%; color: var(--muted); font-size: 12px; }
     .paper-search svg { width: 17px; height: 17px; }
+    .app-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 12px; }
+    .home-app-grid { padding-top: 22px; border-top: 1px solid var(--line); }
+    .drawer-app-grid { padding-top: 9px; gap: 24px 12px; }
+    .app-tile { display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--ink); }
+    .app-symbol { position: relative; width: 52px; height: 52px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--accent); display: grid; place-items: center; }
+    .app-symbol .icon { width: 27px; height: 27px; stroke-width: 1.6; }
+    .app-symbol.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .app-tile:hover .app-symbol { border-color: var(--accent); }
+    .app-label { font-size: 11px; line-height: 1.3; text-align: center; max-width: 100%; }
+    .icon-badge { position: absolute; right: -5px; top: -6px; min-width: 18px; height: 18px; display: grid; place-items: center; border-radius: 4px; border: 2px solid var(--bg); background: var(--ink); color: var(--bg); font-size: 10px; }
+    .hybrid .paper-search { padding: 12px 0; margin-top: 19px; }
     .mosaic-home { padding: 10px 18px 0; }
     .mosaic-date { font-size: 12px; color: var(--muted); }
     .mosaic-time { margin: 8px 0 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -236,8 +247,8 @@
     const queryParams = new URLSearchParams(location.search);
     const originalStudy = queryParams.get('collection') === 'original' || originals.some(d => d.id === queryParams.get('concept'));
     const modeDescription = {
-      light: { description: 'Paper’s readable list, in Mosaic’s color family. Pale lavender paper, plum text, and a deeper violet accent.', detail: 'Lavender #f1edf5 / plum #30243b / violet #755494' },
-      dark: { description: 'The same layout after dark. Deep aubergine replaces the paper, with soft lilac text and accents.', detail: 'Aubergine #1c1822 / chalk #eee9f4 / lilac #b8a1d8' },
+      light: { description: 'Paper’s clock and reminder, with a familiar app grid. Lavender icon tiles, plum line artwork, and clear labels.', detail: 'Lavender #f1edf5 / plum #30243b / violet #755494' },
+      dark: { description: 'The same icon grid after dark. Aubergine paper, muted plum icon tiles, and soft lilac artwork.', detail: 'Aubergine #1c1822 / chalk #eee9f4 / lilac #b8a1d8' },
     };
     const designs = originalStudy ? originals : [
       { id: 'paper-mosaic-light', name: 'Light mode', layout: 'paper', theme: 'light', ...modeDescription.light },
@@ -255,11 +266,15 @@
     const state = Object.fromEntries(designs.map(d => [d.id, { page: 'home', theme: d.theme, playing: false, sent: [], chat: 'Alex Morgan' }]));
     const themeButtons = s => ['light', 'dark'].map(mode => `<button data-theme-choice="${mode}" aria-pressed="${s.theme === mode}">${mode === 'light' ? 'Light' : 'Dark'}</button>`).join('');
     const open = (app, content, css = '') => `<button class="${css || 'plain'}" data-open="${app}" aria-label="${appNames[app] || ({ home: 'Home', apps: 'All apps', chat: 'Open conversation' }[app]) || app}">${content}</button>`;
+    const appTile = id => `<button class="app-tile" data-app-tile data-open="${id}" aria-label="${appNames[id]}${id === 'messages' ? ', 2 unread messages' : ''}"><span class="app-symbol ${id === 'messages' ? 'primary' : ''}">${icon(id)}${id === 'messages' ? '<span class="icon-badge" aria-hidden="true">2</span>' : ''}</span><span class="app-label">${appNames[id]}</span></button>`;
     function signalHome(s) {
       return `<div class="signal-home"><div class="signal-mast"><div class="signal-mark">${icon('bars')} Signal</div><span>Los Santos</span></div><div class="signal-clock">09:41</div><div class="signal-date"><span>Friday, September 25</span><span>${icon('sun')} 24°</span></div>${open('chat', '<span class="initial">AM</span><div class="message-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'signal-message plain')}<div class="section-row"><span>Quick access</span>${open('apps', 'All apps ↗')}</div><div class="signal-grid">${['phone','messages','bank','maps','camera','photos'].map(id => open(id, `${icon(id)}<span>${appNames[id]}</span>`)).join('')}</div><div class="signal-player"><div class="record-art">${icon('record')}</div>${open('music', '<div class="track">Night Drive<p>The Midnight · 03:42</p></div>', 'plain track')}<button class="play-button" data-play aria-label="${s.playing ? 'Pause' : 'Play'} music">${icon(s.playing ? 'pause' : 'play')}</button></div></div>`;
     }
-    function paperHome() {
-      return `<div class="paper-home"><div class="paper-heading"><span>Friday, September 25</span>${icon('sun')}</div><div class="paper-time">09:41</div><div class="paper-weather">Los Santos <span>/</span> 24° and clear</div><div class="paper-reminder"><div>${icon('calendar')} Today, 11:30</div><p>Pick up the Sultan</p></div><div class="paper-list">${['messages','phone','maps','bank','notes','music'].map(id => open(id, `${icon(id)}<span>${appNames[id]}</span>${id === 'messages' ? '<span class="unread">2</span>' : `<span class="hint">${{ phone: 'Contacts', maps: 'Explore', bank: '$12,480', notes: '3 notes', music: 'Night Drive' }[id]}</span>`}`)).join('')}</div>${open('apps', `${icon('search')} Find an app`, 'paper-search plain')}</div>`;
+    function paperHome(s) {
+      const apps = s.theme
+        ? `<div class="app-grid home-app-grid">${['messages','phone','camera','photos','maps','bank','music','notes','calendar','mail','services','settings'].map(appTile).join('')}</div>`
+        : `<div class="paper-list">${['messages','phone','maps','bank','notes','music'].map(id => open(id, `${icon(id)}<span>${appNames[id]}</span>${id === 'messages' ? '<span class="unread">2</span>' : `<span class="hint">${{ phone: 'Contacts', maps: 'Explore', bank: '$12,480', notes: '3 notes', music: 'Night Drive' }[id]}</span>`}`)).join('')}</div>`;
+      return `<div class="paper-home"><div class="paper-heading"><span>Friday, September 25</span>${icon('sun')}</div><div class="paper-time">09:41</div><div class="paper-weather">Los Santos <span>/</span> 24° and clear</div><div class="paper-reminder"><div>${icon('calendar')} Today, 11:30</div><p>Pick up the Sultan</p></div>${apps}${open('apps', `${icon('search')} Find an app`, 'paper-search plain')}</div>`;
     }
     function mosaicHome(s) {
       return `<div class="mosaic-home"><div class="mosaic-date">Friday, September 25</div><div class="mosaic-time"><strong>09:41</strong><span>${icon('sun')} Los Santos · 24°</span></div><div class="mosaic-grid">${open('chat', `<div class="tile-top"><span>Messages · 2 unread</span>${icon('messages')}</div><p>Alex Morgan</p><span class="tile-preview">Meet you at the garage?</span>`, 'tile wide tile-message')}${open('phone', `${icon('phone')}<div class="tile-bottom"><span>Phone</span>${icon('arrow')}</div>`, 'tile tile-phone')}${open('music', `${icon(s.playing ? 'pause' : 'music')}<div><div>Night Drive</div><div style="font-size:10px;color:var(--muted);margin-top:5px">The Midnight</div></div>`, 'tile tile-music')}${open('bank', `<span>Bank</span><span class="tile-value">$12,480<span style="font-size:12px">.00</span></span><div class="tile-bottom"><span style="font-size:10px">Available balance</span>${icon('arrow')}</div>`, 'tile tile-bank')}${open('maps', `<svg class="map-art" viewBox="0 0 120 130" fill="none"><path d="M-10 10 140 115M10-10 100 140M-10 90 120 10M-10 120 140 50" stroke="#b1a6be" stroke-width="8"/></svg>${icon('pin')}<div class="tile-bottom"><span>Maps</span>${icon('arrow')}</div>`, 'tile tile-map')}</div><div class="mosaic-shortcuts">${['camera','photos','notes','settings'].map(id => open(id, icon(id), 'plain')).join('')}</div></div>`;
@@ -267,7 +282,7 @@
     function title(name, target = 'home') { return `<div class="app-title">${open(target, icon('back'))}<h3>${name}</h3></div>`; }
     function escapeText(value) { return value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
     function appPage(s) {
-      if (s.page === 'apps') return `<div class="app-page">${title('All apps')}<label class="search-input">${icon('search')}<input type="search" placeholder="Find an app" aria-label="Find an app" data-search></label><div class="app-list">${Object.entries(appNames).map(([id,name]) => open(id, `${icon(id)}<span>${name}</span>${icon('arrow')}`, 'app-list-item')).join('')}</div></div>`;
+      if (s.page === 'apps') return `<div class="app-page">${title('All apps')}<label class="search-input">${icon('search')}<input type="search" placeholder="Find an app" aria-label="Find an app" data-search></label>${s.theme ? `<div class="app-grid drawer-app-grid">${Object.keys(appNames).map(appTile).join('')}</div>` : `<div class="app-list">${Object.entries(appNames).map(([id,name]) => open(id, `${icon(id)}<span>${name}</span>${icon('arrow')}`, 'app-list-item')).join('')}</div>`}<p class="empty-state" data-search-empty hidden>No apps found.</p></div>`;
       if (s.page === 'messages') return `<div class="app-page">${title('Messages')}<label class="search-input">${icon('search')}<input type="search" placeholder="Find a conversation" aria-label="Find a conversation" data-search></label>${[['Alex Morgan','AM','Meet you at the garage?','2 min'],['Jamie Chen','JC','Thanks for the lift yesterday!','18 min'],['Benny’s Workshop','BW','Your Sultan is ready for collection.','1 hr']].map(([name,initial,message,time]) => `<button class="conversation" data-chat="${name}"><span class="initial">${initial}</span><div class="message-copy"><div><strong>${name}</strong><time>${time}</time></div><p>${message}</p></div></button>`).join('')}</div>`;
       if (s.page === 'chat') return `<div class="app-page">${title(s.chat,'messages')}<div class="chat-time">Today, 09:39</div><div class="chat-message">${s.chat === 'Alex Morgan' ? 'Morning! Picking up the Sultan today.' : s.chat === 'Jamie Chen' ? 'Thanks for the lift yesterday!' : 'Your Sultan is ready for collection.'}</div><div class="chat-message sent">Nice, I’m on my way.</div><div class="chat-message">${s.chat === 'Alex Morgan' ? 'Meet you at the garage?' : 'See you soon.'}</div>${s.sent.filter(m => m.chat === s.chat).map(m => `<div class="chat-message sent">${escapeText(m.text)}</div>`).join('')}<form class="composer"><input aria-label="Message" placeholder="Write a message…" maxlength="300" required><button aria-label="Send message">${icon('send')}</button></form></div>`;
       if (s.page === 'bank') return `<div class="app-page">${title('Bank')}<div class="balance-label">Available balance</div><div class="balance">$12,480.00</div><button class="demo-button" data-notice="Transfer preview — no money is moved.">Transfer money</button><div class="section-row">Recent transactions</div>${[['Benny’s Workshop','Vehicle service','−$450.00'],['Salary','Los Santos Customs','+$2,800.00'],['24/7 Store','Groceries','−$38.50'],['Jamie Chen','Transfer received','+$120.00']].map(([name,desc,amount]) => `<div class="transaction"><div>${name}<p>${desc}</p></div><span>${amount}</span></div>`).join('')}</div>`;
@@ -318,7 +333,11 @@
     document.addEventListener('input', event => {
       if (!event.target.matches('[data-search]')) return;
       const query = event.target.value.toLowerCase();
-      event.target.closest('.app-page').querySelectorAll('.app-list-item,.conversation').forEach(item => item.hidden = !item.textContent.toLowerCase().includes(query));
+      const appPage = event.target.closest('.app-page');
+      const items = [...appPage.querySelectorAll('.app-list-item,.conversation,[data-app-tile]')];
+      items.forEach(item => item.hidden = !item.textContent.toLowerCase().includes(query));
+      const empty = appPage.querySelector('[data-search-empty]');
+      if (empty) empty.hidden = items.some(item => !item.hidden);
     });
     document.addEventListener('submit', event => {
       if (!event.target.matches('.composer')) return; event.preventDefault();

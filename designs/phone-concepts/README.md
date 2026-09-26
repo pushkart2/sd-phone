@@ -2,7 +2,7 @@
 
 Open `index.html` directly in a browser. No installation or build is needed. The file contains its own styles, scripts, and SVG icons, and does not load the production phone UI.
 
-The default view combines Paper’s typographic app list with Mosaic’s palette, comparing light and dark modes side by side.
+The default view combines Paper’s clock, reminder, and quiet typography with Mosaic’s palette, comparing light and dark modes side by side. Apps use a familiar four-column icon grid on both the home screen and app drawer. The icon family uses consistent line artwork, restrained lavender/plum tiles, and a highlighted Messages icon with an unread badge.
 
 | Color | Light | Dark |
 | --- | --- | --- |
