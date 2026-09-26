@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sd-phone / Design studies</title>
+  <style>
+    :root { color-scheme: light; font-family: 'Bahnschrift', 'Helvetica Neue', sans-serif; background: #e9e9e5; color: #242423; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    button { -webkit-tap-highlight-color: transparent; }
+    .studio { max-width: 1380px; margin: auto; padding: 30px 40px 36px; }
+    .studio-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid #c8c8c2; }
+    .studio-header h1 { margin: 0; font-size: 19px; font-weight: 600; }
+    .studio-header h1 span { color: #74746b; font-weight: 400; margin-left: 12px; }
+    .studio-header p { margin: 0; font-size: 13px; color: #616159; }
+    .concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; margin-top: 28px; }
+    .concept { min-width: 0; }
+    .concept-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .number { color: #76766d; font-family: monospace; font-size: 12px; }
+    .concept h2 { font-size: 17px; font-weight: 600; margin: 0; }
+    .inspect { margin-left: auto; border: 0; border-bottom: 1px solid #97978c; padding: 3px 0; color: #55554d; background: transparent; font-size: 12px; }
+    .device { position: relative; max-width: 378px; width: 100%; aspect-ratio: 378 / 780; margin: auto; padding: 7px; border: 1px solid #454542; border-radius: 16px; background: #242423; }
+    .device::before { content: ''; position: absolute; right: -3px; top: 151px; width: 3px; height: 46px; background: #454542; border-radius: 0 2px 2px 0; }
+    .screen { height: 100%; border-radius: 10px; overflow: hidden; position: relative; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); }
+    .signal { --bg: #151514; --ink: #f1f0e9; --muted: #a1a198; --line: #363632; --accent: #ed6b38; --surface: #232321; }
+    .paper { --bg: #f2f1e8; --ink: #283728; --muted: #6e7668; --line: #d1d5c6; --accent: #516642; --surface: #e7eadb; }
+    .mosaic { --bg: #1c1822; --ink: #eee9f4; --muted: #b1a6be; --line: #41364c; --accent: #b8a1d8; --surface: #302638; }
+    .status { height: 38px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 11px; font-weight: 600; }
+    .status-right { display: flex; align-items: center; gap: 7px; }
+    .status svg { width: 13px; height: 13px; }
+    .status .battery { width: 20px; }
+    .screen-content { flex: 1; min-height: 0; overflow: auto; scrollbar-width: none; }
+    .screen-content::-webkit-scrollbar { display: none; }
+    .phone-nav { height: 64px; flex-shrink: 0; border-top: 1px solid var(--line); display: flex; background: var(--bg); }
+    .phone-nav button { flex: 1; background: transparent; border: 0; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; }
+    .phone-nav button svg { width: 18px; height: 18px; }
+    .phone-nav button.active { color: var(--ink); }
+    .signal .phone-nav button.active { border-top: 2px solid var(--accent); background: var(--surface); }
+    .paper .phone-nav button.active { color: var(--accent); font-weight: 700; }
+    .mosaic .phone-nav button.active { color: var(--accent); }
+    .caption { max-width: 378px; margin: 18px auto 0; }
+    .caption p { font-size: 13px; line-height: 1.5; color: #626259; margin: 0 0 9px; }
+    .caption .detail { font-family: monospace; font-size: 11px; color: #77776d; }
+    .studio-footer { border-top: 1px solid #c8c8c2; margin-top: 28px; padding-top: 16px; font-size: 12px; color: #626259; display: flex; justify-content: space-between; gap: 12px; }
+    .exit-focus { display: none; border: 1px solid #aaa; border-radius: 4px; padding: 6px 10px; background: transparent; }
+    body.focused .concepts { display: block; }
+    body.focused .concept { max-width: 378px; margin: auto; }
+    body.focused .concept.is-hidden { display: none; }
+    body.focused .exit-focus { display: block; }
+    body.focused .studio-header p { display: none; }
+    body.focused .inspect { display: none; }
+    svg.icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .plain { background: none; border: 0; color: inherit; padding: 0; text-align: left; }
+    .rule { border-top: 1px solid var(--line); }
+    .signal-home { padding: 14px 20px 0; }
+    .signal-mast { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding-bottom: 20px; }
+    .signal-mark { display: flex; gap: 7px; align-items: center; font-weight: 600; }
+    .signal-mark svg { width: 17px; height: 17px; color: var(--accent); }
+    .signal-mast span { color: var(--muted); font-size: 11px; }
+    .signal-clock { font-size: 77px; line-height: 1; font-weight: 300; letter-spacing: -5px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+    .signal-date { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; margin-bottom: 25px; }
+    .signal-date span:last-child { display: flex; align-items: center; gap: 5px; }
+    .signal-date svg { width: 15px; height: 15px; }
+    .signal-message { display: flex; width: 100%; gap: 12px; padding: 17px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .initial { width: 35px; height: 35px; display: grid; place-items: center; font-size: 13px; background: var(--surface); border-radius: 4px; flex-shrink: 0; }
+    .message-copy { flex: 1; font-size: 12px; line-height: 1.65; }
+    .message-copy div { display: flex; justify-content: space-between; }
+    .message-copy time { font-size: 10px; color: var(--muted); }
+    .message-copy p { margin: 0; color: var(--muted); }
+    .section-row { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 12px; font-size: 12px; }
+    .section-row button { color: var(--muted); font-size: 11px; }
+    .signal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+    .signal-grid button { height: 79px; border: 0; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; padding: 12px; font-size: 11px; }
+    .signal-grid button:first-child { background: var(--accent); color: #161514; }
+    .signal-grid button:hover { background: var(--surface); color: var(--ink); }
+    .signal-player { padding: 16px 0; margin-top: 18px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+    .record-art { width: 40px; height: 40px; background: #b95a37; display: grid; place-items: center; border-radius: 3px; }
+    .record-art svg { width: 29px; height: 29px; color: #241d17; }
+    .track { flex: 1; font-size: 12px; }
+    .track p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
+    .play-button { border: 1px solid var(--line); background: transparent; color: var(--ink); width: 32px; height: 32px; border-radius: 4px; display: grid; place-items: center; }
+    .play-button svg { width: 14px; height: 14px; }
+    .paper-home { padding: 8px 22px 0; }
+    .paper-heading { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .paper-heading svg { width: 17px; height: 17px; }
+    .paper-time { font-size: 66px; line-height: 1.1; letter-spacing: -3px; font-weight: 400; margin: 17px 0 4px; }
+    .paper-weather { font-size: 12px; color: var(--muted); margin-bottom: 23px; }
+    .paper-weather span { margin: 0 6px; }
+    .paper-reminder { border-left: 3px solid var(--accent); padding: 3px 12px; margin-bottom: 24px; }
+    .paper-reminder div { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+    .paper-reminder svg { width: 12px; height: 12px; }
+    .paper-reminder p { font-size: 14px; margin: 7px 0 0; }
+    .paper-list { border-top: 1px solid var(--line); }
+    .paper-list button { width: 100%; display: flex; align-items: center; gap: 14px; padding: 15px 0; font-size: 17px; border-bottom: 1px solid var(--line); }
+    .paper-list button .hint { color: var(--muted); font-size: 11px; margin-left: auto; }
+    .paper-list button svg { width: 20px; height: 20px; }
+    .unread { width: 20px; height: 20px; background: var(--accent); color: var(--bg); font-size: 11px; display: grid; place-items: center; border-radius: 3px; margin-left: auto; }
+    .paper-search { margin: 23px 0 0; display: flex; align-items: center; gap: 10px; width: 100%; color: var(--muted); font-size: 12px; }
+    .paper-search svg { width: 17px; height: 17px; }
+    .mosaic-home { padding: 10px 18px 0; }
+    .mosaic-date { font-size: 12px; color: var(--muted); }
+    .mosaic-time { margin: 8px 0 20px; display: flex; justify-content: space-between; align-items: center; }
+    .mosaic-time strong { font-size: 62px; font-weight: 400; letter-spacing: -3px; }
+    .mosaic-time span { color: var(--muted); font-size: 12px; display: flex; flex-direction: column; align-items: end; gap: 5px; }
+    .mosaic-time svg { width: 22px; height: 22px; }
+    .mosaic-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .tile { min-height: 97px; border: 0; border-radius: 6px; padding: 14px; text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: space-between; background: var(--surface); color: var(--ink); font-size: 12px; }
+    .tile.wide { grid-column: span 2; min-height: 108px; }
+    .tile-message { background: #b8a1d8; color: #241b30; }
+    .tile-message .tile-top { display: flex; width: 100%; justify-content: space-between; align-items: center; font-size: 11px; }
+    .tile-message p { font-size: 16px; margin: 11px 0 5px; }
+    .tile-message .tile-preview { font-size: 11px; opacity: .8; }
+    .tile-music { background: #423047; }
+    .tile-phone { background: #d7d2bb; color: #342d28; }
+    .tile-bank { background: #2d3d36; color: #d9e4d4; }
+    .tile-map { background: #33303a; position: relative; overflow: hidden; }
+    .tile-map svg.map-art { position: absolute; right: 0; top: 0; height: 100%; width: 110px; opacity: .32; }
+    .tile-map > :not(.map-art) { position: relative; }
+    .tile-value { font-size: 21px; margin-top: 9px; }
+    .tile-bottom { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .tile-bottom .icon { width: 17px; height: 17px; }
+    .mosaic-shortcuts { display: flex; justify-content: space-between; margin-top: 19px; gap: 8px; }
+    .mosaic-shortcuts button { display: flex; align-items: center; justify-content: center; width: 100%; height: 43px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); background: transparent; }
+    .mosaic-shortcuts svg { width: 18px; height: 18px; }
+    .app-page { padding: 16px 20px; }
+    .app-title { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .app-title h3 { margin: 0; font-weight: 500; font-size: 23px; }
+    .app-title button { display: grid; place-items: center; }
+    .app-title svg { width: 20px; height: 20px; }
+    .search-input { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 5px; margin-bottom: 17px; }
+    .search-input svg { width: 16px; height: 16px; color: var(--muted); }
+    .search-input input { width: 100%; min-width: 0; background: transparent; border: 0; outline: none; color: var(--ink); font-size: 13px; }
+    .app-list-item { width: 100%; border: 0; border-bottom: 1px solid var(--line); padding: 13px 0; background: transparent; color: var(--ink); text-align: left; display: flex; align-items: center; gap: 13px; font-size: 14px; }
+    .app-list-item .icon { color: var(--accent); width: 21px; height: 21px; }
+    .app-list-item > .icon:last-child { margin-left: auto; color: var(--muted); width: 15px; height: 15px; }
+    .conversation { width: 100%; border: 0; border-bottom: 1px solid var(--line); padding: 17px 0; background: transparent; color: var(--ink); text-align: left; display: flex; gap: 12px; }
+    .conversation .message-copy { font-size: 13px; }
+    .chat-message { background: var(--surface); padding: 13px; border-radius: 6px; font-size: 13px; line-height: 1.6; max-width: 88%; margin-bottom: 13px; }
+    .chat-message.sent { background: var(--accent); color: var(--bg); margin-left: auto; }
+    .chat-time { font-size: 11px; color: var(--muted); text-align: center; margin: 24px 0; }
+    .composer { display: flex; gap: 8px; margin-top: 24px; }
+    .composer input { min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 5px; padding: 11px; background: transparent; color: var(--ink); font-size: 12px; }
+    .composer button { background: var(--accent); color: var(--bg); border: 0; width: 40px; border-radius: 5px; flex-shrink: 0; }
+    .composer svg { width: 18px; height: 18px; }
+    .balance { font-size: 43px; letter-spacing: -2px; margin: 7px 0 24px; }
+    .balance-label { font-size: 12px; color: var(--muted); }
+    .transaction { padding: 15px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 13px; }
+    .transaction p { margin: 5px 0 0; font-size: 11px; color: var(--muted); }
+    .demo-button { background: var(--accent); color: var(--bg); border: 0; border-radius: 5px; padding: 11px 15px; font-size: 13px; }
+    .contact-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .contact-row button { border: 0; background: transparent; color: var(--accent); }
+    .music-cover { aspect-ratio: 1; margin: 28px 16px; background: #9b603e; display: grid; place-items: center; border-radius: 5px; }
+    .music-cover svg { width: 55%; height: 55%; color: #2b2520; }
+    .music-caption { text-align: center; font-size: 22px; }
+    .music-caption p { font-size: 13px; color: var(--muted); margin: 7px 0 24px; }
+    .music-controls { display: flex; align-items: center; justify-content: center; gap: 26px; }
+    .music-controls .play-button { width: 46px; height: 46px; }
+    .demo-map { width: 100%; height: 280px; margin-bottom: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; }
+    .empty-state { margin: 30px 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .toast { position: absolute; bottom: 77px; left: 18px; right: 18px; background: var(--ink); color: var(--bg); padding: 13px 15px; border-radius: 5px; font-size: 12px; z-index: 5; }
+    @media (max-width: 1100px) { .concepts { gap: 22px; } .studio { padding: 24px; } .device { min-height: 745px; aspect-ratio: auto; } .signal-clock { font-size: 64px; } .signal-grid button { padding: 9px; } .paper-list button { padding: 14px 0; } }
+    @media (max-width: 850px) { .concepts { grid-template-columns: 1fr; gap: 36px; } .concept { width: 100%; max-width: 378px; margin: auto; } .device { aspect-ratio: 378 / 780; min-height: 0; } .studio-header { align-items: start; } .studio-header p { max-width: 160px; line-height: 1.5; } .studio-footer { line-height: 1.5; } }
+    @media (prefers-reduced-motion: no-preference) { button { transition: background-color 120ms ease, color 120ms ease; } }
+  </style>
+</head>
+<body>
+  <main class="studio">
+    <header class="studio-header">
+      <h1>sd-phone <span>Design studies</span></h1>
+      <p>Three directions. Click through each phone.</p>
+      <button class="exit-focus" id="exit-focus">← All designs</button>
+    </header>
+    <div class="concepts" id="concepts"></div>
+    <footer class="studio-footer"><span>Try Messages, Bank, Music, or the app drawer.</span><span>Standalone mockups · Fictional data</span></footer>
+  </main>
+  <script>
+    const paths = {
+      home: '<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',
+      apps: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+      messages: '<path d="M4 4h16v12H9l-5 4z"/><path d="M8 8h8M8 12h5"/>',
+      phone: '<path d="m8 3 3 5-3 3a14 14 0 0 0 5 5l3-3 5 3c0 4-2 5-4 5A18 18 0 0 1 3 7c0-2 1-4 5-4Z"/>',
+      bank: '<path d="m3 8 9-5 9 5M3 9h18M5 10v8M10 10v8M14 10v8M19 10v8M3 21h18M3 18h18"/>',
+      maps: '<path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2zM9 3v16M15 5v16"/>',
+      camera: '<path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/>',
+      photos: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m3 17 6-6 5 5 3-3 4 4"/>',
+      music: '<path d="M9 18V5l11-2v13M9 9l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/>',
+      notes: '<path d="M5 3h14v18H5zM9 8h6M9 12h6M9 16h3"/>',
+      settings: '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2" fill="var(--bg)"/><circle cx="16" cy="12" r="2" fill="var(--bg)"/><circle cx="10" cy="18" r="2" fill="var(--bg)"/>',
+      search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
+      back: '<path d="m14 5-7 7 7 7"/>',
+      arrow: '<path d="m9 5 7 7-7 7"/>',
+      send: '<path d="m3 3 18 9-18 9 4-9zM7 12h14"/>',
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1 1M18 18l1 1M5 19l1-1M18 6l1-1"/>',
+      bars: '<path d="M4 20v-4M9 20v-8M14 20V7M19 20V3"/>',
+      wifi: '<path d="M2 8a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8 16a6 6 0 0 1 8 0"/><circle cx="12" cy="20" r=".7"/>',
+      battery: '<rect x="2" y="6" width="18" height="12" rx="2"/><path d="M22 10v4"/><path d="M5 9h12v6H5z" fill="currentColor" stroke="none"/>',
+      play: '<path d="m8 4 12 8-12 8z" fill="currentColor" stroke="none"/>',
+      pause: '<path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" stroke="none"/>',
+      record: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 5a7 7 0 0 1 7 7M5 12a7 7 0 0 0 7 7"/>',
+      calendar: '<rect x="3" y="5" width="18" height="16" rx="1"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 17h3"/>',
+      mail: '<rect x="3" y="5" width="18" height="14" rx="1"/><path d="m3 5 9 8 9-8"/>',
+      squawk: '<path d="M3 5h6l12 14h-6zM20 5 4 19"/>',
+      services: '<path d="M4 8h16v13H4zM8 8V4h8v4M4 13h16M12 11v4"/>',
+      weather: '<path d="M6 19a4 4 0 1 1 0-8 6 6 0 0 1 11-2 5 5 0 1 1 1 10z"/>',
+      garages: '<path d="m4 9 2-5h12l2 5v10H4zM4 10h16M7 14h2M15 14h2M7 19v2M17 19v2"/>',
+      skip: '<path d="m5 4 12 8-12 8zM19 4v16"/>',
+      pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',
+    };
+    const icon = (name, extra = '') => `<svg class="icon ${extra}" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.apps}</svg>`;
+    const appNames = { phone: 'Phone', messages: 'Messages', bank: 'Bank', maps: 'Maps', camera: 'Camera', photos: 'Photos', music: 'Music', notes: 'Notes', settings: 'Settings', calendar: 'Calendar', mail: 'Mail', squawk: 'Squawk', services: 'Services', weather: 'Weather', garages: 'Garages' };
+    const designs = [
+      { id: 'signal', name: 'Signal', description: 'A compact, utilitarian launcher. Orange wayfinding, a fixed app matrix, and messages at a glance.', detail: 'Graphite / ember · Structured grid' },
+      { id: 'paper', name: 'Paper', description: 'A quieter phone. Olive ink, a readable app list, and a daily reminder instead of a wall of icons.', detail: 'Chalk / olive · Typographic list' },
+      { id: 'mosaic', name: 'Mosaic', description: 'The apps become useful tiles. See a conversation, your balance, and your music before opening anything.', detail: 'Aubergine / lilac · Content tiles' },
+    ];
+    const state = Object.fromEntries(designs.map(d => [d.id, { page: 'home', playing: false, sent: [], chat: 'Alex Morgan' }]));
+    const open = (app, content, css = '') => `<button class="${css || 'plain'}" data-open="${app}" aria-label="${appNames[app] || ({ home: 'Home', apps: 'All apps', chat: 'Open conversation' }[app]) || app}">${content}</button>`;
+    function signalHome(s) {
+      return `<div class="signal-home"><div class="signal-mast"><div class="signal-mark">${icon('bars')} Signal</div><span>Los Santos</span></div><div class="signal-clock">09:41</div><div class="signal-date"><span>Friday, September 25</span><span>${icon('sun')} 24°</span></div>${open('chat', '<span class="initial">AM</span><div class="message-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'signal-message plain')}<div class="section-row"><span>Quick access</span>${open('apps', 'All apps ↗')}</div><div class="signal-grid">${['phone','messages','bank','maps','camera','photos'].map(id => open(id, `${icon(id)}<span>${appNames[id]}</span>`)).join('')}</div><div class="signal-player"><div class="record-art">${icon('record')}</div>${open('music', '<div class="track">Night Drive<p>The Midnight · 03:42</p></div>', 'plain track')}<button class="play-button" data-play aria-label="${s.playing ? 'Pause' : 'Play'} music">${icon(s.playing ? 'pause' : 'play')}</button></div></div>`;
+    }
+    function paperHome() {
+      return `<div class="paper-home"><div class="paper-heading"><span>Friday, September 25</span>${icon('sun')}</div><div class="paper-time">09:41</div><div class="paper-weather">Los Santos <span>/</span> 24° and clear</div><div class="paper-reminder"><div>${icon('calendar')} Today, 11:30</div><p>Pick up the Sultan</p></div><div class="paper-list">${['messages','phone','maps','bank','notes','music'].map(id => open(id, `${icon(id)}<span>${appNames[id]}</span>${id === 'messages' ? '<span class="unread">2</span>' : `<span class="hint">${{ phone: 'Contacts', maps: 'Explore', bank: '$12,480', notes: '3 notes', music: 'Night Drive' }[id]}</span>`}`)).join('')}</div>${open('apps', `${icon('search')} Find an app`, 'paper-search plain')}</div>`;
+    }
+    function mosaicHome(s) {
+      return `<div class="mosaic-home"><div class="mosaic-date">Friday, September 25</div><div class="mosaic-time"><strong>09:41</strong><span>${icon('sun')} Los Santos · 24°</span></div><div class="mosaic-grid">${open('chat', `<div class="tile-top"><span>Messages · 2 unread</span>${icon('messages')}</div><p>Alex Morgan</p><span class="tile-preview">Meet you at the garage?</span>`, 'tile wide tile-message')}${open('phone', `${icon('phone')}<div class="tile-bottom"><span>Phone</span>${icon('arrow')}</div>`, 'tile tile-phone')}${open('music', `${icon(s.playing ? 'pause' : 'music')}<div><div>Night Drive</div><div style="font-size:10px;color:var(--muted);margin-top:5px">The Midnight</div></div>`, 'tile tile-music')}${open('bank', `<span>Bank</span><span class="tile-value">$12,480<span style="font-size:12px">.00</span></span><div class="tile-bottom"><span style="font-size:10px">Available balance</span>${icon('arrow')}</div>`, 'tile tile-bank')}${open('maps', `<svg class="map-art" viewBox="0 0 120 130" fill="none"><path d="M-10 10 140 115M10-10 100 140M-10 90 120 10M-10 120 140 50" stroke="#b1a6be" stroke-width="8"/></svg>${icon('pin')}<div class="tile-bottom"><span>Maps</span>${icon('arrow')}</div>`, 'tile tile-map')}</div><div class="mosaic-shortcuts">${['camera','photos','notes','settings'].map(id => open(id, icon(id), 'plain')).join('')}</div></div>`;
+    }
+    function title(name, target = 'home') { return `<div class="app-title">${open(target, icon('back'))}<h3>${name}</h3></div>`; }
+    function escapeText(value) { return value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    function appPage(s) {
+      if (s.page === 'apps') return `<div class="app-page">${title('All apps')}<label class="search-input">${icon('search')}<input type="search" placeholder="Find an app" aria-label="Find an app" data-search></label><div class="app-list">${Object.entries(appNames).map(([id,name]) => open(id, `${icon(id)}<span>${name}</span>${icon('arrow')}`, 'app-list-item')).join('')}</div></div>`;
+      if (s.page === 'messages') return `<div class="app-page">${title('Messages')}<label class="search-input">${icon('search')}<input type="search" placeholder="Find a conversation" aria-label="Find a conversation" data-search></label>${[['Alex Morgan','AM','Meet you at the garage?','2 min'],['Jamie Chen','JC','Thanks for the lift yesterday!','18 min'],['Benny’s Workshop','BW','Your Sultan is ready for collection.','1 hr']].map(([name,initial,message,time]) => `<button class="conversation" data-chat="${name}"><span class="initial">${initial}</span><div class="message-copy"><div><strong>${name}</strong><time>${time}</time></div><p>${message}</p></div></button>`).join('')}</div>`;
+      if (s.page === 'chat') return `<div class="app-page">${title(s.chat,'messages')}<div class="chat-time">Today, 09:39</div><div class="chat-message">${s.chat === 'Alex Morgan' ? 'Morning! Picking up the Sultan today.' : s.chat === 'Jamie Chen' ? 'Thanks for the lift yesterday!' : 'Your Sultan is ready for collection.'}</div><div class="chat-message sent">Nice, I’m on my way.</div><div class="chat-message">${s.chat === 'Alex Morgan' ? 'Meet you at the garage?' : 'See you soon.'}</div>${s.sent.filter(m => m.chat === s.chat).map(m => `<div class="chat-message sent">${escapeText(m.text)}</div>`).join('')}<form class="composer"><input aria-label="Message" placeholder="Write a message…" maxlength="300" required><button aria-label="Send message">${icon('send')}</button></form></div>`;
+      if (s.page === 'bank') return `<div class="app-page">${title('Bank')}<div class="balance-label">Available balance</div><div class="balance">$12,480.00</div><button class="demo-button" data-notice="Transfer preview — no money is moved.">Transfer money</button><div class="section-row">Recent transactions</div>${[['Benny’s Workshop','Vehicle service','−$450.00'],['Salary','Los Santos Customs','+$2,800.00'],['24/7 Store','Groceries','−$38.50'],['Jamie Chen','Transfer received','+$120.00']].map(([name,desc,amount]) => `<div class="transaction"><div>${name}<p>${desc}</p></div><span>${amount}</span></div>`).join('')}</div>`;
+      if (s.page === 'phone') return `<div class="app-page">${title('Phone')}<div class="section-row">Favorites</div>${['Alex Morgan','Jamie Chen','Benny’s Workshop'].map(name => `<div class="contact-row"><span>${name}</span><button aria-label="Call ${name}" data-notice="Calling ${name}… (demo)">${icon('phone')}</button></div>`).join('')}<div class="section-row">Recent calls</div><div class="contact-row">Alex Morgan <span style="color:var(--muted);font-size:11px">Yesterday</span></div><div class="contact-row">Jamie Chen <span style="color:var(--muted);font-size:11px">Wednesday</span></div></div>`;
+      if (s.page === 'music') return `<div class="app-page">${title('Music')}<div class="music-cover">${icon('record')}</div><div class="music-caption">Night Drive<p>The Midnight</p></div><div class="music-controls"><button class="plain" data-notice="First track in the demo." aria-label="Previous track" style="rotate:180deg">${icon('skip')}</button><button class="play-button" data-play aria-label="${s.playing ? 'Pause' : 'Play'} music">${icon(s.playing ? 'pause' : 'play')}</button><button class="plain" data-notice="Only one track in the demo." aria-label="Next track">${icon('skip')}</button></div><p class="empty-state" style="text-align:center">${s.playing ? 'Playing · visual preview only' : 'Paused · visual preview only'}</p></div>`;
+      if (s.page === 'maps') return `<div class="app-page">${title('Maps')}<svg class="demo-map" viewBox="0 0 320 280" aria-label="Illustrative street map"><rect width="320" height="280" fill="var(--surface)"/><g stroke="var(--line)" stroke-width="12"><path d="M-20 20 350 220M-20 120 320 300M50-20 230 300M170-20 350 260M-20 230 330 20"/></g><path d="m75 190 75-46 40 20" stroke="var(--accent)" stroke-width="5" fill="none"/><circle cx="75" cy="190" r="7" fill="var(--accent)"/><circle cx="190" cy="164" r="7" fill="var(--accent)"/><text x="180" y="148" fill="var(--ink)" font-size="11">Benny’s</text><text x="25" y="245" fill="var(--muted)" font-size="11">Strawberry</text></svg><div class="transaction"><div>Benny’s Workshop<p>3 min · 0.8 miles</p></div>${icon('pin')}</div><button class="demo-button" style="margin-top:20px" data-notice="Route preview started.">Start route</button></div>`;
+      if (s.page === 'notes') return `<div class="app-page">${title('Notes')}${[['Shopping','Coffee, sandwich, repair kit'],['Sultan upgrades','Suspension, brakes, respray'],['Weekend plan','Meet Jamie at Vespucci Beach']].map(([name,desc]) => `<div class="transaction"><div>${name}<p>${desc}</p></div>${icon('notes')}</div>`).join('')}</div>`;
+      if (s.page === 'settings') return `<div class="app-page">${title('Settings')}${['Appearance','Notifications','Sound & vibration','Network','Privacy'].map(name => `<button class="app-list-item" data-notice="${name} preview — this concept keeps a fixed appearance."><span>${name}</span>${icon('arrow')}</button>`).join('')}<p class="empty-state">${designs.find(d => d.id === s.id)?.name || 'Phone'} concept<br>Battery 82% · Connected to LS Network</p></div>`;
+      return `<div class="app-page">${title(appNames[s.page] || s.page)}<p class="empty-state">This app is a placeholder in the design study. Try Messages, Bank, Music, Maps, Phone, or Notes to see an example screen.</p>${open('apps', 'Browse all apps', 'demo-button')}</div>`;
+    }
+    function render(id) {
+      const s = state[id]; s.id = id;
+      const phone = document.querySelector(`[data-design="${id}"]`);
+      phone.querySelector('.screen-content').innerHTML = s.page === 'home' ? ({ signal: signalHome, paper: paperHome, mosaic: mosaicHome }[id])(s) : appPage(s);
+      phone.querySelectorAll('.phone-nav button').forEach(b => b.classList.toggle('active', b.dataset.open === s.page || (b.dataset.open === 'messages' && s.page === 'chat')));
+    }
+    const nav = id => `<nav class="phone-nav" aria-label="${id} phone navigation">${open('home', `${icon('home')}<span>Home</span>`)}${open('apps', `${icon('apps')}<span>Apps</span>`)}${open('messages', `${icon('messages')}<span>Messages</span>`)}</nav>`;
+    document.querySelector('#concepts').innerHTML = designs.map((d,i) => `<section class="concept" data-design="${d.id}"><div class="concept-heading"><span class="number">0${i + 1}</span><h2>${d.name}</h2><button class="inspect" data-focus="${d.id}" aria-label="Inspect ${d.name}">Inspect ↗</button></div><div class="device"><div class="screen ${d.id}"><div class="status"><span>09:41</span><span class="status-right">${icon('bars')}${icon('wifi')}<span>82</span>${icon('battery','battery')}</span></div><div class="screen-content"></div>${nav(d.id)}</div></div><div class="caption"><p>${d.description}</p><div class="detail">${d.detail}</div></div></section>`).join('');
+    function focusDesign(id) {
+      document.body.classList.toggle('focused', !!id);
+      document.querySelectorAll('.concept').forEach(el => el.classList.toggle('is-hidden', !!id && el.dataset.design !== id));
+      const url = new URL(location.href); id ? url.searchParams.set('concept', id) : url.searchParams.delete('concept');
+      history.replaceState(null, '', url); window.scrollTo(0,0);
+    }
+    document.addEventListener('click', event => {
+      const focus = event.target.closest('[data-focus]'); if (focus) { focusDesign(focus.dataset.focus); return; }
+      if (event.target.closest('#exit-focus')) { focusDesign(null); return; }
+      const phone = event.target.closest('[data-design]'); if (!phone) return;
+      const s = state[phone.dataset.design];
+      const button = event.target.closest('[data-open]');
+      if (button) { s.page = button.dataset.open; if (s.page === 'chat') s.chat = 'Alex Morgan'; render(s.id); phone.querySelector('.screen-content').scrollTop = 0; }
+      const chat = event.target.closest('[data-chat]'); if (chat) { s.page = 'chat'; s.chat = chat.dataset.chat; render(s.id); }
+      if (event.target.closest('[data-play]')) { s.playing = !s.playing; render(s.id); }
+      const notice = event.target.closest('[data-notice]');
+      if (notice) { phone.querySelector('.toast')?.remove(); const toast = document.createElement('div'); toast.className = 'toast'; toast.setAttribute('role','status'); toast.textContent = notice.dataset.notice; phone.querySelector('.screen').append(toast); setTimeout(() => toast.remove(), 2600); }
+    });
+    document.addEventListener('input', event => {
+      if (!event.target.matches('[data-search]')) return;
+      const query = event.target.value.toLowerCase();
+      event.target.closest('.app-page').querySelectorAll('.app-list-item,.conversation').forEach(item => item.hidden = !item.textContent.toLowerCase().includes(query));
+    });
+    document.addEventListener('submit', event => {
+      if (!event.target.matches('.composer')) return; event.preventDefault();
+      const phone = event.target.closest('[data-design]'); const s = state[phone.dataset.design]; const text = event.target.querySelector('input').value.trim();
+      if (text) { s.sent.push({ chat: s.chat, text }); render(s.id); phone.querySelector('.screen-content').scrollTop = 9999; phone.querySelector('.composer input').focus(); }
+    });
+    designs.forEach(d => render(d.id));
+    const requested = new URLSearchParams(location.search).get('concept'); if (designs.some(d => d.id === requested)) focusDesign(requested);
+  </script>
+</body>
+</html>
