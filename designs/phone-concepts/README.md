@@ -6,6 +6,8 @@ Open `vibrant.html` for three fresh directions: **Coast** (clean white or dark g
 
 Open `vibrant.html?study=coast` to compare the selected Coast design in both modes. Light mode uses pure white `#ffffff`, dark text `#23262c`, and neutral surfaces `#f2f3f5`. Dark mode uses dark grey `#222428`, white text `#f4f5f7`, and graphite surfaces `#303338`. Backgrounds, text, borders, and the device frame have no green tint; individual app icons retain their colors.
 
+The home-screen music strip and bottom Home / Apps / Messages navigation bar have been removed. Open apps from their icons or the All apps link, and use the back button inside each app to return. The controls above the phones remain available for comparing example screens.
+
 Screenshots are in `screenshots/vibrant/`. Run `node designs/phone-concepts/capture-vibrant.mjs` to refresh them and check interactions. This uses the existing Playwright dependency and installed Chrome.
 
 Open `index.html` directly in a browser. No installation or build is needed. The file contains its own styles, scripts, and SVG icons, and does not load the production phone UI.

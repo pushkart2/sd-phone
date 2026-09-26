@@ -46,7 +46,8 @@ try {
     if (await phone.locator('[data-app-tile]').count() !== 12) throw new Error(`${id}: home grid missing`);
     await phone.locator('.home [data-open="bank"]').click();
     if (await phone.locator('.balance').textContent() !== '$12,480.00') throw new Error(`${id}: home icon launch failed`);
-    await phone.locator('.dock [data-open="messages"]').click();
+    await phone.locator('.app-header [data-open="home"]').click();
+    await phone.locator('.home [data-open="messages"]').click();
     await phone.locator('[data-contact="Alex Morgan"]').click();
     await phone.locator('.composer input').fill('<Meet at Benny’s>');
     await phone.locator('.composer button').click();
@@ -56,7 +57,9 @@ try {
     await phone.locator('.mode-button').click();
     if (await phone.locator('.screen').getAttribute('data-mode') === mode) throw new Error(`${id}: mode did not change`);
     if (await phone.locator('.composer input').inputValue() !== 'Keep this draft') throw new Error(`${id}: draft lost on mode change`);
-    await phone.locator('.dock [data-open="apps"]').click();
+    await phone.locator('.app-header [data-open="messages"]').click();
+    await phone.locator('.app-header [data-open="home"]').click();
+    await phone.locator('.home [data-open="apps"]').click();
     await phone.locator('[data-search]').fill('no such app');
     if (!await phone.locator('[data-empty]').isVisible()) throw new Error(`${id}: empty search missing`);
     await phone.locator('[data-search]').fill('music');
@@ -64,12 +67,13 @@ try {
     await phone.locator('[data-app-tile]:visible').click();
     await phone.locator('[data-play]').click();
     if (await phone.locator('[data-play]').getAttribute('aria-label') !== 'Pause music') throw new Error(`${id}: player failed`);
-    await phone.locator('.dock [data-open="apps"]').click();
+    await phone.locator('.app-header [data-open="home"]').click();
+    await phone.locator('.home [data-open="apps"]').click();
     await phone.locator('[data-open="settings"]').click();
     await phone.locator('.settings-row [data-mode]').click();
     if (await phone.locator('.screen').getAttribute('data-mode') !== mode) throw new Error(`${id}: settings appearance failed`);
     await phone.locator('.mode-button').click();
-    await phone.locator('.dock [data-open="home"]').click();
+    await phone.locator('.app-header [data-open="home"]').click();
     await checkContrast(phone);
     await page.screenshot({ path: fileURLToPath(new URL(`${id}-alternate.png`, output)), fullPage: true });
   }

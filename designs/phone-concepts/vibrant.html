@@ -31,7 +31,6 @@
     .coast[data-mode="light"] { --bg: #ffffff; --ink: #23262c; --muted: #626771; --surface: #f2f3f5; --line: #dde0e5; --accent: #2460a5; --on-accent: #ffffff; --highlight: #ed6b49; color-scheme: light; }
     .coast[data-mode="dark"] { --bg: #222428; --ink: #f4f5f7; --muted: #b6bbc4; --surface: #303338; --line: #484c54; --accent: #9fc7ef; --on-accent: #182535; --highlight: #fa9878; color-scheme: dark; }
     .concept[data-design="coast"] .device, .concept[data-design="coast-night"] .device { background: #27292e; border-color: #666a70; box-shadow: inset 1px 1px 0 #93979e, 3px 3px 0 #17191d, 4px 5px 7px #23252925; }
-    .coast .cover-mini { color: #ffda87; background: #26394b; }
     .coast .album-art { color: #ffd487; background: #27384a; }
     .current[data-mode="dark"] { --bg: #111d27; --ink: #f4f7f6; --muted: #acbfcd; --surface: #1d2d3a; --line: #344955; --accent: #91e9c7; --on-accent: #13352c; --highlight: #ff936d; color-scheme: dark; }
     .current[data-mode="light"] { --bg: #f0f5f7; --ink: #142c38; --muted: #536d7a; --surface: #e1ebf0; --line: #c1d5df; --accent: #08796b; --on-accent: #ffffff; --highlight: #b74c28; color-scheme: light; }
@@ -67,15 +66,6 @@
     .app-label { font-size: 11px; font-weight: 500; text-align: center; }
     .app-tile:active .app-mark { box-shadow: inset 0 2px 3px #0003; }
     .count { position: absolute; right: -5px; top: -5px; width: 17px; height: 17px; background: #e95140; color: #fff; border: 2px solid var(--bg); border-radius: 4px; font-size: 10px; display: grid; place-items: center; }
-    .home-player { margin-top: 22px; display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 15px; font-size: 12px; }
-    .cover-mini { width: 36px; height: 36px; color: #dbffb5; background: #143d42; display: grid; place-items: center; border-radius: 4px; }
-    .home-player .track { flex: 1; }
-    .track p { margin: 4px 0 0; font-size: 10px; color: var(--muted); }
-    .home-player .icon { width: 17px; height: 17px; }
-    .dock { flex-shrink: 0; margin: 0 19px 13px; padding: 9px 6px; display: flex; align-items: center; border-top: 1px solid var(--line); }
-    .dock button { flex: 1; height: 33px; color: var(--muted); background: none; border: 0; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; }
-    .dock .icon { width: 17px; height: 17px; }
-    .dock button.active { color: var(--accent); font-weight: 700; }
     .caption { max-width: 372px; margin: 18px auto 0; }
     .caption p { margin: 0 0 12px; font-size: 14px; color: #52626d; line-height: 1.4; }
     .mode-button { background: none; border: 1px solid #aebdc5; border-radius: 5px; padding: 5px 10px; color: #425865; font-size: 12px; }
@@ -90,7 +80,6 @@
     body.focus .return { display: inline-block; }
     .current .clock-row { display: none; }
     .current .place { margin: 9px 0 18px; }
-    .current .home-player { display: none; }
     .current .greeting { color: var(--ink); font-size: 24px; line-height: 1.2; }
     .current .hero-music { width: 100%; padding: 17px; color: #e9faed; background: #174947; border: 1px solid #35766c; border-radius: 9px; display: flex; align-items: center; gap: 16px; margin-bottom: 14px; text-align: left; }
     .hero-record { height: 65px; width: 65px; flex-shrink: 0; display: grid; place-items: center; background: #c3eb99; border-radius: 5px; color: #16493a; }
@@ -105,7 +94,6 @@
     .tempo .preview-copy p, .tempo .preview-copy time { color: var(--on-accent); }
     .tempo .avatar { background: #ffffff85; color: #244093; }
     .tempo .app-mark { background: #f5f6ed; color: var(--tempo-glyph); border-color: #f5f6ed; }
-    .tempo .home-player { display: none; }
     .app-page { padding: 15px 19px 20px; }
     .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
     .app-header h3 { margin: 0; font-weight: 600; font-size: 24px; }
@@ -232,11 +220,11 @@
     const appHeader = (name, target='home') => `<div class="app-header">${button(target, icon('back'))}<h3>${name}</h3></div>`;
     const input = label => `<label class="input-field">${icon('search')}<input data-search type="search" placeholder="${label}" aria-label="${label}"></label>`;
     const safe = value => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    function home(id,s) {
-      return `<div class="home"><div class="greeting"><span>${id === 'current' ? 'Good evening, Alex.' : 'Friday, September 25'}</span>${icon('sun')}</div><div class="clock-row"><div class="clock">${id === 'current' ? '18:41' : '09:41'}</div><div class="weather">${icon('sun')}<span>24°</span></div></div><div class="place">Los Santos${id === 'current' ? ' · 24° · 18:41' : ' · Clear skies'}</div>${id === 'current' ? button('music', `<div class="hero-record">${icon('record')}</div><div><span>Continue listening</span><strong>Late Shift</strong><span>Los Santos FM · Your playlist</span></div>`, 'hero-music') : ''}${button('chat', '<span class="avatar">AM</span><div class="preview-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'message-preview')}<div class="apps-caption"><span>Your apps</span>${button('apps','All apps ↗')}</div><div class="app-grid">${Object.keys(appNames).map(tile).join('')}</div><div class="home-player"><div class="cover-mini">${icon('record')}</div>${button('music', '<span>Late Shift</span><p>Los Santos FM · Your playlist</p>', 'track plain')}<button class="plain" data-play aria-label="${s.playing ? 'Pause music' : 'Play music'}">${icon(s.playing?'pause':'play')}</button></div></div>`;
+    function home(id) {
+      return `<div class="home"><div class="greeting"><span>${id === 'current' ? 'Good evening, Alex.' : 'Friday, September 25'}</span>${icon('sun')}</div><div class="clock-row"><div class="clock">${id === 'current' ? '18:41' : '09:41'}</div><div class="weather">${icon('sun')}<span>24°</span></div></div><div class="place">Los Santos${id === 'current' ? ' · 24° · 18:41' : ' · Clear skies'}</div>${id === 'current' ? button('music', `<div class="hero-record">${icon('record')}</div><div><span>Continue listening</span><strong>Late Shift</strong><span>Los Santos FM · Your playlist</span></div>`, 'hero-music') : ''}${button('chat', '<span class="avatar">AM</span><div class="preview-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'message-preview')}<div class="apps-caption"><span>Your apps</span>${button('apps','All apps ↗')}</div><div class="app-grid">${Object.keys(appNames).map(tile).join('')}</div></div>`;
     }
     function content(id,s) {
-      if(s.page === 'home') return home(id,s);
+      if(s.page === 'home') return home(id);
       if(s.page === 'apps') return `<div class="app-page">${appHeader('All apps')}${input('Find an app')}<div class="app-grid">${Object.keys(appNames).map(tile).join('')}</div><p class="empty" data-empty hidden>No apps found.</p></div>`;
       if(s.page === 'messages') return `<div class="app-page">${appHeader('Messages')}${input('Find a conversation')}${[['Alex Morgan','AM','Meet you at the garage?','2 min'],['Jamie Chen','JC','Thanks for the lift yesterday!','18 min'],['Benny’s Workshop','BW','Your Sultan is ready to collect.','1 hr']].map(([name,initial,message,time])=>`<button class="conversation" data-contact="${name}"><span class="avatar">${initial}</span><div class="preview-copy"><div><strong>${name}</strong><time>${time}</time></div><p>${message}</p></div></button>`).join('')}</div>`;
       if(s.page === 'chat') return `<div class="app-page">${appHeader(s.contact,'messages')}<div class="chat-time">Today, 09:39</div><div class="bubble">Morning! Picking up the Sultan today.</div><div class="bubble sent">Nice, I’m on my way.</div><div class="bubble">Meet you at the garage?</div>${s.messages.filter(m=>m.contact===s.contact).map(m=>`<div class="bubble sent">${safe(m.text)}</div>`).join('')}<form class="composer"><input aria-label="Message" placeholder="Write a message…" maxlength="300" required><button aria-label="Send message">${icon('send')}</button></form></div>`;
@@ -247,11 +235,10 @@
       if(s.page === 'phone') return `<div class="app-page">${appHeader('Phone')}<div class="account-label">Favorites</div>${['Alex Morgan','Jamie Chen','Benny’s Workshop'].map(name=>`<div class="settings-row"><span>${name}</span><button data-notice="Calling ${name}… (demo)" aria-label="Call ${name}">${icon('phone')}</button></div>`).join('')}</div>`;
       return `<div class="app-page">${appHeader(appNames[s.page])}<p class="empty">This app is a placeholder. Try Messages, Bank, Music, Phone, Notes, or Settings for an example screen.</p>${button('apps','Browse apps ↗')}</div>`;
     }
-    document.querySelector('#concepts').innerHTML = designs.map(d=>`<section class="concept" data-design="${d.id}"><div class="concept-heading"><h2>${d.name}</h2><button data-focus="${d.id}">Inspect ↗</button></div><div class="device"><div class="screen ${d.skin || d.id}" data-mode="${d.mode}"><div class="status"><span>${d.id==='current'?'18:41':'09:41'}</span><span class="status-right">${icon('bars')}<span>82</span>${icon('battery')}</span></div><div class="content"></div><nav class="dock" aria-label="${d.name} navigation">${button('home', `${icon('home')} Home`)}${button('apps',`${icon('apps')} Apps`)}${button('messages',`${icon('messages')} Messages`)}</nav></div></div><div class="caption"><p>${d.description}</p><div class="swatches">${d.swatches.map(color=>`<i style="background:${color}" aria-hidden="true"></i>`).join('')}<span>${d.swatchLabel}</span></div><button class="mode-button" data-mode>${d.mode==='light'?'Try dark mode':'Try light mode'}</button></div></section>`).join('');
+    document.querySelector('#concepts').innerHTML = designs.map(d=>`<section class="concept" data-design="${d.id}"><div class="concept-heading"><h2>${d.name}</h2><button data-focus="${d.id}">Inspect ↗</button></div><div class="device"><div class="screen ${d.skin || d.id}" data-mode="${d.mode}"><div class="status"><span>${d.id==='current'?'18:41':'09:41'}</span><span class="status-right">${icon('bars')}<span>82</span>${icon('battery')}</span></div><div class="content"></div></div></div><div class="caption"><p>${d.description}</p><div class="swatches">${d.swatches.map(color=>`<i style="background:${color}" aria-hidden="true"></i>`).join('')}<span>${d.swatchLabel}</span></div><button class="mode-button" data-mode>${d.mode==='light'?'Try dark mode':'Try light mode'}</button></div></section>`).join('');
     function render(id) {
       const phone = document.querySelector(`[data-design="${id}"]`); const s=state[id];
       phone.querySelector('.content').innerHTML = content(id,s);
-      phone.querySelectorAll('.dock [data-open]').forEach(b=>b.classList.toggle('active', b.dataset.open===s.page || (s.page==='chat'&&b.dataset.open==='messages')));
     }
     function changeMode(phone) {
       const s=state[phone.dataset.design]; s.mode=s.mode==='light'?'dark':'light';
