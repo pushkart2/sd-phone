@@ -1,5 +1,11 @@
 # Paper / Cream & charcoal phone study
 
+## New vibrant directions
+
+Open `vibrant.html` for three fresh directions: **Coast** (mint-white, teal, coral), **Current** (ink, mint, orange), and **Tempo** (cobalt, yellow, white). Each has a graphic icon family, an alternate light/dark appearance, and example Messages, Bank, and Music screens. The top controls compare the same app screen across all three designs. Use Inspect to focus one phone. The Paper study remains in `index.html`.
+
+Screenshots are in `screenshots/vibrant/`. Run `node designs/phone-concepts/capture-vibrant.mjs` to refresh them and check interactions. This uses the existing Playwright dependency and installed Chrome.
+
 Open `index.html` directly in a browser. No installation or build is needed. The file contains its own styles, scripts, and SVG icons, and does not load the production phone UI.
 
 The default view uses Paper’s original warm cream and olive palette, with a contrasting charcoal-olive dark mode. Paper’s clock, reminder, and quiet typography are retained. Apps use a familiar four-column icon grid on both the home screen and app drawer.

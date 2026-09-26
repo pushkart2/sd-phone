@@ -285,7 +285,7 @@
     if (!originalStudy) {
       document.querySelector('.studio').classList.add('hybrid-study', 'depth-study');
       document.querySelector('.studio-header h1 span').textContent = 'Paper / Cream & charcoal';
-      document.querySelector('.studio-header p').textContent = 'Raised icons. Light & dark.';
+      document.querySelector('.studio-header p').innerHTML = '<a class="collection-link" href="vibrant.html">New color studies ↗</a>';
       document.querySelector('.studio-footer span:last-child').innerHTML = '<a class="collection-link" href="?collection=original">Original designs ↗</a>';
       document.title = 'sd-phone / Paper — Cream & charcoal';
     } else {
