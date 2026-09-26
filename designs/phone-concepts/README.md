@@ -2,7 +2,9 @@
 
 ## New vibrant directions
 
-Open `vibrant.html` for three fresh directions: **Coast** (mint-white, teal, coral), **Current** (ink, mint, orange), and **Tempo** (cobalt, yellow, white). Each has a graphic icon family, an alternate light/dark appearance, and example Messages, Bank, and Music screens. The top controls compare the same app screen across all three designs. Use Inspect to focus one phone. The Paper study remains in `index.html`.
+Open `vibrant.html` for three fresh directions: **Coast** (clean white or dark grey, blue accents, colorful app icons), **Current** (ink, mint, orange), and **Tempo** (cobalt, yellow, white). Each has a graphic icon family, an alternate light/dark appearance, and example Messages, Bank, and Music screens. The top controls compare the same app screen across all three designs. Use Inspect to focus one phone. The Paper study remains in `index.html`.
+
+Open `vibrant.html?study=coast` to compare the selected Coast design in both modes. Light mode uses pure white `#ffffff`, dark text `#23262c`, and neutral surfaces `#f2f3f5`. Dark mode uses dark grey `#222428`, white text `#f4f5f7`, and graphite surfaces `#303338`. Backgrounds, text, borders, and the device frame have no green tint; individual app icons retain their colors.
 
 Screenshots are in `screenshots/vibrant/`. Run `node designs/phone-concepts/capture-vibrant.mjs` to refresh them and check interactions. This uses the existing Playwright dependency and installed Chrome.
 

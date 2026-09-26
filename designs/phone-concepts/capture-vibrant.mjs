@@ -79,6 +79,17 @@ try {
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error(`Horizontal page overflow at ${width}px`);
     if (await page.locator('.content').evaluateAll(elements => elements.some(el => el.scrollWidth > el.clientWidth))) throw new Error(`Horizontal phone overflow at ${width}px`);
   }
+  await page.setViewportSize({ width: 1200, height: 1150 });
+  await page.goto(`${source.href}?study=coast`);
+  await page.screenshot({ path: fileURLToPath(new URL('coast-modes.png', output)), fullPage: true });
+  for (const id of ['coast', 'coast-night']) {
+    const phone = page.locator(`[data-design="${id}"]`);
+    await checkContrast(phone);
+    await phone.locator('.home [data-open="bank"]').click();
+    if (await phone.locator('.balance').textContent() !== '$12,480.00') throw new Error(`${id}: paired preview failed`);
+  }
+  await page.setViewportSize({ width: 390, height: 1150 });
+  if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error('Paired preview overflows on mobile');
   if (errors.length) throw new Error(errors.join('\n'));
   console.log('Captured home, messages, banking, and music comparisons plus each palette in both appearances. Icon launches, messaging, escaping, search, playback, draft preservation, appearance, and responsive checks passed.');
 } finally {

@@ -20,14 +20,19 @@
     .view-controls button { background: none; border: 0; padding: 5px 0; color: #52626e; border-bottom: 2px solid transparent; font-size: 13px; }
     .view-controls button[aria-pressed="true"] { color: #1b2830; border-color: #087e73; }
     .concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px; margin-top: 24px; }
+    .pair-study { max-width: 1040px; }
+    .pair-study .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; }
     .concept { min-width: 0; }
     .concept-heading { max-width: 372px; margin: 0 auto 15px; display: flex; justify-content: space-between; align-items: center; }
     .concept-heading h2 { font-size: 19px; margin: 0; font-weight: 600; }
     .concept-heading button { background: none; border: 0; font-size: 12px; color: #5b6c77; text-decoration: underline; text-underline-offset: 4px; }
     .device { max-width: 372px; width: 100%; height: 790px; margin: auto; padding: 9px; background: #202b30; border: 1px solid #516068; border-radius: 19px; box-shadow: inset 1px 1px 0 #899499, 3px 3px 0 #11191c, 4px 5px 7px #17252d25; }
     .screen { height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; border-radius: 11px; background: var(--bg); color: var(--ink); }
-    .coast[data-mode="light"] { --bg: #f4f8f6; --ink: #183c39; --muted: #526f68; --surface: #e7efeb; --line: #cddfd6; --accent: #086f62; --on-accent: #ffffff; --highlight: #ed6b49; color-scheme: light; }
-    .coast[data-mode="dark"] { --bg: #10272a; --ink: #edf8f1; --muted: #adc8bf; --surface: #1c393b; --line: #365a58; --accent: #9cddbb; --on-accent: #10272a; --highlight: #fa9878; color-scheme: dark; }
+    .coast[data-mode="light"] { --bg: #ffffff; --ink: #23262c; --muted: #626771; --surface: #f2f3f5; --line: #dde0e5; --accent: #2460a5; --on-accent: #ffffff; --highlight: #ed6b49; color-scheme: light; }
+    .coast[data-mode="dark"] { --bg: #222428; --ink: #f4f5f7; --muted: #b6bbc4; --surface: #303338; --line: #484c54; --accent: #9fc7ef; --on-accent: #182535; --highlight: #fa9878; color-scheme: dark; }
+    .concept[data-design="coast"] .device, .concept[data-design="coast-night"] .device { background: #27292e; border-color: #666a70; box-shadow: inset 1px 1px 0 #93979e, 3px 3px 0 #17191d, 4px 5px 7px #23252925; }
+    .coast .cover-mini { color: #ffda87; background: #26394b; }
+    .coast .album-art { color: #ffd487; background: #27384a; }
     .current[data-mode="dark"] { --bg: #111d27; --ink: #f4f7f6; --muted: #acbfcd; --surface: #1d2d3a; --line: #344955; --accent: #91e9c7; --on-accent: #13352c; --highlight: #ff936d; color-scheme: dark; }
     .current[data-mode="light"] { --bg: #f0f5f7; --ink: #142c38; --muted: #536d7a; --surface: #e1ebf0; --line: #c1d5df; --accent: #08796b; --on-accent: #ffffff; --highlight: #b74c28; color-scheme: light; }
     .tempo[data-mode="dark"] { --bg: #1744c7; --ink: #ffffff; --muted: #d9e4ff; --surface: #123aaa; --line: #4f74d6; --accent: #ffe08a; --on-accent: #183f9f; --highlight: #ffd076; color-scheme: dark; }
@@ -147,6 +152,7 @@
     .toast { position: absolute; bottom: 71px; left: 19px; right: 19px; background: var(--ink); color: var(--bg); border-radius: 6px; padding: 12px; z-index: 5; font-size: 12px; }
     @media (max-width: 1100px) { .studio { padding: 24px; } .concepts { gap: 22px; } .app-grid { gap: 23px 6px; } .home { padding-left: 16px; padding-right: 16px; } .clock { font-size: 58px; } .tempo .clock { font-size: 64px; } .app-mark { width: 48px; height: 48px; } }
     @media (max-width: 850px) { .concepts { grid-template-columns: 1fr; gap: 34px; } .concept { width: 100%; max-width: 372px; margin: auto; } .studio-header { flex-wrap: wrap; } .view-controls { gap: 15px; } .app-mark { width: 53px; height: 53px; } .home { padding-left: 20px; padding-right: 20px; } footer { gap: 20px; line-height: 1.5; } }
+    @media (max-width: 850px) { .pair-study .concepts { grid-template-columns: 1fr; gap: 34px; } }
   </style>
 </head>
 <body>
@@ -204,11 +210,21 @@
       services: '<path d="M7 14h26v20H7zM14 14V8h12v6M7 22h26M20 19v6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 23h26v11H7z" fill="currentColor" opacity=".2"/>',
       settings: '<path d="M7 11h26M7 20h26M7 29h26" stroke="currentColor" stroke-width="2"/><path d="M12 7h5v8h-5zM23 16h5v8h-5zM15 25h5v8h-5z" fill="currentColor"/>',
     };
-    const designs = [
-      { id:'coast', name:'Coast', mode:'light', description:'Fresh mint-white, ocean teal, and coral. Distinct app colors on a bright, easy-to-read home screen.', swatches:['#f4f8f6','#09796a','#ed6b49','#2866b3'], swatchLabel:'Mint / teal / coral / blue' },
+    const catalog = [
+      { id:'coast', name:'Coast', mode:'light', description:'Clean white and neutral grey surfaces. The colorful app marks keep their individual identities, with blue interface accents.', swatches:['#ffffff','#222428','#ed6b49','#2866b3'], swatchLabel:'White / grey / coral / blue' },
       { id:'current', name:'Current', mode:'dark', description:'Ink, mint, and warm orange. A darker phone with vivid graphic icons and music up front.', swatches:['#111d27','#91e9c7','#ff936d','#9cccff'], swatchLabel:'Ink / mint / orange / ice' },
       { id:'tempo', name:'Tempo', mode:'dark', description:'Cobalt, butter yellow, and crisp white. The boldest direction, with a solid color screen and graphic app marks.', swatches:['#1744c7','#ffe08a','#f5f6ed','#30847e'], swatchLabel:'Cobalt / yellow / white / teal' },
     ];
+    const coastStudy = new URLSearchParams(location.search).get('study') === 'coast';
+    const designs = coastStudy ? [
+      { ...catalog[0], name:'Coast / Light mode', skin:'coast' },
+      { ...catalog[0], id:'coast-night', name:'Coast / Dark mode', skin:'coast', mode:'dark', description:'Neutral dark grey, lighter graphite surfaces, and crisp white text. The same colorful app icons stand out after dark.' },
+    ] : catalog;
+    if (coastStudy) {
+      document.querySelector('.studio').classList.add('pair-study');
+      document.querySelector('h1 span').textContent = 'Coast / White & dark grey';
+      document.title = 'sd-phone / Coast — White & dark grey';
+    }
     const state = Object.fromEntries(designs.map(d => [d.id, { page:'home', mode:d.mode, playing:false, messages:[], contact:'Alex Morgan' }]));
     const button = (id, content, cls='plain') => `<button class="${cls}" data-open="${id}" aria-label="${appNames[id] || ({home:'Home',apps:'All apps',chat:'Open conversation'}[id]) || id}">${content}</button>`;
     const tempoColors = { maps:'#24725a', music:'#856318', notes:'#40592e', camera:'#b54425', calendar:'#ac422c', services:'#885519', settings:'#526572' };
@@ -231,7 +247,7 @@
       if(s.page === 'phone') return `<div class="app-page">${appHeader('Phone')}<div class="account-label">Favorites</div>${['Alex Morgan','Jamie Chen','Benny’s Workshop'].map(name=>`<div class="settings-row"><span>${name}</span><button data-notice="Calling ${name}… (demo)" aria-label="Call ${name}">${icon('phone')}</button></div>`).join('')}</div>`;
       return `<div class="app-page">${appHeader(appNames[s.page])}<p class="empty">This app is a placeholder. Try Messages, Bank, Music, Phone, Notes, or Settings for an example screen.</p>${button('apps','Browse apps ↗')}</div>`;
     }
-    document.querySelector('#concepts').innerHTML = designs.map(d=>`<section class="concept" data-design="${d.id}"><div class="concept-heading"><h2>${d.name}</h2><button data-focus="${d.id}">Inspect ↗</button></div><div class="device"><div class="screen ${d.id}" data-mode="${d.mode}"><div class="status"><span>${d.id==='current'?'18:41':'09:41'}</span><span class="status-right">${icon('bars')}<span>82</span>${icon('battery')}</span></div><div class="content"></div><nav class="dock" aria-label="${d.name} navigation">${button('home', `${icon('home')} Home`)}${button('apps',`${icon('apps')} Apps`)}${button('messages',`${icon('messages')} Messages`)}</nav></div></div><div class="caption"><p>${d.description}</p><div class="swatches">${d.swatches.map(color=>`<i style="background:${color}" aria-hidden="true"></i>`).join('')}<span>${d.swatchLabel}</span></div><button class="mode-button" data-mode>${d.mode==='light'?'Try dark mode':'Try light mode'}</button></div></section>`).join('');
+    document.querySelector('#concepts').innerHTML = designs.map(d=>`<section class="concept" data-design="${d.id}"><div class="concept-heading"><h2>${d.name}</h2><button data-focus="${d.id}">Inspect ↗</button></div><div class="device"><div class="screen ${d.skin || d.id}" data-mode="${d.mode}"><div class="status"><span>${d.id==='current'?'18:41':'09:41'}</span><span class="status-right">${icon('bars')}<span>82</span>${icon('battery')}</span></div><div class="content"></div><nav class="dock" aria-label="${d.name} navigation">${button('home', `${icon('home')} Home`)}${button('apps',`${icon('apps')} Apps`)}${button('messages',`${icon('messages')} Messages`)}</nav></div></div><div class="caption"><p>${d.description}</p><div class="swatches">${d.swatches.map(color=>`<i style="background:${color}" aria-hidden="true"></i>`).join('')}<span>${d.swatchLabel}</span></div><button class="mode-button" data-mode>${d.mode==='light'?'Try dark mode':'Try light mode'}</button></div></section>`).join('');
     function render(id) {
       const phone = document.querySelector(`[data-design="${id}"]`); const s=state[id];
       phone.querySelector('.content').innerHTML = content(id,s);
