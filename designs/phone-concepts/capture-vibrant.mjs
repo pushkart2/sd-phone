@@ -12,6 +12,16 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1150 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  const checkHomeFill = async () => {
+    const layouts = await page.locator('.home').evaluateAll(homes => homes.map(home => {
+      const content = home.closest('.content').getBoundingClientRect();
+      const grid = home.querySelector('.app-grid').getBoundingClientRect();
+      const tiles = home.querySelectorAll('[data-app-tile]');
+      const last = tiles[tiles.length - 1].getBoundingClientRect();
+      return { gridGap: content.bottom - grid.bottom, lastRowGap: content.bottom - last.bottom, overflow: home.scrollHeight > home.closest('.content').clientHeight };
+    }));
+    if (layouts.some(layout => layout.gridGap > 25 || layout.lastRowGap > 70 || layout.overflow)) throw new Error(`Home grid does not fill the available screen: ${JSON.stringify(layouts)}`);
+  };
   const checkContrast = async phone => {
     const samples = await phone.locator('.screen').evaluate(screen => {
       const luminance = color => {
@@ -80,11 +90,13 @@ try {
   for (const width of [1440, 1100, 900, 850, 390]) {
     await page.setViewportSize({ width, height: 1150 });
     await page.goto(source.href);
+    await checkHomeFill();
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error(`Horizontal page overflow at ${width}px`);
     if (await page.locator('.content').evaluateAll(elements => elements.some(el => el.scrollWidth > el.clientWidth))) throw new Error(`Horizontal phone overflow at ${width}px`);
   }
   await page.setViewportSize({ width: 1200, height: 1150 });
   await page.goto(`${source.href}?study=coast`);
+  await checkHomeFill();
   await page.screenshot({ path: fileURLToPath(new URL('coast-modes.png', output)), fullPage: true });
   for (const id of ['coast', 'coast-night']) {
     const phone = page.locator(`[data-design="${id}"]`);
