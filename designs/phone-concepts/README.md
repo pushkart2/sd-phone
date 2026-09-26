@@ -2,7 +2,9 @@
 
 Open `index.html` directly in a browser. No installation or build is needed. The file contains its own styles, scripts, and SVG icons, and does not load the production phone UI.
 
-The default view uses Paper’s original warm cream and olive palette, with a contrasting charcoal-olive dark mode. Paper’s clock, reminder, and quiet typography are retained. Apps use a familiar four-column icon grid on both the home screen and app drawer. The icon family uses consistent line artwork, soft sage tiles in light mode, muted olive tiles in dark mode, and a highlighted Messages icon with an unread badge.
+The default view uses Paper’s original warm cream and olive palette, with a contrasting charcoal-olive dark mode. Paper’s clock, reminder, and quiet typography are retained. Apps use a familiar four-column icon grid on both the home screen and app drawer.
+
+This depth experiment adds raised ceramic-style icon tiles, bevels, directional highlights, cast shadows, and pressed states. Custom layered SVG artwork gives the apps brighter moss, coral, honey, and teal accents without changing the cream/charcoal screen palette. The reminder, navigation strip, and device frame also have restrained material depth. No bitmap assets, external fonts, or graphics packages are required.
 
 | Color | Light | Dark |
 | --- | --- | --- |
