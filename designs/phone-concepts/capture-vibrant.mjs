@@ -1,26 +1,26 @@
 import { createRequire } from 'node:module';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium } = require('playwright');
 const source = new URL('./vibrant.html', import.meta.url);
 const output = new URL('./screenshots/vibrant/', import.meta.url);
+const registry = await readFile(new URL('../../web/src/shell/appRegistry.tsx', import.meta.url), 'utf8');
+const registeredApps = [...registry.split('const APP_REGISTRY = {')[1].split('satisfies Record')[0].matchAll(/^\s+(\w+):\s*(?:entry\(|\{)/gm)].map(match => match[1]).sort();
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1150 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  const checkHomeFill = async () => {
-    const layouts = await page.locator('.home').evaluateAll(homes => homes.map(home => {
+  const checkHomeGrid = async () => {
+    const layouts = await page.locator('.home:visible').evaluateAll(homes => homes.map(home => {
       const content = home.closest('.content').getBoundingClientRect();
-      const grid = home.querySelector('.app-grid').getBoundingClientRect();
-      const tiles = home.querySelectorAll('[data-app-tile]');
-      const last = tiles[tiles.length - 1].getBoundingClientRect();
-      return { gridGap: content.bottom - grid.bottom, lastRowGap: content.bottom - last.bottom, overflow: home.scrollHeight > home.closest('.content').clientHeight };
+      const grid = home.querySelector('.app-grid');
+      return { gridGap: content.bottom - grid.getBoundingClientRect().bottom, gap: parseFloat(getComputedStyle(grid).rowGap), iconSize: home.querySelector('.app-mark').getBoundingClientRect().width, scrollable: grid.scrollHeight > grid.clientHeight, overflow: home.scrollHeight > home.closest('.content').clientHeight, apps: [...grid.querySelectorAll('[data-app-tile]')].map(tile => tile.dataset.open).sort() };
     }));
-    if (layouts.some(layout => layout.gridGap > 25 || layout.lastRowGap > 70 || layout.overflow)) throw new Error(`Home grid does not fill the available screen: ${JSON.stringify(layouts)}`);
+    if (layouts.some(layout => layout.gridGap > 25 || layout.gap > 23 || layout.iconSize > 53 || !layout.scrollable || layout.overflow || JSON.stringify(layout.apps) !== JSON.stringify(registeredApps))) throw new Error(`Compact home grid or app inventory mismatch: ${JSON.stringify(layouts)}`);
   };
   const checkContrast = async phone => {
     const samples = await phone.locator('.screen').evaluate(screen => {
@@ -53,7 +53,10 @@ try {
     const phone = page.locator(`[data-design="${id}"]`);
     await checkContrast(phone);
     await page.screenshot({ path: fileURLToPath(new URL(`${id}.png`, output)), fullPage: true });
-    if (await phone.locator('[data-app-tile]').count() !== 12) throw new Error(`${id}: home grid missing`);
+    await checkHomeGrid();
+    await phone.locator('.home [data-open="racing"]').click();
+    if (await phone.locator('.app-header h3').textContent() !== 'Racing') throw new Error(`${id}: last app is inaccessible`);
+    await phone.locator('.app-header [data-open="home"]').click();
     await phone.locator('.home [data-open="bank"]').click();
     if (await phone.locator('.balance').textContent() !== '$12,480.00') throw new Error(`${id}: home icon launch failed`);
     await phone.locator('.app-header [data-open="home"]').click();
@@ -72,6 +75,8 @@ try {
     await phone.locator('.home [data-open="apps"]').click();
     await phone.locator('[data-search]').fill('no such app');
     if (!await phone.locator('[data-empty]').isVisible()) throw new Error(`${id}: empty search missing`);
+    await phone.locator('[data-search]').fill('voice');
+    if (await phone.locator('[data-app-tile]:visible').count() !== 1 || await phone.locator('[data-app-tile]:visible').getAttribute('data-open') !== 'voicememos') throw new Error(`${id}: added apps missing from search`);
     await phone.locator('[data-search]').fill('music');
     if (await phone.locator('[data-app-tile]:visible').count() !== 1) throw new Error(`${id}: search failed`);
     await phone.locator('[data-app-tile]:visible').click();
@@ -90,14 +95,16 @@ try {
   for (const width of [1440, 1100, 900, 850, 390]) {
     await page.setViewportSize({ width, height: 1150 });
     await page.goto(source.href);
-    await checkHomeFill();
+    await checkHomeGrid();
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error(`Horizontal page overflow at ${width}px`);
     if (await page.locator('.content').evaluateAll(elements => elements.some(el => el.scrollWidth > el.clientWidth))) throw new Error(`Horizontal phone overflow at ${width}px`);
   }
   await page.setViewportSize({ width: 1200, height: 1150 });
   await page.goto(`${source.href}?study=coast`);
-  await checkHomeFill();
+  await checkHomeGrid();
   await page.screenshot({ path: fileURLToPath(new URL('coast-modes.png', output)), fullPage: true });
+  await page.locator('.home .app-grid').evaluateAll(grids => grids.forEach(grid => { grid.scrollTop = grid.scrollHeight; }));
+  await page.screenshot({ path: fileURLToPath(new URL('coast-more-apps.png', output)), fullPage: true });
   for (const id of ['coast', 'coast-night']) {
     const phone = page.locator(`[data-design="${id}"]`);
     await checkContrast(phone);
