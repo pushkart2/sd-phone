@@ -4,7 +4,7 @@ Open `index.html` directly in a browser. No installation or build is needed. The
 
 The default view uses Paper’s original warm cream and olive palette, with a contrasting charcoal-olive dark mode. Paper’s clock, reminder, and quiet typography are retained. Apps use a familiar four-column icon grid on both the home screen and app drawer.
 
-This depth experiment adds raised ceramic-style icon tiles, bevels, directional highlights, cast shadows, and pressed states. Custom layered SVG artwork gives the apps brighter moss, coral, honey, and teal accents without changing the cream/charcoal screen palette. The reminder, navigation strip, and device frame also have restrained material depth. No bitmap assets, external fonts, or graphics packages are required.
+This depth experiment adds raised icon tiles, bevels, directional highlights, cast shadows, and pressed states. Icons use consistent line artwork with restrained moss, copper, gold, and teal accents. The depth comes from the tiles rather than sculpted or illustrated glyphs. The cream/charcoal screen palette is retained. The reminder, navigation strip, and device frame also have restrained material depth. No bitmap assets, external fonts, or graphics packages are required.
 
 | Color | Light | Dark |
 | --- | --- | --- |
