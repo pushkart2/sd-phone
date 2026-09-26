@@ -44,7 +44,7 @@
     .content::-webkit-scrollbar { display: none; }
     .plain { border: 0; background: none; color: inherit; padding: 0; text-align: left; }
     .home { height: 100%; min-height: 650px; display: flex; flex-direction: column; padding: 13px 20px 15px; }
-    .home > :not(.app-grid) { flex-shrink: 0; }
+    .home > :not(.home-pager) { flex-shrink: 0; }
     .greeting { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
     .greeting .icon { width: 18px; height: 18px; }
     .clock-row { display: flex; justify-content: space-between; align-items: center; margin: 13px 0 16px; }
@@ -64,7 +64,15 @@
     .app-tile { min-width: 0; display: flex; align-items: center; flex-direction: column; gap: 8px; border: 0; background: none; color: var(--ink); padding: 0; }
     .app-mark { width: 53px; height: 53px; border-radius: 11px; position: relative; display: grid; place-items: center; color: var(--glyph); background: var(--tile); border: 1px solid var(--tile); box-shadow: inset 0 1px 0 #ffffff45, 0 2px 0 #10263320, 0 3px 5px #10263312; }
     .app-mark svg { width: 33px; height: 33px; }
-    .home .app-grid { flex: 1; min-height: 0; overflow-y: auto; align-content: start; row-gap: 16px; padding: 5px 5px 12px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    .home-pager { display: flex; flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; touch-action: pan-x; scrollbar-width: none; cursor: grab; }
+    .home-pager::-webkit-scrollbar { display: none; }
+    .home-pager.dragging { cursor: grabbing; user-select: none; scroll-snap-type: none; }
+    .home .app-grid { flex: 0 0 100%; min-width: 0; height: 100%; align-content: start; row-gap: 10px; padding: 5px; scroll-snap-align: start; scroll-snap-stop: always; }
+    .home .app-tile { gap: 6px; }
+    .page-dots { display: flex; justify-content: center; height: 26px; align-items: center; gap: 2px; }
+    .page-dots button { display: grid; place-items: center; width: 24px; height: 24px; border: 0; background: none; color: var(--muted); padding: 0; }
+    .page-dots span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .35; }
+    .page-dots button[aria-current="true"] span { opacity: 1; }
     .app-label { font-size: 11px; font-weight: 500; text-align: center; }
     .app-tile:active .app-mark { box-shadow: inset 0 2px 3px #0003; }
     .count { position: absolute; right: -5px; top: -5px; width: 17px; height: 17px; background: #e95140; color: #fff; border: 2px solid var(--bg); border-radius: 4px; font-size: 10px; display: grid; place-items: center; }
@@ -247,7 +255,7 @@
       document.querySelector('h1 span').textContent = 'Coast / White & dark grey';
       document.title = 'sd-phone / Coast — White & dark grey';
     }
-    const state = Object.fromEntries(designs.map(d => [d.id, { page:'home', mode:d.mode, playing:false, messages:[], contact:'Alex Morgan' }]));
+    const state = Object.fromEntries(designs.map(d => [d.id, { page:'home', homeIndex:0, mode:d.mode, playing:false, messages:[], contact:'Alex Morgan' }]));
     const button = (id, content, cls='plain') => `<button class="${cls}" data-open="${id}" aria-label="${appNames[id] || ({home:'Home',apps:'All apps',chat:'Open conversation'}[id]) || id}">${content}</button>`;
     const tempoColors = { maps:'#24725a', music:'#856318', notes:'#40592e', camera:'#b54425', calendar:'#ac422c', services:'#885519', settings:'#526572', weather:'#856318', pages:'#856318', streaks:'#856318' };
     const tile = id => `<button class="app-tile" data-open="${id}" data-app-tile aria-label="${appNames[id]}${id === 'messages' ? ', 2 unread' : ''}"><span class="app-mark" style="--tile:${colors[id][0]};--glyph:${colors[id][1]};--current-glyph:${colors[id][2]};--tempo-glyph:${tempoColors[id] || colors[id][0]}"><svg viewBox="0 0 40 40" aria-hidden="true">${marks[id]}</svg>${id === 'messages' ? '<span class="count" aria-hidden="true">2</span>' : ''}</span><span class="app-label">${appNames[id]}</span></button>`;
@@ -255,7 +263,7 @@
     const input = label => `<label class="input-field">${icon('search')}<input data-search type="search" placeholder="${label}" aria-label="${label}"></label>`;
     const safe = value => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     function home(id) {
-      return `<div class="home"><div class="greeting"><span>${id === 'current' ? 'Good evening, Alex.' : 'Friday, September 25'}</span>${icon('sun')}</div><div class="clock-row"><div class="clock">${id === 'current' ? '18:41' : '09:41'}</div><div class="weather">${icon('sun')}<span>24°</span></div></div><div class="place">Los Santos${id === 'current' ? ' · 24° · 18:41' : ' · Clear skies'}</div>${id === 'current' ? button('music', `<div class="hero-record">${icon('record')}</div><div><span>Continue listening</span><strong>Late Shift</strong><span>Los Santos FM · Your playlist</span></div>`, 'hero-music') : ''}${button('chat', '<span class="avatar">AM</span><div class="preview-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'message-preview')}<div class="apps-caption"><span>Your apps</span>${button('apps','All apps ↗')}</div><div class="app-grid">${Object.keys(appNames).map(tile).join('')}</div></div>`;
+      return `<div class="home"><div class="greeting"><span>${id === 'current' ? 'Good evening, Alex.' : 'Friday, September 25'}</span>${icon('sun')}</div><div class="clock-row"><div class="clock">${id === 'current' ? '18:41' : '09:41'}</div><div class="weather">${icon('sun')}<span>24°</span></div></div><div class="place">Los Santos${id === 'current' ? ' · 24° · 18:41' : ' · Clear skies'}</div>${id === 'current' ? button('music', `<div class="hero-record">${icon('record')}</div><div><span>Continue listening</span><strong>Late Shift</strong><span>Los Santos FM · Your playlist</span></div>`, 'hero-music') : ''}${button('chat', '<span class="avatar">AM</span><div class="preview-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'message-preview')}<div class="apps-caption"><span>Your apps</span>${button('apps','All apps ↗')}</div><div class="home-pager" tabindex="0" aria-label="App pages. Swipe left or right, or use arrow keys."><div class="app-grid">${tile('phone')}</div></div><div class="page-dots" aria-label="Choose an app page"></div></div>`;
     }
     function content(id,s) {
       if(s.page === 'home') return home(id);
@@ -273,7 +281,67 @@
     function render(id) {
       const phone = document.querySelector(`[data-design="${id}"]`); const s=state[id];
       phone.querySelector('.content').innerHTML = content(id,s);
+      if(s.page==='home' && !phone.hidden) setupHomePaging(phone);
     }
+    function setupHomePaging(phone) {
+      const pager=phone.querySelector('.home-pager'); if(!pager || !pager.clientWidth)return;
+      const sample=pager.querySelector('.app-tile');
+      const gridStyle=getComputedStyle(pager.querySelector('.app-grid')), gap=parseFloat(gridStyle.rowGap);
+      const usableHeight=pager.clientHeight-parseFloat(gridStyle.paddingTop)-parseFloat(gridStyle.paddingBottom);
+      const perPage=Math.max(4,Math.floor((usableHeight+gap)/(sample.getBoundingClientRect().height+gap))*4);
+      const apps=Object.keys(appNames), pages=Array.from({length:Math.ceil(apps.length/perPage)},(_,index)=>apps.slice(index*perPage,(index+1)*perPage));
+      pager.innerHTML=pages.map((apps,index)=>`<div class="app-grid" role="group" aria-label="App page ${index+1} of ${pages.length}">${apps.map(tile).join('')}</div>`).join('');
+      phone.querySelector('.page-dots').innerHTML=pages.map((_,index)=>`<button data-home-page="${index}" aria-label="App page ${index+1} of ${pages.length}"><span aria-hidden="true"></span></button>`).join('');
+      const s=state[phone.dataset.design]; s.homeIndex=Math.min(s.homeIndex,pages.length-1);
+      const update=()=>{
+        s.homeIndex=Math.round(pager.scrollLeft/pager.clientWidth);
+        phone.querySelectorAll('[data-home-page]').forEach((dot,index)=>dot.setAttribute('aria-current',String(index===s.homeIndex)));
+        pager.querySelectorAll('.app-grid').forEach((grid,index)=>{grid.inert=index!==s.homeIndex;grid.setAttribute('aria-hidden',String(index!==s.homeIndex));});
+      };
+      pager.scrollLeft=s.homeIndex*pager.clientWidth; update();
+      pager.onscroll=update;
+      let drag=null;
+      pager.onpointerdown=event=>{
+        if(event.pointerType!=='mouse'||event.button!==0)return;
+        pager.suppressClickUntil=0;
+        drag={x:event.clientX,y:event.clientY,start:pager.scrollLeft,index:s.homeIndex,moved:false};
+      };
+      pager.onpointermove=event=>{
+        if(!drag)return;
+        const dx=event.clientX-drag.x;
+        if(!drag.moved && Math.abs(dx)>8 && Math.abs(dx)>Math.abs(event.clientY-drag.y)){
+          drag.moved=true;pager.classList.add('dragging');pager.setPointerCapture(event.pointerId);
+        }
+        if(drag.moved){event.preventDefault();pager.scrollLeft=drag.start-dx;}
+      };
+      const finish=(event,cancelled=false)=>{
+        if(!drag)return;
+        if(drag.moved){
+          pager.suppressClickUntil=performance.now()+350;
+          const dx=event.clientX-drag.x;
+          const index=cancelled?drag.index:drag.index+(Math.abs(dx)>pager.clientWidth*.15?(dx<0?1:-1):0);
+          pager.classList.remove('dragging');goHomePage(phone,index);
+          if(pager.hasPointerCapture(event.pointerId))pager.releasePointerCapture(event.pointerId);
+        }
+        drag=null;
+      };
+      pager.onpointerup=event=>finish(event);
+      pager.onpointercancel=event=>finish(event,true);
+      pager.onpointerleave=()=>{if(drag&&!drag.moved)drag=null;};
+      pager.onkeydown=event=>{
+        if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+        event.preventDefault();goHomePage(phone,s.homeIndex+(event.key==='ArrowRight'?1:-1));
+      };
+    }
+    function goHomePage(phone,index) {
+      const pager=phone.querySelector('.home-pager');
+      index=Math.max(0,Math.min(index,pager.children.length-1));
+      pager.scrollTo({left:index*pager.clientWidth,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    }
+    document.addEventListener('click',event=>{
+      const pager=event.target.closest('.home-pager');
+      if(pager && performance.now()<pager.suppressClickUntil){event.preventDefault();event.stopPropagation();}
+    },true);
     function changeMode(phone) {
       const s=state[phone.dataset.design]; s.mode=s.mode==='light'?'dark':'light';
       phone.querySelector('.screen').dataset.mode=s.mode;
@@ -283,6 +351,7 @@
     function focusDesign(id) {
       document.body.classList.toggle('focus',!!id);
       document.querySelectorAll('.concept').forEach(el=>el.hidden=!!id&&el.dataset.design!==id);
+      document.querySelectorAll('.concept:not([hidden])').forEach(setupHomePaging);
       const url=new URL(location.href); id?url.searchParams.set('concept',id):url.searchParams.delete('concept'); history.replaceState(null,'',url); window.scrollTo(0,0);
     }
     document.addEventListener('click',event=>{
@@ -291,6 +360,7 @@
       const page=event.target.closest('[data-page]');
       if(page){ designs.forEach(d=>{state[d.id].page=page.dataset.page;state[d.id].contact='Alex Morgan';render(d.id);});document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-pressed',String(b===page)));return; }
       const phone=event.target.closest('[data-design]'); if(!phone)return;const id=phone.dataset.design;const s=state[id];
+      const dot=event.target.closest('[data-home-page]');if(dot){goHomePage(phone,Number(dot.dataset.homePage));return;}
       if(event.target.closest('button[data-mode]')){changeMode(phone);return;}
       const open=event.target.closest('[data-open]');if(open){s.page=open.dataset.open;if(s.page==='chat')s.contact='Alex Morgan';render(id);phone.querySelector('.content').scrollTop=0;}
       const contact=event.target.closest('[data-contact]');if(contact){s.contact=contact.dataset.contact;s.page='chat';render(id);}
@@ -305,6 +375,8 @@
       if(!event.target.matches('.composer'))return;event.preventDefault();const phone=event.target.closest('[data-design]');const s=state[phone.dataset.design];const text=event.target.querySelector('input').value.trim();
       if(text){s.messages.push({contact:s.contact,text});render(phone.dataset.design);phone.querySelector('.content').scrollTop=9999;phone.querySelector('.composer input').focus();}
     });
+    let resizeFrame;
+    window.addEventListener('resize',()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>document.querySelectorAll('.concept:not([hidden])').forEach(setupHomePaging));});
     designs.forEach(d=>render(d.id));
     const requested=new URLSearchParams(location.search).get('concept');if(designs.some(d=>d.id===requested))focusDesign(requested);
   </script>

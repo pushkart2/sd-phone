@@ -17,10 +17,16 @@ try {
   const checkHomeGrid = async () => {
     const layouts = await page.locator('.home:visible').evaluateAll(homes => homes.map(home => {
       const content = home.closest('.content').getBoundingClientRect();
-      const grid = home.querySelector('.app-grid');
-      return { gridGap: content.bottom - grid.getBoundingClientRect().bottom, gap: parseFloat(getComputedStyle(grid).rowGap), iconSize: home.querySelector('.app-mark').getBoundingClientRect().width, scrollable: grid.scrollHeight > grid.clientHeight, overflow: home.scrollHeight > home.closest('.content').clientHeight, apps: [...grid.querySelectorAll('[data-app-tile]')].map(tile => tile.dataset.open).sort() };
+      const pager = home.querySelector('.home-pager'), grids = [...pager.querySelectorAll('.app-grid')];
+      return { gridGap: content.bottom - home.querySelector('.page-dots').getBoundingClientRect().bottom, gap: parseFloat(getComputedStyle(grids[0]).rowGap), iconSize: home.querySelector('.app-mark').getBoundingClientRect().width, horizontal: pager.scrollWidth > pager.clientWidth, vertical: pager.scrollHeight > pager.clientHeight + 1 || grids.some(grid => grid.scrollHeight > grid.clientHeight + 1), overflow: home.scrollHeight > home.closest('.content').clientHeight, apps: [...pager.querySelectorAll('[data-app-tile]')].map(tile => tile.dataset.open).sort() };
     }));
-    if (layouts.some(layout => layout.gridGap > 25 || layout.gap > 23 || layout.iconSize > 53 || !layout.scrollable || layout.overflow || JSON.stringify(layout.apps) !== JSON.stringify(registeredApps))) throw new Error(`Compact home grid or app inventory mismatch: ${JSON.stringify(layouts)}`);
+    if (layouts.some(layout => layout.gridGap > 25 || layout.gap > 23 || layout.iconSize > 53 || !layout.horizontal || layout.vertical || layout.overflow || JSON.stringify(layout.apps) !== JSON.stringify(registeredApps))) throw new Error(`Paged home grid or app inventory mismatch: ${JSON.stringify(layouts)}`);
+  };
+  const waitForHomePage = async (phone, index) => {
+    await page.waitForFunction(({id,index}) => {
+      const phone = document.querySelector(`[data-design="${id}"]`), pager = phone.querySelector('.home-pager');
+      return phone.querySelector(`[data-home-page="${index}"]`).getAttribute('aria-current') === 'true' && Math.abs(pager.scrollLeft-index*pager.clientWidth)<1;
+    }, {id:await phone.getAttribute('data-design'),index});
   };
   const checkContrast = async phone => {
     const samples = await phone.locator('.screen').evaluate(screen => {
@@ -54,9 +60,24 @@ try {
     await checkContrast(phone);
     await page.screenshot({ path: fileURLToPath(new URL(`${id}.png`, output)), fullPage: true });
     await checkHomeGrid();
+    const pagerBox=await phone.locator('.home-pager').boundingBox();
+    await page.mouse.move(pagerBox.x+pagerBox.width*.85,pagerBox.y+28);
+    await page.mouse.down();
+    await page.mouse.move(pagerBox.x+pagerBox.width*.15,pagerBox.y+28,{steps:12});
+    await page.mouse.up();
+    await waitForHomePage(phone,1);
+    if (!await phone.locator('.home').count()) throw new Error(`${id}: drag accidentally opened an app`);
+    await phone.locator('.home-pager').focus();
+    await page.keyboard.press('ArrowLeft');
+    await waitForHomePage(phone,0);
+    await phone.locator('[data-home-page]').last().click();
+    await waitForHomePage(phone,await phone.locator('[data-home-page]').count()-1);
     await phone.locator('.home [data-open="racing"]').click();
     if (await phone.locator('.app-header h3').textContent() !== 'Racing') throw new Error(`${id}: last app is inaccessible`);
     await phone.locator('.app-header [data-open="home"]').click();
+    if (await phone.locator('[data-home-page][aria-current="true"]').getAttribute('data-home-page') !== String(await phone.locator('[data-home-page]').count()-1)) throw new Error(`${id}: home page position lost on return`);
+    await phone.locator('[data-home-page="0"]').click();
+    await waitForHomePage(phone,0);
     await phone.locator('.home [data-open="bank"]').click();
     if (await phone.locator('.balance').textContent() !== '$12,480.00') throw new Error(`${id}: home icon launch failed`);
     await phone.locator('.app-header [data-open="home"]').click();
@@ -103,18 +124,45 @@ try {
   await page.goto(`${source.href}?study=coast`);
   await checkHomeGrid();
   await page.screenshot({ path: fileURLToPath(new URL('coast-modes.png', output)), fullPage: true });
-  await page.locator('.home .app-grid').evaluateAll(grids => grids.forEach(grid => { grid.scrollTop = grid.scrollHeight; }));
+  for (const id of ['coast','coast-night']) {
+    const phone=page.locator(`[data-design="${id}"]`);
+    await phone.locator('[data-home-page="1"]').click();
+    await waitForHomePage(phone,1);
+  }
   await page.screenshot({ path: fileURLToPath(new URL('coast-more-apps.png', output)), fullPage: true });
   for (const id of ['coast', 'coast-night']) {
     const phone = page.locator(`[data-design="${id}"]`);
     await checkContrast(phone);
+    await phone.locator('[data-home-page="0"]').click();
+    await waitForHomePage(phone,0);
     await phone.locator('.home [data-open="bank"]').click();
     if (await phone.locator('.balance').textContent() !== '$12,480.00') throw new Error(`${id}: paired preview failed`);
   }
   await page.setViewportSize({ width: 390, height: 1150 });
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error('Paired preview overflows on mobile');
+  const touchContext = await browser.newContext({ hasTouch:true, isMobile:true, viewport:{width:390,height:1150} });
+  try {
+    const touchPage=await touchContext.newPage();
+    touchPage.on('pageerror',error=>errors.push(error.message));
+    await touchPage.goto(`${source.href}?concept=coast`);
+    const session=await touchContext.newCDPSession(touchPage);
+    const box=await touchPage.locator('[data-design="coast"] .home-pager').boundingBox();
+    const swipe=async (from,to,target)=>{
+      const y=box.y+box.height*.5;
+      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:from,y}]});
+      for(let step=1;step<=10;step++) await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:from+(to-from)*step/10,y}]});
+      await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      await touchPage.waitForFunction(index=>{
+        const pager=document.querySelector('[data-design="coast"] .home-pager');
+        return pager && Math.abs(pager.scrollLeft-index*pager.clientWidth)<1 && document.querySelector(`[data-home-page="${index}"]`).getAttribute('aria-current')==='true';
+      },target);
+    };
+    await swipe(box.x+box.width*.85,box.x+box.width*.15,1);
+    await swipe(box.x+box.width*.15,box.x+box.width*.85,0);
+    if(await touchPage.locator('[data-design="coast"] .content').evaluate(el=>el.scrollTop!==0)) throw new Error('Touch swipe scrolled home vertically');
+  } finally { await touchContext.close(); }
   if (errors.length) throw new Error(errors.join('\n'));
-  console.log('Captured home, messages, banking, and music comparisons plus each palette in both appearances. Icon launches, messaging, escaping, search, playback, draft preservation, appearance, and responsive checks passed.');
+  console.log('Captured home pages, messages, banking, and music comparisons plus each palette in both appearances. Touch swipe, mouse swipe, page dots, keyboard paging, page restoration, app inventory, icon launches, messaging, search, playback, appearance, and responsive checks passed.');
 } finally {
   await browser.close();
 }
