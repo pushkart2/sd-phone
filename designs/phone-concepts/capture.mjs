@@ -114,7 +114,7 @@ try {
     await page.locator(`[data-design="${id}"] .phone-nav [data-open="apps"]`).click();
   }
   await page.screenshot({ path: fileURLToPath(new URL('paper-mosaic-apps-comparison.png', screenshots)), fullPage: true });
-  console.log('Captured original studies and Paper × Mosaic light/dark icon grids, apps, and messages. Icon launches, navigation, messaging, search, player, contrast, theme switching, draft preservation, and responsive checks passed.');
+  console.log('Captured original studies and Paper cream/charcoal icon grids, apps, and messages. Icon launches, navigation, messaging, search, player, contrast, theme switching, draft preservation, and responsive checks passed.');
 } finally {
   await browser.close();
 }

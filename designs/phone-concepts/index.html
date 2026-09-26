@@ -24,7 +24,7 @@
     .collection-link { color: inherit; text-underline-offset: 3px; }
     .theme-picker { display: flex; gap: 20px; max-width: 378px; margin: -5px auto 16px; }
     .theme-picker button { padding: 7px 0; border: 0; border-bottom: 2px solid transparent; background: transparent; font-size: 12px; color: #74746b; }
-    .theme-picker button[aria-pressed="true"] { color: #242423; border-bottom-color: #755494; }
+    .theme-picker button[aria-pressed="true"] { color: #242423; border-bottom-color: #516642; }
     .concept { min-width: 0; }
     .concept-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
     .number { color: #76766d; font-family: monospace; font-size: 12px; }
@@ -36,8 +36,8 @@
     .signal { --bg: #151514; --ink: #f1f0e9; --muted: #a1a198; --line: #363632; --accent: #ed6b38; --surface: #232321; }
     .paper { --bg: #f2f1e8; --ink: #283728; --muted: #6e7668; --line: #d1d5c6; --accent: #516642; --surface: #e7eadb; }
     .mosaic { --bg: #1c1822; --ink: #eee9f4; --muted: #b1a6be; --line: #41364c; --accent: #b8a1d8; --surface: #302638; }
-    .hybrid[data-theme="light"] { color-scheme: light; --bg: #f1edf5; --ink: #30243b; --muted: #6e5d79; --line: #d6ccdf; --accent: #755494; --surface: #e5dced; }
-    .hybrid[data-theme="dark"] { color-scheme: dark; --bg: #1c1822; --ink: #eee9f4; --muted: #b1a6be; --line: #41364c; --accent: #b8a1d8; --surface: #302638; }
+    .hybrid[data-theme="light"] { color-scheme: light; --bg: #f2f1e8; --ink: #283728; --muted: #606653; --line: #d1d5c6; --accent: #516642; --surface: #e6e9dc; }
+    .hybrid[data-theme="dark"] { color-scheme: dark; --bg: #20231e; --ink: #f2f1e8; --muted: #b6baab; --line: #444b3d; --accent: #bdc9a7; --surface: #30362b; }
     .hybrid .phone-nav button.active { color: var(--accent); font-weight: 700; }
     .hybrid .music-cover { background: var(--surface); }
     .hybrid .music-cover svg { color: var(--accent); }
@@ -247,8 +247,8 @@
     const queryParams = new URLSearchParams(location.search);
     const originalStudy = queryParams.get('collection') === 'original' || originals.some(d => d.id === queryParams.get('concept'));
     const modeDescription = {
-      light: { description: 'Paper’s clock and reminder, with a familiar app grid. Lavender icon tiles, plum line artwork, and clear labels.', detail: 'Lavender #f1edf5 / plum #30243b / violet #755494' },
-      dark: { description: 'The same icon grid after dark. Aubergine paper, muted plum icon tiles, and soft lilac artwork.', detail: 'Aubergine #1c1822 / chalk #eee9f4 / lilac #b8a1d8' },
+      light: { description: 'Warm cream paper, olive ink, and soft sage icon tiles. The original Paper palette with the familiar app grid.', detail: 'Cream #f2f1e8 / olive #283728 / moss #516642' },
+      dark: { description: 'Deep charcoal with a quiet olive undertone. Cream text and pale sage icons keep the same warm character after dark.', detail: 'Charcoal #20231e / cream #f2f1e8 / sage #bdc9a7' },
     };
     const designs = originalStudy ? originals : [
       { id: 'paper-mosaic-light', name: 'Light mode', layout: 'paper', theme: 'light', ...modeDescription.light },
@@ -256,12 +256,12 @@
     ];
     if (!originalStudy) {
       document.querySelector('.studio').classList.add('hybrid-study');
-      document.querySelector('.studio-header h1 span').textContent = 'Paper × Mosaic';
+      document.querySelector('.studio-header h1 span').textContent = 'Paper / Cream & charcoal';
       document.querySelector('.studio-header p').textContent = 'One layout. Two appearances.';
       document.querySelector('.studio-footer span:last-child').innerHTML = '<a class="collection-link" href="?collection=original">Original designs ↗</a>';
-      document.title = 'sd-phone / Paper × Mosaic';
+      document.title = 'sd-phone / Paper — Cream & charcoal';
     } else {
-      document.querySelector('.studio-footer span:last-child').innerHTML = '<a class="collection-link" href="?">Paper × Mosaic ↗</a>';
+      document.querySelector('.studio-footer span:last-child').innerHTML = '<a class="collection-link" href="?">Cream & charcoal ↗</a>';
     }
     const state = Object.fromEntries(designs.map(d => [d.id, { page: 'home', theme: d.theme, playing: false, sent: [], chat: 'Alex Morgan' }]));
     const themeButtons = s => ['light', 'dark'].map(mode => `<button data-theme-choice="${mode}" aria-pressed="${s.theme === mode}">${mode === 'light' ? 'Light' : 'Dark'}</button>`).join('');
@@ -290,7 +290,7 @@
       if (s.page === 'music') return `<div class="app-page">${title('Music')}<div class="music-cover">${icon('record')}</div><div class="music-caption">Night Drive<p>The Midnight</p></div><div class="music-controls"><button class="plain" data-notice="First track in the demo." aria-label="Previous track" style="rotate:180deg">${icon('skip')}</button><button class="play-button" data-play aria-label="${s.playing ? 'Pause' : 'Play'} music">${icon(s.playing ? 'pause' : 'play')}</button><button class="plain" data-notice="Only one track in the demo." aria-label="Next track">${icon('skip')}</button></div><p class="empty-state" style="text-align:center">${s.playing ? 'Playing · visual preview only' : 'Paused · visual preview only'}</p></div>`;
       if (s.page === 'maps') return `<div class="app-page">${title('Maps')}<svg class="demo-map" viewBox="0 0 320 280" aria-label="Illustrative street map"><rect width="320" height="280" fill="var(--surface)"/><g stroke="var(--line)" stroke-width="12"><path d="M-20 20 350 220M-20 120 320 300M50-20 230 300M170-20 350 260M-20 230 330 20"/></g><path d="m75 190 75-46 40 20" stroke="var(--accent)" stroke-width="5" fill="none"/><circle cx="75" cy="190" r="7" fill="var(--accent)"/><circle cx="190" cy="164" r="7" fill="var(--accent)"/><text x="180" y="148" fill="var(--ink)" font-size="11">Benny’s</text><text x="25" y="245" fill="var(--muted)" font-size="11">Strawberry</text></svg><div class="transaction"><div>Benny’s Workshop<p>3 min · 0.8 miles</p></div>${icon('pin')}</div><button class="demo-button" style="margin-top:20px" data-notice="Route preview started.">Start route</button></div>`;
       if (s.page === 'notes') return `<div class="app-page">${title('Notes')}${[['Shopping','Coffee, sandwich, repair kit'],['Sultan upgrades','Suspension, brakes, respray'],['Weekend plan','Meet Jamie at Vespucci Beach']].map(([name,desc]) => `<div class="transaction"><div>${name}<p>${desc}</p></div>${icon('notes')}</div>`).join('')}</div>`;
-      if (s.page === 'settings') return `<div class="app-page">${title('Settings')}${s.theme ? `<div class="balance-label">Appearance</div><div class="settings-theme" role="group" aria-label="Phone appearance">${themeButtons(s)}</div>` : ''}${(s.theme ? ['Notifications','Sound & vibration','Network','Privacy'] : ['Appearance','Notifications','Sound & vibration','Network','Privacy']).map(name => `<button class="app-list-item" data-notice="${name} settings are a visual preview."><span>${name}</span>${icon('arrow')}</button>`).join('')}<p class="empty-state">${s.theme ? 'Paper × Mosaic' : designs.find(d => d.id === s.id)?.name || 'Phone'} concept<br>Battery 82% · Connected to LS Network</p></div>`;
+      if (s.page === 'settings') return `<div class="app-page">${title('Settings')}${s.theme ? `<div class="balance-label">Appearance</div><div class="settings-theme" role="group" aria-label="Phone appearance">${themeButtons(s)}</div>` : ''}${(s.theme ? ['Notifications','Sound & vibration','Network','Privacy'] : ['Appearance','Notifications','Sound & vibration','Network','Privacy']).map(name => `<button class="app-list-item" data-notice="${name} settings are a visual preview."><span>${name}</span>${icon('arrow')}</button>`).join('')}<p class="empty-state">${s.theme ? 'Paper / Cream & charcoal' : designs.find(d => d.id === s.id)?.name || 'Phone'} concept<br>Battery 82% · Connected to LS Network</p></div>`;
       return `<div class="app-page">${title(appNames[s.page] || s.page)}<p class="empty-state">This app is a placeholder in the design study. Try Messages, Bank, Music, Maps, Phone, or Notes to see an example screen.</p>${open('apps', 'Browse all apps', 'demo-button')}</div>`;
     }
     function render(id) {
