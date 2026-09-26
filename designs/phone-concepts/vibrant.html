@@ -52,7 +52,6 @@
     .weather { background: #ffe2b9; color: #613d14; width: 60px; height: 63px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 5px; font-size: 14px; }
     .weather .icon { width: 24px; height: 24px; }
     .place { color: var(--muted); font-size: 12px; margin-bottom: 19px; }
-    .message-preview { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 13px; display: flex; gap: 10px; align-items: center; color: var(--ink); text-align: left; }
     .avatar { width: 36px; height: 36px; display: grid; place-items: center; background: #ffd0b9; color: #733724; border-radius: 7px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
     .preview-copy { flex: 1; font-size: 13px; line-height: 1.45; }
     .preview-copy > div { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
@@ -100,7 +99,6 @@
     .current[data-mode="light"] .app-mark { background: var(--tile); border-color: var(--tile); color: var(--glyph); }
     .tempo .clock { font-size: 78px; color: var(--accent); letter-spacing: -4px; }
     .tempo .weather { background: var(--accent); color: var(--on-accent); }
-    .tempo .message-preview { border: 0; background: var(--accent); color: var(--on-accent); }
     .tempo .preview-copy p, .tempo .preview-copy time { color: var(--on-accent); }
     .tempo .avatar { background: #ffffff85; color: #244093; }
     .tempo .app-mark { background: #f5f6ed; color: var(--tempo-glyph); border-color: #f5f6ed; }
@@ -263,7 +261,7 @@
     const input = label => `<label class="input-field">${icon('search')}<input data-search type="search" placeholder="${label}" aria-label="${label}"></label>`;
     const safe = value => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     function home(id) {
-      return `<div class="home"><div class="greeting"><span>${id === 'current' ? 'Good evening, Alex.' : 'Friday, September 25'}</span>${icon('sun')}</div><div class="clock-row"><div class="clock">${id === 'current' ? '18:41' : '09:41'}</div><div class="weather">${icon('sun')}<span>24°</span></div></div><div class="place">Los Santos${id === 'current' ? ' · 24° · 18:41' : ' · Clear skies'}</div>${id === 'current' ? button('music', `<div class="hero-record">${icon('record')}</div><div><span>Continue listening</span><strong>Late Shift</strong><span>Los Santos FM · Your playlist</span></div>`, 'hero-music') : ''}${button('chat', '<span class="avatar">AM</span><div class="preview-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'message-preview')}<div class="apps-caption"><span>Your apps</span>${button('apps','All apps ↗')}</div><div class="home-pager" tabindex="0" aria-label="App pages. Swipe left or right, or use arrow keys."><div class="app-grid">${tile('phone')}</div></div><div class="page-dots" aria-label="Choose an app page"></div></div>`;
+      return `<div class="home"><div class="greeting"><span>${id === 'current' ? 'Good evening, Alex.' : 'Friday, September 25'}</span>${icon('sun')}</div><div class="clock-row"><div class="clock">${id === 'current' ? '18:41' : '09:41'}</div><div class="weather">${icon('sun')}<span>24°</span></div></div><div class="place">Los Santos${id === 'current' ? ' · 24° · 18:41' : ' · Clear skies'}</div>${id === 'current' ? button('music', `<div class="hero-record">${icon('record')}</div><div><span>Continue listening</span><strong>Late Shift</strong><span>Los Santos FM · Your playlist</span></div>`, 'hero-music') : ''}<div class="apps-caption"><span>Your apps</span>${button('apps','All apps ↗')}</div><div class="home-pager" tabindex="0" aria-label="App pages. Swipe left or right, or use arrow keys."><div class="app-grid">${tile('phone')}</div></div><div class="page-dots" aria-label="Choose an app page"></div></div>`;
     }
     function content(id,s) {
       if(s.page === 'home') return home(id);

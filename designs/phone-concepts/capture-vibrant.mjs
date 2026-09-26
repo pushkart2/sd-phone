@@ -15,6 +15,7 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const checkHomeGrid = async () => {
+    if (await page.locator('.home .message-preview, .home [data-open="chat"]').count()) throw new Error('Removed home message preview is still present');
     const layouts = await page.locator('.home:visible').evaluateAll(homes => homes.map(home => {
       const content = home.closest('.content').getBoundingClientRect();
       const pager = home.querySelector('.home-pager'), grids = [...pager.querySelectorAll('.app-grid')];
