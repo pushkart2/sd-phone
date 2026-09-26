@@ -19,6 +19,12 @@
     .studio-header h1 span { color: #74746b; font-weight: 400; margin-left: 12px; }
     .studio-header p { margin: 0; font-size: 13px; color: #616159; }
     .concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; margin-top: 28px; }
+    .hybrid-study { max-width: 1040px; }
+    .hybrid-study .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; }
+    .collection-link { color: inherit; text-underline-offset: 3px; }
+    .theme-picker { display: flex; gap: 20px; max-width: 378px; margin: -5px auto 16px; }
+    .theme-picker button { padding: 7px 0; border: 0; border-bottom: 2px solid transparent; background: transparent; font-size: 12px; color: #74746b; }
+    .theme-picker button[aria-pressed="true"] { color: #242423; border-bottom-color: #755494; }
     .concept { min-width: 0; }
     .concept-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
     .number { color: #76766d; font-family: monospace; font-size: 12px; }
@@ -30,6 +36,14 @@
     .signal { --bg: #151514; --ink: #f1f0e9; --muted: #a1a198; --line: #363632; --accent: #ed6b38; --surface: #232321; }
     .paper { --bg: #f2f1e8; --ink: #283728; --muted: #6e7668; --line: #d1d5c6; --accent: #516642; --surface: #e7eadb; }
     .mosaic { --bg: #1c1822; --ink: #eee9f4; --muted: #b1a6be; --line: #41364c; --accent: #b8a1d8; --surface: #302638; }
+    .hybrid[data-theme="light"] { color-scheme: light; --bg: #f1edf5; --ink: #30243b; --muted: #6e5d79; --line: #d6ccdf; --accent: #755494; --surface: #e5dced; }
+    .hybrid[data-theme="dark"] { color-scheme: dark; --bg: #1c1822; --ink: #eee9f4; --muted: #b1a6be; --line: #41364c; --accent: #b8a1d8; --surface: #302638; }
+    .hybrid .phone-nav button.active { color: var(--accent); font-weight: 700; }
+    .hybrid .music-cover { background: var(--surface); }
+    .hybrid .music-cover svg { color: var(--accent); }
+    .hybrid .settings-theme { display: flex; gap: 8px; padding: 14px 0 20px; border-bottom: 1px solid var(--line); }
+    .hybrid .settings-theme button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 9px 14px; font-size: 13px; }
+    .hybrid .settings-theme button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
     .status { height: 38px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 11px; font-weight: 600; }
     .status-right { display: flex; align-items: center; gap: 7px; }
     .status svg { width: 13px; height: 13px; }
@@ -165,6 +179,7 @@
     .toast { position: absolute; bottom: 77px; left: 18px; right: 18px; background: var(--ink); color: var(--bg); padding: 13px 15px; border-radius: 5px; font-size: 12px; z-index: 5; }
     @media (max-width: 1100px) { .concepts { gap: 22px; } .studio { padding: 24px; } .device { min-height: 745px; aspect-ratio: auto; } .signal-clock { font-size: 64px; } .signal-grid button { padding: 9px; } .paper-list button { padding: 14px 0; } }
     @media (max-width: 850px) { .concepts { grid-template-columns: 1fr; gap: 36px; } .concept { width: 100%; max-width: 378px; margin: auto; } .device { aspect-ratio: 378 / 780; min-height: 0; } .studio-header { align-items: start; } .studio-header p { max-width: 160px; line-height: 1.5; } .studio-footer { line-height: 1.5; } }
+    @media (max-width: 850px) { .hybrid-study .concepts { grid-template-columns: 1fr; gap: 36px; } }
     @media (prefers-reduced-motion: no-preference) { button { transition: background-color 120ms ease, color 120ms ease; } }
   </style>
 </head>
@@ -213,12 +228,32 @@
     };
     const icon = (name, extra = '') => `<svg class="icon ${extra}" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.apps}</svg>`;
     const appNames = { phone: 'Phone', messages: 'Messages', bank: 'Bank', maps: 'Maps', camera: 'Camera', photos: 'Photos', music: 'Music', notes: 'Notes', settings: 'Settings', calendar: 'Calendar', mail: 'Mail', squawk: 'Squawk', services: 'Services', weather: 'Weather', garages: 'Garages' };
-    const designs = [
+    const originals = [
       { id: 'signal', name: 'Signal', description: 'A compact, utilitarian launcher. Orange wayfinding, a fixed app matrix, and messages at a glance.', detail: 'Graphite / ember · Structured grid' },
       { id: 'paper', name: 'Paper', description: 'A quieter phone. Olive ink, a readable app list, and a daily reminder instead of a wall of icons.', detail: 'Chalk / olive · Typographic list' },
       { id: 'mosaic', name: 'Mosaic', description: 'The apps become useful tiles. See a conversation, your balance, and your music before opening anything.', detail: 'Aubergine / lilac · Content tiles' },
     ];
-    const state = Object.fromEntries(designs.map(d => [d.id, { page: 'home', playing: false, sent: [], chat: 'Alex Morgan' }]));
+    const queryParams = new URLSearchParams(location.search);
+    const originalStudy = queryParams.get('collection') === 'original' || originals.some(d => d.id === queryParams.get('concept'));
+    const modeDescription = {
+      light: { description: 'Paper’s readable list, in Mosaic’s color family. Pale lavender paper, plum text, and a deeper violet accent.', detail: 'Lavender #f1edf5 / plum #30243b / violet #755494' },
+      dark: { description: 'The same layout after dark. Deep aubergine replaces the paper, with soft lilac text and accents.', detail: 'Aubergine #1c1822 / chalk #eee9f4 / lilac #b8a1d8' },
+    };
+    const designs = originalStudy ? originals : [
+      { id: 'paper-mosaic-light', name: 'Light mode', layout: 'paper', theme: 'light', ...modeDescription.light },
+      { id: 'paper-mosaic-dark', name: 'Dark mode', layout: 'paper', theme: 'dark', ...modeDescription.dark },
+    ];
+    if (!originalStudy) {
+      document.querySelector('.studio').classList.add('hybrid-study');
+      document.querySelector('.studio-header h1 span').textContent = 'Paper × Mosaic';
+      document.querySelector('.studio-header p').textContent = 'One layout. Two appearances.';
+      document.querySelector('.studio-footer span:last-child').innerHTML = '<a class="collection-link" href="?collection=original">Original designs ↗</a>';
+      document.title = 'sd-phone / Paper × Mosaic';
+    } else {
+      document.querySelector('.studio-footer span:last-child').innerHTML = '<a class="collection-link" href="?">Paper × Mosaic ↗</a>';
+    }
+    const state = Object.fromEntries(designs.map(d => [d.id, { page: 'home', theme: d.theme, playing: false, sent: [], chat: 'Alex Morgan' }]));
+    const themeButtons = s => ['light', 'dark'].map(mode => `<button data-theme-choice="${mode}" aria-pressed="${s.theme === mode}">${mode === 'light' ? 'Light' : 'Dark'}</button>`).join('');
     const open = (app, content, css = '') => `<button class="${css || 'plain'}" data-open="${app}" aria-label="${appNames[app] || ({ home: 'Home', apps: 'All apps', chat: 'Open conversation' }[app]) || app}">${content}</button>`;
     function signalHome(s) {
       return `<div class="signal-home"><div class="signal-mast"><div class="signal-mark">${icon('bars')} Signal</div><span>Los Santos</span></div><div class="signal-clock">09:41</div><div class="signal-date"><span>Friday, September 25</span><span>${icon('sun')} 24°</span></div>${open('chat', '<span class="initial">AM</span><div class="message-copy"><div><strong>Alex Morgan</strong><time>2 min</time></div><p>Meet you at the garage?</p></div>', 'signal-message plain')}<div class="section-row"><span>Quick access</span>${open('apps', 'All apps ↗')}</div><div class="signal-grid">${['phone','messages','bank','maps','camera','photos'].map(id => open(id, `${icon(id)}<span>${appNames[id]}</span>`)).join('')}</div><div class="signal-player"><div class="record-art">${icon('record')}</div>${open('music', '<div class="track">Night Drive<p>The Midnight · 03:42</p></div>', 'plain track')}<button class="play-button" data-play aria-label="${s.playing ? 'Pause' : 'Play'} music">${icon(s.playing ? 'pause' : 'play')}</button></div></div>`;
@@ -240,17 +275,26 @@
       if (s.page === 'music') return `<div class="app-page">${title('Music')}<div class="music-cover">${icon('record')}</div><div class="music-caption">Night Drive<p>The Midnight</p></div><div class="music-controls"><button class="plain" data-notice="First track in the demo." aria-label="Previous track" style="rotate:180deg">${icon('skip')}</button><button class="play-button" data-play aria-label="${s.playing ? 'Pause' : 'Play'} music">${icon(s.playing ? 'pause' : 'play')}</button><button class="plain" data-notice="Only one track in the demo." aria-label="Next track">${icon('skip')}</button></div><p class="empty-state" style="text-align:center">${s.playing ? 'Playing · visual preview only' : 'Paused · visual preview only'}</p></div>`;
       if (s.page === 'maps') return `<div class="app-page">${title('Maps')}<svg class="demo-map" viewBox="0 0 320 280" aria-label="Illustrative street map"><rect width="320" height="280" fill="var(--surface)"/><g stroke="var(--line)" stroke-width="12"><path d="M-20 20 350 220M-20 120 320 300M50-20 230 300M170-20 350 260M-20 230 330 20"/></g><path d="m75 190 75-46 40 20" stroke="var(--accent)" stroke-width="5" fill="none"/><circle cx="75" cy="190" r="7" fill="var(--accent)"/><circle cx="190" cy="164" r="7" fill="var(--accent)"/><text x="180" y="148" fill="var(--ink)" font-size="11">Benny’s</text><text x="25" y="245" fill="var(--muted)" font-size="11">Strawberry</text></svg><div class="transaction"><div>Benny’s Workshop<p>3 min · 0.8 miles</p></div>${icon('pin')}</div><button class="demo-button" style="margin-top:20px" data-notice="Route preview started.">Start route</button></div>`;
       if (s.page === 'notes') return `<div class="app-page">${title('Notes')}${[['Shopping','Coffee, sandwich, repair kit'],['Sultan upgrades','Suspension, brakes, respray'],['Weekend plan','Meet Jamie at Vespucci Beach']].map(([name,desc]) => `<div class="transaction"><div>${name}<p>${desc}</p></div>${icon('notes')}</div>`).join('')}</div>`;
-      if (s.page === 'settings') return `<div class="app-page">${title('Settings')}${['Appearance','Notifications','Sound & vibration','Network','Privacy'].map(name => `<button class="app-list-item" data-notice="${name} preview — this concept keeps a fixed appearance."><span>${name}</span>${icon('arrow')}</button>`).join('')}<p class="empty-state">${designs.find(d => d.id === s.id)?.name || 'Phone'} concept<br>Battery 82% · Connected to LS Network</p></div>`;
+      if (s.page === 'settings') return `<div class="app-page">${title('Settings')}${s.theme ? `<div class="balance-label">Appearance</div><div class="settings-theme" role="group" aria-label="Phone appearance">${themeButtons(s)}</div>` : ''}${(s.theme ? ['Notifications','Sound & vibration','Network','Privacy'] : ['Appearance','Notifications','Sound & vibration','Network','Privacy']).map(name => `<button class="app-list-item" data-notice="${name} settings are a visual preview."><span>${name}</span>${icon('arrow')}</button>`).join('')}<p class="empty-state">${s.theme ? 'Paper × Mosaic' : designs.find(d => d.id === s.id)?.name || 'Phone'} concept<br>Battery 82% · Connected to LS Network</p></div>`;
       return `<div class="app-page">${title(appNames[s.page] || s.page)}<p class="empty-state">This app is a placeholder in the design study. Try Messages, Bank, Music, Maps, Phone, or Notes to see an example screen.</p>${open('apps', 'Browse all apps', 'demo-button')}</div>`;
     }
     function render(id) {
       const s = state[id]; s.id = id;
       const phone = document.querySelector(`[data-design="${id}"]`);
-      phone.querySelector('.screen-content').innerHTML = s.page === 'home' ? ({ signal: signalHome, paper: paperHome, mosaic: mosaicHome }[id])(s) : appPage(s);
+      const layout = designs.find(d => d.id === id).layout || id;
+      phone.querySelector('.screen-content').innerHTML = s.page === 'home' ? ({ signal: signalHome, paper: paperHome, mosaic: mosaicHome }[layout])(s) : appPage(s);
       phone.querySelectorAll('.phone-nav button').forEach(b => b.classList.toggle('active', b.dataset.open === s.page || (b.dataset.open === 'messages' && s.page === 'chat')));
     }
     const nav = id => `<nav class="phone-nav" aria-label="${id} phone navigation">${open('home', `${icon('home')}<span>Home</span>`)}${open('apps', `${icon('apps')}<span>Apps</span>`)}${open('messages', `${icon('messages')}<span>Messages</span>`)}</nav>`;
-    document.querySelector('#concepts').innerHTML = designs.map((d,i) => `<section class="concept" data-design="${d.id}"><div class="concept-heading"><span class="number">0${i + 1}</span><h2>${d.name}</h2><button class="inspect" data-focus="${d.id}" aria-label="Inspect ${d.name}">Inspect ↗</button></div><div class="device"><div class="screen ${d.id}"><div class="status"><span>09:41</span><span class="status-right">${icon('bars')}${icon('wifi')}<span>82</span>${icon('battery','battery')}</span></div><div class="screen-content"></div>${nav(d.id)}</div></div><div class="caption"><p>${d.description}</p><div class="detail">${d.detail}</div></div></section>`).join('');
+    document.querySelector('#concepts').innerHTML = designs.map((d,i) => `<section class="concept" data-design="${d.id}"><div class="concept-heading"><span class="number">0${i + 1}</span><h2>${d.name}</h2><button class="inspect" data-focus="${d.id}" aria-label="Inspect ${d.name}">Inspect ↗</button></div>${d.theme ? `<div class="theme-picker" role="group" aria-label="Phone appearance">${themeButtons(state[d.id])}</div>` : ''}<div class="device"><div class="screen ${d.theme ? 'hybrid' : d.id}" ${d.theme ? `data-theme="${d.theme}"` : ''}><div class="status"><span>09:41</span><span class="status-right">${icon('bars')}${icon('wifi')}<span>82</span>${icon('battery','battery')}</span></div><div class="screen-content"></div>${nav(d.id)}</div></div><div class="caption"><p>${d.description}</p><div class="detail">${d.detail}</div></div></section>`).join('');
+    function setTheme(phone, theme) {
+      const s = state[phone.dataset.design]; s.theme = theme;
+      phone.querySelector('.screen').dataset.theme = theme;
+      phone.querySelector('h2').textContent = theme === 'light' ? 'Light mode' : 'Dark mode';
+      phone.querySelector('.caption p').textContent = modeDescription[theme].description;
+      phone.querySelector('.caption .detail').textContent = modeDescription[theme].detail;
+      phone.querySelectorAll('[data-theme-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme)));
+    }
     function focusDesign(id) {
       document.body.classList.toggle('focused', !!id);
       document.querySelectorAll('.concept').forEach(el => el.classList.toggle('is-hidden', !!id && el.dataset.design !== id));
@@ -262,6 +306,8 @@
       if (event.target.closest('#exit-focus')) { focusDesign(null); return; }
       const phone = event.target.closest('[data-design]'); if (!phone) return;
       const s = state[phone.dataset.design];
+      const themeChoice = event.target.closest('[data-theme-choice]');
+      if (themeChoice) { setTheme(phone, themeChoice.dataset.themeChoice); return; }
       const button = event.target.closest('[data-open]');
       if (button) { s.page = button.dataset.open; if (s.page === 'chat') s.chat = 'Alex Morgan'; render(s.id); phone.querySelector('.screen-content').scrollTop = 0; }
       const chat = event.target.closest('[data-chat]'); if (chat) { s.page = 'chat'; s.chat = chat.dataset.chat; render(s.id); }
